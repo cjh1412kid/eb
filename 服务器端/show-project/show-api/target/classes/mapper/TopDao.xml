@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.dao.TopDao">
+
+	
+	<!-- 试穿Top20：查询 NWGoods_TryShoesDetail_isValid_periodSeq表 多个门店 起止时间内 试穿数量从大到小前topNum的货号+试穿次数+平均试穿时间 -->
+	<select id="getTopGoodIdTryCount" resultType="java.util.Map">
+		SELECT 
+			TOP ${topNum} ShoeID AS shoeId, COUNT (1) AS tryCount, SUM (TryTimes) AS tryTimes
+		FROM 
+		
+		<foreach collection="periodSeqList" index="index"  item="item" open="(" separator="UNION" close=") A">
+			SELECT 
+				ShoeID, TryTimes, ShopSeq, DataTime, Del 
+			FROM 
+				YHSmartDataRetail.dbo.NWGoods_TryShoesDetail_${isValid}_${item}
+         </foreach>
+
+		WHERE 
+			Del = 0 AND
+			DateDiff(dd, #{startDate}, DataTime) >= 0 AND DateDiff(dd, DataTime, #{endDate}) >= 0 
+			AND ShopSeq IN (${shopSeqs})
+		GROUP BY ShoeID
+		ORDER BY tryCount DESC
+	</select>
+	
+	
+	
+	<!-- 试穿Top20中销量： 获取指定 '门店序号'，指定 '起止日期' 时间段内某 '货号' 的销售量 -->
+	<select id="getShoeIdSalesFromShopsInSomeDate" resultType="java.lang.Integer">
+		SELECT 
+			SUM (SaleCount) 
+		FROM 
+			YHSmartDataRetail.dbo.NWGoods_SaleShoesDetail_${periodSeq} 
+		WHERE
+			Del = 0 AND ShopSeq IN (${shopSeqs}) 
+			AND ShoeID = #{shoeId} 
+			AND DateDiff(dd, #{startDate}, SaleDate) &gt;= 0 
+			AND DateDiff(dd, SaleDate, #{endDate}) &gt;= 0
+	</select>
+	
+	
+	
+		
+	<!-- 销售、滞销Top20: 查询多个_波次分表 区域内 某时间段内销量top20 -->
+	<select id="getTopGoodIdSaleCount" resultType="java.util.Map">
+		SELECT 
+			TOP ${topNum} ShoeID AS shoeId, SUM (SaleCount) AS saleCount
+		FROM 
+		
+		<foreach collection="periodSeqList" index="index"  item="item" open="(" separator="UNION" close=") A">
+			SELECT 
+				ShoeID, SaleCount, AreaSeq, BranchOfficeSeq, ShopSeq, SaleDate, Del 
+			FROM 
+				YHSmartDataRetail.dbo.NWGoods_SaleShoesDetail_${item}
+         </foreach>
+
+		WHERE 
+			Del = 0
+			<if test = "type==2">
+			    AND AreaSeq IN (${areaSeqs})
+			</if>
+			<if test = "type==3">
+			    AND BranchOfficeSeq IN (${areaSeqs})
+			</if>
+			<if test = "type==4">
+			    AND ShopSeq IN (${areaSeqs})
+			</if>
+			AND DateDiff(dd, #{startDate}, SaleDate) >= 0 AND DateDiff(dd, SaleDate, #{endDate}) >= 0 
+
+		GROUP BY ShoeID
+		
+		<if test = "topType==1">
+			ORDER BY saleCount DESC
+		</if>
+		<if test = "topType==2">
+			ORDER BY saleCount ASC
+		</if>
+
+	</select>
+	
+	
+	<!-- 销售、滞销Top20中的试穿次数和时间： 查询某货号，试穿次数+总时间 -->
+	<select id="getShoeIdTryCountTimesMap" resultType="java.util.Map">
+ 		SELECT 
+			COUNT (1) AS tryCount, SUM (TryTimes) AS tryTimes 
+		FROM 
+			YHSmartDataRetail.dbo.NWGoods_TryShoesDetail_Valid_${periodSeq}
+		WHERE
+			Del = 0 
+			AND ShopSeq IN (${shopSeqs})
+			AND ShoeID = #{shoeId} 
+			AND DateDiff(dd, #{startDate}, DataTime) >= 0 AND DateDiff(dd, DataTime, #{endDate}) >= 0 
+	</select>
+	
+	
+	
+	
+	<!-- 大屏试穿Top20中销量：获取全国、本月、某 货号的销售量 -->
+	<select id="getCountryMonthShoeIdSales" resultType="java.lang.Integer">
+		SELECT 
+			SUM (SaleCount) 
+		FROM 
+			YHSmartDataRetail.dbo.NWGoods_SaleShoesDetail_${periodSeq} 
+		WHERE
+			Del = 0
+			AND ShoeID = #{shoeId} 
+			AND SaleDate >= #{startDate} 
+	</select>
+	
+	
+	<!-- 大屏销售top20中试穿量和时间:  获取某货号试穿次数、试穿时间 -->
+	<select id="getCountryMonthShoeIdTryCountMap" resultType="java.util.Map">
+ 		SELECT 
+			COUNT (1) AS tryCount, SUM (TryTimes) AS tryTimes 
+		FROM 
+			YHSmartDataRetail.dbo.NWGoods_TryShoesDetail_Valid_${periodSeq}
+		WHERE
+			Del = 0 
+			AND ShoeID = #{shoeId} 
+			AND DataTime >= #{startDate}
+	</select>
+	
+	
+</mapper>

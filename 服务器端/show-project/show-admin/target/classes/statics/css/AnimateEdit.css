@@ -1,0 +1,337 @@
+html, body {
+    height: 100%;
+    overflow: auto;
+}
+
+.container, .container-fluid {
+    height: 100%;
+}
+
+.row {
+    height: 100%;
+    background-color: #122b40;
+    text-align: center;
+}
+
+.row > div {
+    height: 100%;
+}
+
+.material_panel, .shop_select_panel, .template_tree_panel, .end_panel {
+    position: relative;
+    width: 100%;
+    background-color: #eee;
+    text-align: left;
+}
+
+.material_panel, .template_tree_panel {
+    height: 50%;
+}
+
+.end_panel {
+    height: 20%;
+}
+
+.shop_select_panel {
+    height: 30%;
+}
+
+.my-panel-title {
+    width: 100%;
+    text-align: center;
+    font-family: 微软雅黑;
+    color: white;
+    background-color: #0d6aad;
+}
+
+.shop_select_panel_content, template_tree_panel_content {
+    width: 100%;
+    height: 90%;
+    margin-top: 10px;
+    overflow: auto;
+    padding: 10px 15px;
+}
+
+.shop_select_panel .btn-group-vertical {
+    position: absolute;
+    top: 4em;
+    right: 50px;
+}
+
+.end_panel_content {
+    width: 100%;
+    height: 90%;
+    padding: 10px 15px;
+    overflow: auto;
+}
+
+#edit_area {
+    width: 90%;
+    border-right: 1px solid white;
+}
+
+#btn_s {
+    width: 10%;
+    position: relative;
+}
+
+#edit_area, #btn_s {
+    background-color: #eee;
+    height: 100%;
+    float: left;
+}
+
+.btn_panel {
+    position: absolute;
+    bottom: 90px;
+    right: 0;
+}
+
+#bg_del_btn {
+    margin-top: 10px;
+}
+
+#review_btn, #animal_btn {
+    margin-top: 30px;
+}
+
+#submit_btn {
+    margin-top: 50px;
+}
+
+#edit_content {
+    background-color: #FFF;
+    margin: 5px auto;
+    position: relative;
+}
+
+#previewAnimation {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+#previewAnimation canvas {
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    position: absolute;
+}
+
+.static_material {
+    position: absolute;
+    opacity: 0.3;
+}
+
+.material_edit_border {
+    border: 1px dashed black;
+}
+
+.static_material img {
+    width: 100%;
+    height: 100%;
+}
+
+/*当前选中的编辑区块*/
+.s_m_active {
+    background-color: gray;
+}
+
+#animate_config {
+    background-color: pink;
+    width: 100%;
+    height: 100%;
+    padding-top: 50px;
+}
+
+#animate_config .panel {
+    width: 90%;
+    height: 50%;
+    margin: 50px auto;
+}
+
+/*顶部*/
+#m1, #m2, #m3 {
+    top: 0;
+}
+
+/*底部*/
+#m6, #m7, #m8 {
+    height: 10%;
+    bottom: 0;
+}
+
+/*左右两侧*/
+#m4, #m5 {
+    top: 20%;
+}
+
+/*左侧*/
+#m1, #m4, #m6 {
+    left: 0;
+}
+
+/*右侧*/
+#m3, #m5, #m8 {
+    right: 0;
+}
+
+/*中部宽度*/
+#m2, #m7 {
+    left: 30%;
+}
+
+/*隐藏模板树根节点的图标*/
+.ztree li span.button.switch.level0 {
+    /*visibility: hidden;*/
+    /*width: 1px;*/
+}
+
+.ztree li ul.level0 {
+    /*padding: 0;*/
+    /*background: none;*/
+}
+
+/*a.curSelectedNode{*/
+/*background-color: #0d6aad !important;*/
+/*}*/
+
+/*素材*/
+.material-edit-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    padding-top: 15px;
+    padding-right: 10px;
+}
+
+.material-edit-btn span {
+    margin-right: 15px;
+    cursor: pointer;
+}
+
+#materialTabContent img {
+    float: left;
+    width: 60px;
+    height: 60px;
+    margin-left: 10px;
+    margin-bottom: 10px;
+    border: 1px solid white;
+}
+
+#materialTabContent img:hover {
+    border: 1px solid red;
+}
+
+#materialTabContent {
+    width: 100%;
+    height: 80%;
+    overflow: auto;
+    padding-top: 10px;
+}
+
+/*动画素材*/
+.material_animate {
+    width: 50px;
+    height: 50px;
+    border: 1px solid gray;
+    background-color: #eeeeee;
+}
+
+.material_animate img {
+    width: 100%;
+    height: 100%;
+}
+
+/*动画选素材时，点击触发选中特效*/
+.m_a_active {
+    border: 2px solid red !important;
+}
+
+#animate_edit {
+    padding: 10px;
+}
+
+.date_picker_icon {
+    position: relative;
+}
+
+.date_picker_icon i {
+    position: absolute;
+    bottom: 10px;
+    right: 24px;
+    top: auto;
+    cursor: pointer;
+}
+
+.layui-layer-content #static_material_setting {
+    padding-top: 20px;
+    padding-right: 20px;
+    -moz-user-select: none;
+}
+
+#static_material_setting .form-group {
+    margin-top: 15px;
+}
+
+/*展示屏位置示意样式*/
+#screen {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}
+
+#screen .play_area {
+    position: absolute;
+    width: 80%;
+    height: 80%;
+    left: 0;
+    right: 0;
+    top: 1%;
+    margin: auto;
+    background-color: lightgreen;
+}
+
+#screen .screen_title {
+    position: absolute;
+    width: 5em;
+    height: 1em;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    margin: auto;
+}
+
+#screen .down_area {
+    width: 100%;
+    height: 19%;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    border: 1px solid #aaa;
+}
+
+#self_material_page, #center_material_page {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+}
+
+/*确认应用按钮*/
+#ok_end_btn{
+    position: absolute;
+    bottom: 10px;
+    right: 30px;
+}
+
+/*有效时间设定按钮*/
+#validTimeSetting_btn{
+    margin-bottom: 10px;
+}

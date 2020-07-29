@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.dao.ShoeViewDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.entity.ShoeViewEntity" id="shoeViewMap">
+        <result property="seq" column="Seq"/>
+        <result property="periodSeq" column="PeriodSeq"/>
+        <result property="qRCode" column="QRCode"/>
+        <result property="name" column="Name"/>
+        <result property="shoeID" column="ShoeID"/>
+        <result property="categorySeq" column="CategorySeq"/>
+        <result property="sX1" column="SX1"/>
+        <result property="sX2" column="SX2"/>
+        <result property="sX3" column="SX3"/>
+        <result property="sX4" column="SX4"/>
+        <result property="sX5" column="SX5"/>
+        <result property="sX6" column="SX6"/>
+        <result property="sX7" column="SX7"/>
+        <result property="sX8" column="SX8"/>
+        <result property="sX9" column="SX9"/>
+        <result property="sX10" column="SX10"/>
+        <result property="sX11" column="SX11"/>
+        <result property="sX12" column="SX12"/>
+        <result property="sX13" column="SX13"/>
+        <result property="sX14" column="SX14"/>
+        <result property="sX15" column="SX15"/>
+        <result property="sX16" column="SX16"/>
+        <result property="sX17" column="SX17"/>
+        <result property="sX18" column="SX18"/>
+        <result property="sX19" column="SX19"/>
+        <result property="sX20" column="SX20"/>
+        <result property="seriesSeq" column="SeriesSeq"/>
+        <result property="thumbnail" column="Thumbnail"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+        <result property="brandSeq" column="BrandSeq"/>
+        <result property="sX1Name" column="SX1Name"/>
+        <result property="sX1Value" column="SX1Value"/>
+        <result property="sX2Name" column="SX2Name"/>
+        <result property="sX2Value" column="SX2Value"/>
+        <result property="sX3Name" column="SX3Name"/>
+        <result property="sX3Value" column="SX3Value"/>
+        <result property="sX4Name" column="SX4Name"/>
+        <result property="sX4Value" column="SX4Value"/>
+        <result property="sX5Name" column="SX5Name"/>
+        <result property="sX5Value" column="SX5Value"/>
+        <result property="sX6Name" column="SX6Name"/>
+        <result property="sX6Value" column="SX6Value"/>
+        <result property="sX7Name" column="SX7Name"/>
+        <result property="sX7Value" column="SX7Value"/>
+        <result property="sX8Name" column="SX8Name"/>
+        <result property="sX8Value" column="SX8Value"/>
+        <result property="sX9Name" column="SX9Name"/>
+        <result property="sX9Value" column="SX9Value"/>
+        <result property="sX10Name" column="SX10Name"/>
+        <result property="sX10Value" column="SX10Value"/>
+        <result property="sX11Name" column="SX11Name"/>
+        <result property="sX11Value" column="SX11Value"/>
+        <result property="sX12Name" column="SX12Name"/>
+        <result property="sX12Value" column="SX12Value"/>
+        <result property="sX13Name" column="SX13Name"/>
+        <result property="sX13Value" column="SX13Value"/>
+        <result property="sX14Name" column="SX14Name"/>
+        <result property="sX14Value" column="SX14Value"/>
+        <result property="sX15Name" column="SX15Name"/>
+        <result property="sX15Value" column="SX15Value"/>
+        <result property="sX16Name" column="SX16Name"/>
+        <result property="sX16Value" column="SX16Value"/>
+        <result property="sX17Name" column="SX17Name"/>
+        <result property="sX17Value" column="SX17Value"/>
+        <result property="sX18Name" column="SX18Name"/>
+        <result property="sX18Value" column="SX18Value"/>
+        <result property="sX19Name" column="SX19Name"/>
+        <result property="sX19Value" column="SX19Value"/>
+        <result property="sX20Name" column="SX20Name"/>
+        <result property="sX20Value" column="SX20Value"/>
+    </resultMap>
+
+
+</mapper>

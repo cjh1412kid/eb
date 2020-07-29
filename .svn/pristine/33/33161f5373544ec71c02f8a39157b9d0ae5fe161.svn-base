@@ -1,0 +1,55 @@
+package com.nuite.modules.sys.service.impl;
+
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.plugins.Page;
+import com.baomidou.mybatisplus.service.impl.ServiceImpl;
+import com.nuite.common.utils.PageUtils;
+import com.nuite.common.utils.Query;
+import com.nuite.modules.sys.dao.GoodsInitialDataDao;
+import com.nuite.modules.sys.entity.GoodsInitialDataEntity;
+import com.nuite.modules.sys.service.GoodsInitialDataService;
+
+
+@Service
+public class GoodsInitialDataServiceImpl extends ServiceImpl<GoodsInitialDataDao, GoodsInitialDataEntity> implements GoodsInitialDataService {
+
+    @Autowired
+    private GoodsInitialDataDao goodsInitialDataDao;
+	
+	
+    @Override
+    public PageUtils queryPage(Map<String, Object> params) {
+        Page<GoodsInitialDataEntity> page = this.selectPage(
+                new Query<GoodsInitialDataEntity>(params).getPage(),
+                new EntityWrapper<GoodsInitialDataEntity>()
+        );
+
+        return new PageUtils(page);
+    }
+
+    
+    
+    /**
+     * 获取鞋子的首单、补单数据
+     */
+	@Override
+	public GoodsInitialDataEntity getShoeInitialData(Integer areaType, Integer areaSeq, Integer shoeSeq) {
+		GoodsInitialDataEntity goodsInitialDataEntity = new GoodsInitialDataEntity();
+		goodsInitialDataEntity.setShoeSeq(shoeSeq);
+		if(areaType == 1) { //全国
+			goodsInitialDataEntity.setBranchOfficeSeq(0);
+		} else if (areaType == 3) { //分公司
+			goodsInitialDataEntity.setBranchOfficeSeq(areaSeq);
+		} else {
+			return null;
+		}
+		goodsInitialDataEntity = goodsInitialDataDao.selectOne(goodsInitialDataEntity);
+		return goodsInitialDataEntity;
+	}
+
+}

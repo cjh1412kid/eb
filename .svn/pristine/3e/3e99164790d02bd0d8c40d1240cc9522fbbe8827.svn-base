@@ -1,0 +1,307 @@
+package com.nuite.task;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import com.nuite.common.utils.RedisUtils;
+import com.nuite.dao.BrandDao;
+import com.nuite.entity.BrandEntity;
+import com.nuite.service.ConvertService;
+import com.nuite.service.ShoeService;
+import com.nuite.utils.RedisKeys;
+
+
+@Component("convertTask")
+public class ConvertTask{
+	private Logger logger = LoggerFactory.getLogger(getClass());
+	
+    @Autowired
+    private BaseTask baseTask;
+    
+    @Autowired
+    private BrandDao brandDao;
+    
+    @Autowired
+    private RedisUtils redisUtils;
+    
+    @Autowired
+    private ConvertService convertService;
+    
+    @Autowired
+    private ShoeService shoeService;
+    
+    
+    
+	/**
+     * 总试穿销售转化率
+     */
+	@Scheduled(cron = "0 40 3/8 * * ?" )
+    public void allConvert() {
+		Date startTaskTime = new Date();
+    	logger.info("###convertTask allConvert方法，开始执行: " + startTaskTime);
+    	try {
+    		List<BrandEntity> brandList = brandDao.selectList(null);	//所有品牌
+    		int[] typeList = {1,2,3}; //所有类型  （目前门店不缓存）
+    		List<Date> startDateList = baseTask.getStartDateList(); //所有开始时间
+    		Date endDate = baseTask.getTodayDate(); //结束时间（今日） //TODO 改为有销售数据的最近一日
+    		
+    		
+    		//循环品牌
+    		for(BrandEntity brandEntity : brandList) {
+    			
+				List<Integer> periodSeqList = baseTask.getAllPeriodSeqsByBrandSeq(brandEntity.getSeq()); //所有波次
+				
+    			//循环type
+    			for(int type : typeList) {
+    			
+    				List<Integer> areaSeqList = baseTask.getAreaSeqsByTypeAndBrandSeq(brandEntity.getSeq(), type);  //类型所有区域序号
+    				//循环areaSeqs
+    				for(Integer areaSeq : areaSeqList) {
+    					List<Integer> areaSeqs = new ArrayList<Integer>();
+    					areaSeqs.add(areaSeq);
+    					
+    					
+    	        		//根据区域筛选条件，获取安装设备的门店序号List   （目前只缓存单个区域）
+    	        		List<Integer> shopSeqList = baseTask.getShopSeqListByAreaSeq(type, areaSeq, brandEntity.getSeq());
+    	        		if(shopSeqList == null || shopSeqList.size() == 0) {
+    	        			continue;
+    	        		}
+    	        		
+	    				//循环时间段
+				    	for(Date startDate : startDateList) {
+				       	
+					   		/** 全部转化率 controller方法 **/
+				    		
+				    		//1.试穿销售转化率 （环形图数据）
+				    		int tryTotalNum = 0;
+				    		int saleTotalNum = 0;
+				    		
+				    		//2.详细的每日试穿+销售数据 （双纵坐标平滑折线图）
+				    		List<Map<String, Object>> dayTryCountList = new ArrayList<Map<String, Object>>();
+				    		List<Map<String, Object>> daySaleCountList = new ArrayList<Map<String, Object>>();
+				    		Map<String, Object> dayTryCountMap;
+				    		Map<String, Object> daySaleCountMap;
+				    		
+				    		Calendar calendar = Calendar.getInstance();
+				    		Date iteratorDate = startDate;
+				    		while (!iteratorDate.after(endDate)) {
+				    			dayTryCountMap = new HashMap<String, Object>();
+				    			daySaleCountMap = new HashMap<String, Object>();
+				    			dayTryCountMap.put("day", iteratorDate);
+				    			daySaleCountMap.put("day", iteratorDate);
+				    			//获取多个门店多个波次某一天内有效试穿次数
+				    			int tryNum = convertService.getShopsTryValidNumOneDay(shopSeqList, periodSeqList, null, iteratorDate);
+				    			tryTotalNum += tryNum;
+				    			 //获取所选区域内多个波次某一天销售量
+				    			int saleNum = convertService.getAreasSaleNumOneDay(type, areaSeqs, periodSeqList, null, iteratorDate);
+				    			saleTotalNum += saleNum;
+				    			dayTryCountMap.put("value", tryNum);
+				    			daySaleCountMap.put("value", saleNum);
+				    			dayTryCountList.add(dayTryCountMap);
+				    			daySaleCountList.add(daySaleCountMap);
+				    			
+				    			calendar.setTime(iteratorDate);
+				    			calendar.add(Calendar.DAY_OF_MONTH, 1); //+1天
+				    			iteratorDate = calendar.getTime();
+				    		}
+				    		
+				    		
+				    		/**组装返回结果集**/
+				    		Map<String, Object> resultMap = new HashMap<String, Object>();
+				    		
+				    		//1.试穿销售转化率 （环形图数据）
+				    		List<Map<String, Object>> rateList = new ArrayList<Map<String, Object>>();
+				    		Map<String, Object> tryTotalMap = new HashMap<String, Object>();
+				    		tryTotalMap.put("name", "试穿");
+				    		tryTotalMap.put("value", tryTotalNum);
+				    		rateList.add(tryTotalMap);
+				    		Map<String, Object> saleTotalMap = new HashMap<String, Object>();
+				    		saleTotalMap.put("name", "销售");
+				    		saleTotalMap.put("value", saleTotalNum);
+				    		rateList.add(saleTotalMap);
+				    		
+				    		resultMap.put("rate", rateList);
+				    		
+				    		//2.详细的每日试穿+销售数据 （双纵坐标平滑折线图）
+				    		List<Map<String, Object>> detailList = new ArrayList<Map<String, Object>>();
+				    		Map<String, Object> tryMap = new HashMap<String, Object>();
+				    		tryMap.put("name", "试穿");
+				    		tryMap.put("values", dayTryCountList);
+				    		detailList.add(tryMap);
+				    		Map<String, Object> saleMap = new HashMap<String, Object>();
+				    		saleMap.put("name", "销售");
+				    		saleMap.put("values", daySaleCountList);
+				    		detailList.add(saleMap);
+
+				    		resultMap.put("detail", detailList);
+				    		
+				    		/** 全部转化率  controller方法 **/
+					   	
+					   	
+						   	/** 存入Redis **/
+						   	String redisKey = RedisKeys.getConvertAllConvertRedisKey(brandEntity.getSeq(), type, areaSeq, startDate, endDate);
+						    redisUtils.set(redisKey, resultMap, 60 * 60 * 24);
+							/** 存入Redis **/
+					    	}
+	    			} 
+    			} 
+    		}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+		}
+		Date endTaskTime = new Date();
+		logger.info("###convertTask allConvert方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+    }
+	
+	
+	
+	
+	/**
+     * 单个货号试穿销售转化率
+     */
+	@Scheduled(cron = "0 0 2 * * ?" )
+    public void shoeIdConvert() {
+		Date startTaskTime = new Date();
+    	logger.info("###convertTask shoeIdConvert方法，开始执行: " + startTaskTime);
+    	try {
+    		List<BrandEntity> brandList = brandDao.selectList(null);	//所有品牌
+    		int[] typeList = {1,2,3}; //所有类型  （目前门店不缓存）
+    		List<Date> startDateList = baseTask.getStartDateList(); //所有开始时间
+    		Date endDate = baseTask.getTodayDate(); //结束时间（今日）//TODO 改为有销售数据的最近一日
+    		
+    		
+    		//循环品牌
+    		for(BrandEntity brandEntity : brandList) {
+    			
+				List<Integer> periodSeqList = baseTask.getAllPeriodSeqsByBrandSeq(brandEntity.getSeq()); //所有波次
+        		//获取试穿销售Top20货号
+        		List<String> shoeIdList = shoeService.getOneMonthTop20ShoeIds(brandEntity.getSeq());
+        		
+    			//循环type
+    			for(int type : typeList) {
+    			
+    				List<Integer> areaSeqList = baseTask.getAreaSeqsByTypeAndBrandSeq(brandEntity.getSeq(), type);  //类型所有区域序号
+    				//循环areaSeqs
+    				for(Integer areaSeq : areaSeqList) {
+    					List<Integer> areaSeqs = new ArrayList<Integer>();
+    					areaSeqs.add(areaSeq);
+    					
+    					
+    	        		//根据区域筛选条件，获取安装设备的门店序号List   （目前只缓存单个区域）
+    	        		List<Integer> shopSeqList = baseTask.getShopSeqListByAreaSeq(type, areaSeq, brandEntity.getSeq());
+    	        		if(shopSeqList == null || shopSeqList.size() == 0) {
+    	        			continue;
+    	        		}
+    	        		
+    	        		//循环货号
+	    	        	for(String shoeId : shoeIdList) {
+	    	        		List<String> shoeIds = new ArrayList<String>();
+	    	        		shoeIds.add(shoeId);
+	    	        		
+		    				//循环时间段
+					    	for(Date startDate : startDateList) {
+					       	
+						   		/** 全部转化率 controller方法 **/
+					    		
+					    		//1.试穿销售转化率 （环形图数据）
+					    		int tryTotalNum = 0;
+					    		int saleTotalNum = 0;
+					    		
+					    		//2.详细的每日试穿+销售数据 （双纵坐标平滑折线图）
+					    		List<Map<String, Object>> dayTryCountList = new ArrayList<Map<String, Object>>();
+					    		List<Map<String, Object>> daySaleCountList = new ArrayList<Map<String, Object>>();
+					    		Map<String, Object> dayTryCountMap;
+					    		Map<String, Object> daySaleCountMap;
+					    		
+					    		Calendar calendar = Calendar.getInstance();
+					    		Date iteratorDate = startDate;
+					    		while (!iteratorDate.after(endDate)) {
+					    			dayTryCountMap = new HashMap<String, Object>();
+					    			daySaleCountMap = new HashMap<String, Object>();
+					    			dayTryCountMap.put("day", iteratorDate);
+					    			daySaleCountMap.put("day", iteratorDate);
+					    			//获取多个门店多个波次某一天内有效试穿次数
+					    			int tryNum = convertService.getShopsTryValidNumOneDay(shopSeqList, periodSeqList, shoeIds, iteratorDate);
+					    			tryTotalNum += tryNum;
+					    			 //获取所选区域内多个波次某一天销售量
+					    			int saleNum = convertService.getAreasSaleNumOneDay(type, areaSeqs, periodSeqList, shoeIds, iteratorDate);
+					    			saleTotalNum += saleNum;
+					    			dayTryCountMap.put("value", tryNum);
+					    			daySaleCountMap.put("value", saleNum);
+					    			dayTryCountList.add(dayTryCountMap);
+					    			daySaleCountList.add(daySaleCountMap);
+					    			
+					    			calendar.setTime(iteratorDate);
+					    			calendar.add(Calendar.DAY_OF_MONTH, 1); //+1天
+					    			iteratorDate = calendar.getTime();
+					    		}
+					    		
+					    		
+					    		/**组装返回结果集**/
+					    		Map<String, Object> resultMap = new HashMap<String, Object>();
+					    		
+					    		//1.试穿销售转化率 （环形图数据）
+					    		List<Map<String, Object>> rateList = new ArrayList<Map<String, Object>>();
+					    		Map<String, Object> tryTotalMap = new HashMap<String, Object>();
+					    		tryTotalMap.put("name", "试穿");
+					    		tryTotalMap.put("value", tryTotalNum);
+					    		rateList.add(tryTotalMap);
+					    		Map<String, Object> saleTotalMap = new HashMap<String, Object>();
+					    		saleTotalMap.put("name", "销售");
+					    		saleTotalMap.put("value", saleTotalNum);
+					    		rateList.add(saleTotalMap);
+					    		
+					    		resultMap.put("rate", rateList);
+					    		
+					    		//2.详细的每日试穿+销售数据 （双纵坐标平滑折线图）
+					    		List<Map<String, Object>> detailList = new ArrayList<Map<String, Object>>();
+					    		Map<String, Object> tryMap = new HashMap<String, Object>();
+					    		tryMap.put("name", "试穿");
+					    		tryMap.put("values", dayTryCountList);
+					    		detailList.add(tryMap);
+					    		Map<String, Object> saleMap = new HashMap<String, Object>();
+					    		saleMap.put("name", "销售");
+					    		saleMap.put("values", daySaleCountList);
+					    		detailList.add(saleMap);
+	
+					    		resultMap.put("detail", detailList);
+					    		
+					    		/** 全部转化率  controller方法 **/
+						   	
+						   	
+							   	/** 存入Redis **/
+							   	String redisKey = RedisKeys.getConvertShoeIdConvertRedisKey(brandEntity.getSeq(), type, areaSeq, shoeId, startDate, endDate);
+							    redisUtils.set(redisKey, resultMap, 60 * 60 * 25);
+								/** 存入Redis **/
+						    }
+	    	        	}
+	    			}  
+    			} 
+    		}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+		}
+		Date endTaskTime = new Date();
+		logger.info("###convertTask shoeIdConvert方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+    }
+	
+	
+	
+	
+    
+
+}

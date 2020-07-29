@@ -1,0 +1,270 @@
+package com.nuite.task;
+
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import com.nuite.common.utils.DateUtils;
+import com.nuite.common.utils.RedisUtils;
+import com.nuite.dao.BrandDao;
+import com.nuite.entity.BrandEntity;
+import com.nuite.entity.ShoeViewEntity;
+import com.nuite.service.LargeScreenApiService;
+import com.nuite.service.ShoeService;
+import com.nuite.service.TopService;
+import com.nuite.utils.DateUtil;
+import com.nuite.utils.RedisKeys;
+
+
+@Component("largeScreenApiTask")
+public class LargeScreenApiTask {
+    private Logger logger = LoggerFactory.getLogger(getClass());
+
+    @Autowired
+    private LargeScreenApiService largeScreenApiService;
+    
+    @Autowired
+    private BrandDao brandDao;
+    
+    @Autowired
+    private RedisUtils redisUtils;
+    
+    @Autowired
+    private TopService topService;
+    
+    @Autowired
+    private ShoeService shoeService;
+    
+    
+    
+	/**
+     * 获取全国日、周、月、总试（有效+无效）穿量（顶部12组数字）
+     */
+	@Scheduled(cron = "0 8/30 * * * ?" )
+    public void total() {
+		Date startTaskTime = new Date();
+		logger.info("###largeScreenApiTask total方法，开始执行: " + startTaskTime);
+    	try {
+    		
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+			String today = sdf.format(new Date());    //今日
+			String week = sdf.format(DateUtil.getWeekMonDate());     //本周
+			String month = sdf.format(DateUtil.getMonthFirstDate());     //本月
+			
+			
+    		//获取所有品牌
+    		List<BrandEntity> brandList = brandDao.selectList(null);
+    		
+    		for(BrandEntity brandEntity : brandList) {
+    		
+    		/** controller方法 **/
+        		int today_valid = largeScreenApiService.getCountryValidTryTimes(brandEntity.getSeq(), today);
+        		int today_invalid = largeScreenApiService.getCountryInvalidTryTimes(brandEntity.getSeq(), today);
+        		
+        		int week_valid = largeScreenApiService.getCountryValidTryTimes(brandEntity.getSeq(), week);
+        		int week_invalid = largeScreenApiService.getCountryInvalidTryTimes(brandEntity.getSeq(), week);
+        		
+        		int month_valid = largeScreenApiService.getCountryValidTryTimes(brandEntity.getSeq(), month);
+        		int month_invalid = largeScreenApiService.getCountryInvalidTryTimes(brandEntity.getSeq(), month);
+        		
+        		int total_valid = largeScreenApiService.getCountryValidTryTimes(brandEntity.getSeq(), null);
+        		int total_invalid = largeScreenApiService.getCountryInvalidTryTimes(brandEntity.getSeq(), null);
+        		
+        		Map<String, Object> resultMap = new LinkedHashMap<String, Object>();
+        		resultMap.put("today_valid", today_valid);
+        		resultMap.put("today_invalid", today_invalid);
+        		resultMap.put("today_total", today_valid + today_invalid);
+        		resultMap.put("week_valid", week_valid);
+        		resultMap.put("week_invalid", week_invalid);
+        		resultMap.put("week_total", week_valid + week_invalid);
+        		resultMap.put("month_valid", month_valid);
+        		resultMap.put("month_invalid", month_invalid);
+        		resultMap.put("month_total", month_valid + month_invalid);
+        		resultMap.put("total_valid", total_valid);
+        		resultMap.put("total_invalid", total_invalid);
+        		resultMap.put("total_total", total_valid + total_invalid);
+    		
+    		/** controller方法 **/
+    		
+    		
+    		/** 存入Redis **/
+    		String redisKey = RedisKeys.getLargeScreenTotalRedisKey(brandEntity.getSeq());
+        	redisUtils.setNotExpire(redisKey, resultMap);
+			/** 存入Redis **/
+			
+    		
+    		}
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+		}
+		Date endTaskTime = new Date();
+		logger.info("###largeScreenApiTask total方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+    }
+	
+	
+	
+	
+	/**
+     * 本月试穿Top20
+     */
+	@Scheduled(cron = "0 0 12 * * ?" )
+    public void tryTop() {
+		Date startTaskTime = new Date();
+		logger.info("###largeScreenApiTask tryTop方法，开始执行: " + startTaskTime);
+    	try {
+    		List<BrandEntity> brandList = brandDao.selectList(null);	//所有品牌
+
+			//获取本月1日日期
+			Date startDate = DateUtil.getMonthFirstDate();
+			
+    		//循环品牌
+    		for(BrandEntity brandEntity : brandList) {
+        		
+        		/** 获取全国、所有波次、本月，试穿top20 的货号、试穿次数 **/
+        		List<Map<String, Object>> goodIdTryCount = topService.getCountryMonthTopGoodIdTryCount(startDate, 20);
+    			
+        		for(int i = 0; i < goodIdTryCount.size(); i++) {
+        			Map<String, Object> map = goodIdTryCount.get(i);
+        			
+        			//根据货号查询鞋子视图
+        			ShoeViewEntity shoeViewEntity = shoeService.getShoeViewByShoeId((String)map.get("shoeId"));
+        			
+    	    		/** 获取全国、本月、某 货号的销售量   ('波次序号' 仅用于确定要查询的分表) **/
+    	    		int saleCount = topService.getCountryMonthShoeIdSales(shoeViewEntity.getPeriodSeq(), shoeViewEntity.getShoeID(), startDate);
+    	    		map.put("saleCount", saleCount);
+        		}
+				
+        		
+				/** 存入Redis **/
+				String redisKey = RedisKeys.getLargeScreenTryTopRedisKey(brandEntity.getSeq());
+				redisUtils.setNotExpire(redisKey, goodIdTryCount);
+				/** 存入Redis **/
+    		}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+		}
+		Date endTaskTime = new Date();
+		logger.info("###largeScreenApiTask tryTop方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+    }
+
+	
+	
+	
+	
+	/**
+     * 销售Top20
+     */
+	@Scheduled(cron = "0 0 13 * * ?" )
+    public void saleTop() {
+		Date startTaskTime = new Date();
+		logger.info("###largeScreenApiTask saleTop方法，开始执行: " + startTaskTime);
+    	try {
+    		List<BrandEntity> brandList = brandDao.selectList(null);	//所有品牌
+
+			//获取本月1日日期
+			Date startDate = DateUtil.getMonthFirstDate();
+    		
+    		//循环品牌
+    		for(BrandEntity brandEntity : brandList) {
+    			
+            	/** 获取指定区域内、指定波次List，指定起止日期，指定top的按销量排序 的货号、销售量 **/
+    			List<Map<String, Object>> goodIdSaleCount = topService.getCountryMonthTopGoodIdSaleCount(startDate, 20);
+
+        		for(int i = 0; i < goodIdSaleCount.size(); i++) {
+        			Map<String, Object> map = goodIdSaleCount.get(i);
+        			//添加名次
+        			map.put("rank", i+1);
+        			
+        			//根据货号查询鞋子视图
+        			ShoeViewEntity shoeViewEntity = shoeService.getShoeViewByShoeId((String)map.get("shoeId"));
+
+            		/** 获取指定 '门店序号'，指定 '起止日期' 时间段内某 '货号' 的销售量('波次序号' 仅用于确定要查询的分表) **/
+            		Map<String, Object> tryCountTimes = topService.getCountryMonthShoeIdTryCountMap(shoeViewEntity.getPeriodSeq(), shoeViewEntity.getShoeID(), startDate);
+            		map.putAll(tryCountTimes);
+        		}
+        		
+				
+				/** 存入Redis **/
+				String redisKey = RedisKeys.getLargeScreenSaleTopRedisKey(brandEntity.getSeq());
+				redisUtils.setNotExpire(redisKey, goodIdSaleCount);
+				/** 存入Redis **/
+    		}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+		}
+		Date endTaskTime = new Date();
+		logger.info("###largeScreenApiTask saleTop方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+    }
+	
+	
+	
+	
+	
+	/**
+     * 最近30天全国销售额接口
+     */
+	@Scheduled(cron = "0 0 14 * * ?" )
+    public void thirtyDaysSale() {
+		Date startTaskTime = new Date();
+		logger.info("###largeScreenApiTask thirtyDaysSale方法，开始执行: " + startTaskTime);
+    	try {
+    		List<BrandEntity> brandList = brandDao.selectList(null);	//所有品牌
+
+			//获取本月1日日期
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+			Date nowDate = sdf.parse(sdf.format(new Date()));
+    		
+    		//循环品牌
+    		for(BrandEntity brandEntity : brandList) {
+			
+	    		List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
+	    		for (int i = 30; i >= 1; i--) {
+	    			
+	        		Date date = DateUtils.addDateDays(nowDate, -i);
+	        		Date lastYearDate = DateUtils.addDateYears(date, -1);
+	        		
+		    		//获取当天、去年同期全国总销售额
+		    		Map<String, Object> map = new HashMap<String, Object>();
+		    		map.put("date", sdf.format(date));
+		    		BigDecimal sales = largeScreenApiService.getCountryTotalSales(date);
+		    		map.put("sales", sales);
+		    		BigDecimal lastyearSales = largeScreenApiService.getCountryTotalSales(lastYearDate);
+		    		map.put("lastyearSales", lastyearSales);
+		    		
+		    		list.add(map);
+	    		}
+	    		
+				/** 存入Redis **/
+				String redisKey = RedisKeys.getLargeScreenThirtyDaysSaleRedisKey(brandEntity.getSeq());
+				redisUtils.setNotExpire(redisKey, list);
+				/** 存入Redis **/
+    		}
+    		
+    	} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+		}
+		Date endTaskTime = new Date();
+		logger.info("###largeScreenApiTask thirtyDaysSale方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+    }
+    
+    
+	
+    
+}

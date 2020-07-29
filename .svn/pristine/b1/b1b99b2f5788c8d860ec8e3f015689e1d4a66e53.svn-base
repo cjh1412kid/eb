@@ -1,0 +1,261 @@
+package com.nuite.modules.sys.controller;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.google.common.collect.Maps;
+import com.nuite.common.utils.R;
+import com.nuite.modules.sys.dao.ShoeViewDao;
+import com.nuite.modules.sys.entity.ShoeViewEntity;
+import com.nuite.modules.sys.entity.UserEntity;
+import com.nuite.modules.sys.service.ReplenishmentService;
+
+import io.swagger.annotations.ApiParam;
+
+
+/**
+ * 分公司补单建议接口
+ * @author yy
+ */
+@RestController
+@RequestMapping("sys/replenishment")
+public class ReplenishmentController extends AbstractController{
+	private Logger logger = LoggerFactory.getLogger(getClass());
+	
+    @Autowired
+    private ReplenishmentService replenishmentService;
+    
+    @Autowired
+    private ShoeViewDao shoeViewDao;
+    
+    
+    
+	/**
+     * 排行
+     */
+    @GetMapping("top")
+    public R top(@ApiParam("波次") @RequestParam("periodSeq") Integer periodSeq,
+			@ApiParam("品类（中文）") @RequestParam("sxValue") String sxValue,
+			@ApiParam("开始时间") @RequestParam("startDate") Date startDate,
+			@ApiParam("结束时间") @RequestParam("endDate") Date endDate,
+			HttpServletRequest request) {
+    	try {
+    		Map<String, Object> resultMap = new HashMap<String, Object>();
+    		
+    		/**全国数据**/
+			// 1.全国某一周试穿排名Top20
+			List<Map<String, Object>> countryWeekTryTopList = replenishmentService.getTryTop(1, 0, periodSeq, sxValue, 1, startDate, endDate, 20);
+			addImg(countryWeekTryTopList);
+    		resultMap.put("countryWeekTry", countryWeekTryTopList);
+    		
+			// 2.全国累计试穿排名Top20
+			List<Map<String, Object>> countryTotalTryTopList = replenishmentService.getTryTop(1, 0, periodSeq, sxValue, 2, startDate, endDate, 20);
+			addImg(countryTotalTryTopList);
+    		resultMap.put("countryTotalTry", countryTotalTryTopList);
+    		
+			// 3.全国某一周销售排名Top20
+			List<Map<String, Object>> countryWeekSaleTopList = replenishmentService.getSaleTop(1, 0, periodSeq, sxValue, 1, startDate, endDate, 20);
+    		addImg(countryWeekSaleTopList);
+    		resultMap.put("countryWeekSale", countryWeekSaleTopList);
+    		
+			// 4.全国累计销售排名Top20
+			List<Map<String, Object>> countryTotalSaleTopList = replenishmentService.getSaleTop(1, 0, periodSeq, sxValue, 2, startDate, endDate, 20);
+    		addImg(countryTotalSaleTopList);
+    		resultMap.put("countryTotalSale", countryTotalSaleTopList);
+    		
+			// 5.全国累计售罄率排名Top20
+			List<Map<String, Object>> countryTotalSaleOutRateTopList = replenishmentService.getSaleOutRateTop(1, 0, periodSeq, sxValue, 20);
+    		addImg(countryTotalSaleOutRateTopList);
+    		addPercentSign(countryTotalSaleOutRateTopList);
+    		resultMap.put("countryTotalSaleOutRate", countryTotalSaleOutRateTopList);
+    		
+			// 6.全国上周销售强度排名Top20
+			List<Map<String, Object>> countryWeekSaleStrengthTopList = replenishmentService.getSaleStrengthTop(1, 0, periodSeq, sxValue, startDate, endDate, 20);
+    		addImg(countryWeekSaleStrengthTopList);
+    		resultMap.put("countryWeekSaleStrength", countryWeekSaleStrengthTopList);
+    		
+    		// 7.汇总6个排行，按货号挤入排行个数排序
+    		Map<Integer, Integer> shoeTopNumMap = new HashMap<Integer, Integer>();
+    		addToShoeTopNumMap(shoeTopNumMap, countryWeekTryTopList);
+    		addToShoeTopNumMap(shoeTopNumMap, countryTotalTryTopList);
+    		addToShoeTopNumMap(shoeTopNumMap, countryWeekSaleTopList);
+    		addToShoeTopNumMap(shoeTopNumMap, countryTotalSaleTopList);
+    		addToShoeTopNumMap(shoeTopNumMap, countryTotalSaleOutRateTopList);
+    		addToShoeTopNumMap(shoeTopNumMap, countryWeekSaleStrengthTopList);
+    		
+    		//按挤入排行次数倒序排序
+    		Map<Integer, Integer> shoeTopNumDescMap = sortByValue(shoeTopNumMap, true);
+    		
+    		//组装汇总推荐补货列表
+    		List<Map<String, Object>> countryReplenishmentSuggestList = new ArrayList<Map<String, Object>>();
+    		int i = 1;
+    	    for (Integer shoeSeq : shoeTopNumDescMap.keySet()) {
+    	    	Integer topNum = shoeTopNumDescMap.get(shoeSeq);
+    	    	Map<String, Object> map = new HashMap<String, Object>();
+    	    	map.put("rank", i++);
+    	    	map.put("shoeSeq", shoeSeq);
+    	    	map.put("topNum", topNum);
+    			ShoeViewEntity shoeViewEntity = shoeViewDao.selectById(shoeSeq);
+    			map.put("shoeId", shoeViewEntity.getShoeID());
+    			map.put("img", getShoePictureUrl(shoeViewEntity.getPeriodSeq(), shoeViewEntity.getShoeID()));
+    			Integer stock = replenishmentService.getShoeStock(1, 0, shoeSeq);
+    	    	map.put("stock", stock);
+    	    	countryReplenishmentSuggestList.add(map);
+            }
+    	    resultMap.put("countryReplenishmentSuggest", countryReplenishmentSuggestList);
+    		
+    		
+    	    
+    	    
+    		/**分公司数据**/
+	    	UserEntity loginUser = getUser();
+	    	if(loginUser.getRoleSeq() == 3) {
+		    	Integer areaSeq = loginUser.getUserAreaSeq();
+		    	
+				// 1.分公司某一周试穿排名Top20
+				List<Map<String, Object>> branchofficeWeekTryTopList = replenishmentService.getTryTop(3, areaSeq, periodSeq, sxValue, 1, startDate, endDate, 20);
+				addImg(branchofficeWeekTryTopList);
+	    		resultMap.put("branchofficeWeekTry", branchofficeWeekTryTopList);
+	    		
+				// 2.分公司累计试穿排名Top20
+				List<Map<String, Object>> branchofficeTotalTryTopList = replenishmentService.getTryTop(3, areaSeq, periodSeq, sxValue, 2, startDate, endDate, 20);
+				addImg(branchofficeTotalTryTopList);
+	    		resultMap.put("branchofficeTotalTry", branchofficeTotalTryTopList);
+	    		
+				// 3.分公司某一周销售排名Top20
+				List<Map<String, Object>> branchofficeWeekSaleTopList = replenishmentService.getSaleTop(3, areaSeq, periodSeq, sxValue, 1, startDate, endDate, 20);
+	    		addImg(branchofficeWeekSaleTopList);
+	    		resultMap.put("branchofficeWeekSale", branchofficeWeekSaleTopList);
+	    		
+				// 4.分公司累计销售排名Top20
+				List<Map<String, Object>> branchofficeTotalSaleTopList = replenishmentService.getSaleTop(3, areaSeq, periodSeq, sxValue, 2, startDate, endDate, 20);
+	    		addImg(branchofficeTotalSaleTopList);
+	    		resultMap.put("branchofficeTotalSale", branchofficeTotalSaleTopList);
+	    		
+				// 5.分公司累计售罄率排名Top20
+				List<Map<String, Object>> branchofficeTotalSaleOutRateTopList = replenishmentService.getSaleOutRateTop(3, areaSeq, periodSeq, sxValue, 20);
+	    		addImg(branchofficeTotalSaleOutRateTopList);
+	    		addPercentSign(branchofficeTotalSaleOutRateTopList);
+	    		resultMap.put("branchofficeTotalSaleOutRate", branchofficeTotalSaleOutRateTopList);
+	    		
+				// 6.分公司上周销售强度排名Top20
+				List<Map<String, Object>> branchofficeWeekSaleStrengthTopList = replenishmentService.getSaleStrengthTop(3, areaSeq, periodSeq, sxValue, startDate, endDate, 20);
+	    		addImg(branchofficeWeekSaleStrengthTopList);
+	    		resultMap.put("branchofficeWeekSaleStrength", branchofficeWeekSaleStrengthTopList);
+	    		
+	    		// 7.汇总6个排行，按货号挤入排行个数排序
+	    		Map<Integer, Integer> branchofficeShoeTopNumMap = new HashMap<Integer, Integer>();
+	    		addToShoeTopNumMap(branchofficeShoeTopNumMap, branchofficeWeekTryTopList);
+	    		addToShoeTopNumMap(branchofficeShoeTopNumMap, branchofficeTotalTryTopList);
+	    		addToShoeTopNumMap(branchofficeShoeTopNumMap, branchofficeWeekSaleTopList);
+	    		addToShoeTopNumMap(branchofficeShoeTopNumMap, branchofficeTotalSaleTopList);
+	    		addToShoeTopNumMap(branchofficeShoeTopNumMap, branchofficeTotalSaleOutRateTopList);
+	    		addToShoeTopNumMap(branchofficeShoeTopNumMap, branchofficeWeekSaleStrengthTopList);
+	    		
+	    		//按挤入排行次数倒序排序
+	    		Map<Integer, Integer> branchofficeShoeTopNumDescMap = sortByValue(branchofficeShoeTopNumMap, true);
+	    		
+	    		//组装汇总推荐补货列表
+	    		List<Map<String, Object>> branchofficeReplenishmentSuggestList = new ArrayList<Map<String, Object>>();
+	    		int j = 1;
+	    	    for (Integer shoeSeq : branchofficeShoeTopNumDescMap.keySet()) {
+	    	    	Integer topNum = branchofficeShoeTopNumDescMap.get(shoeSeq);
+	    	    	Map<String, Object> map = new HashMap<String, Object>();
+	    	    	map.put("rank", j++);
+	    	    	map.put("shoeSeq", shoeSeq);
+	    	    	map.put("topNum", topNum);
+	    			ShoeViewEntity shoeViewEntity = shoeViewDao.selectById(shoeSeq);
+	    			map.put("shoeId", shoeViewEntity.getShoeID());
+	    			map.put("img", getShoePictureUrl(shoeViewEntity.getPeriodSeq(), shoeViewEntity.getShoeID()));
+	    			Integer stock = replenishmentService.getShoeStock(3, areaSeq, shoeSeq);
+	    	    	map.put("stock", stock);
+	    	    	branchofficeReplenishmentSuggestList.add(map);
+	            }
+	    	    resultMap.put("branchofficeReplenishmentSuggest", branchofficeReplenishmentSuggestList);
+	    	    
+	    	}
+	    	
+			return R.ok(resultMap);
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+    }
+    
+    
+    
+    //给列表的鞋子添加图片
+    private List<Map<String, Object>> addImg(List<Map<String, Object>> shoesList) {
+		for(int i = 0; i < shoesList.size(); i++) {
+			Map<String, Object> map = shoesList.get(i);
+			//根据Seq查询鞋子视图
+			ShoeViewEntity shoeViewEntity = shoeViewDao.selectById((Integer)map.get("shoeSeq"));
+			map.put("shoeId", shoeViewEntity.getShoeID());
+			
+			//添加 鞋子图片
+			map.put("img", getShoePictureUrl(shoeViewEntity.getPeriodSeq(), shoeViewEntity.getShoeID()));
+		}
+		return shoesList;
+    }
+    
+    
+    //给售罄率列表添加百分号
+    private List<Map<String, Object>> addPercentSign(List<Map<String, Object>> shoesList) {
+		for(int i = 0; i < shoesList.size(); i++) {
+			Map<String, Object> map = shoesList.get(i);
+			map.put("selloutRate", map.get("selloutRate") + "%");
+		}
+		return shoesList;
+    }
+    
+    
+    
+    //添加到挤入排行次数计算Map
+    private void addToShoeTopNumMap(Map<Integer, Integer> shoeTopNumMap, List<Map<String, Object>> topList) {
+		for(Map<String, Object> map : topList) {
+			Integer shoeSeq = (Integer) map.get("shoeSeq");
+			if(shoeTopNumMap.containsKey(shoeSeq)) {
+				shoeTopNumMap.put(shoeSeq, shoeTopNumMap.get(shoeSeq) + 1);
+			} else {
+				shoeTopNumMap.put(shoeSeq, 1);
+			}
+		}
+    }
+    
+    
+	
+    /**
+     * 根据map的value排序
+     * @param map 待排序的map
+     * @param isDesc 是否降序，true：降序，false：升序
+     * @return 排序好的map
+     */
+    public static <K, V extends Comparable<? super V>> Map<K, V> sortByValue(Map<K, V> map, boolean isDesc) {
+        Map<K, V> result = Maps.newLinkedHashMap();
+        if (isDesc) {            
+            map.entrySet().stream().sorted(Map.Entry.<K, V>comparingByValue().reversed())
+            .forEach(e -> result.put(e.getKey(), e.getValue()));
+        } else {            
+            map.entrySet().stream().sorted(Map.Entry.<K, V>comparingByValue())
+            .forEachOrdered(e -> result.put(e.getKey(), e.getValue()));
+        }
+        return result;
+    }
+    
+    
+}

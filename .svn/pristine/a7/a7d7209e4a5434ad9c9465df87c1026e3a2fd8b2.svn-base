@@ -1,0 +1,91 @@
+package com.nuite.modules.sys.service.impl;
+
+import java.util.Date;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.plugins.Page;
+import com.baomidou.mybatisplus.service.impl.ServiceImpl;
+import com.nuite.common.utils.PageUtils;
+import com.nuite.common.utils.Query;
+import com.nuite.modules.sys.dao.GoodsInitialDataDao;
+import com.nuite.modules.sys.entity.GoodsInitialDataEntity;
+import com.nuite.modules.sys.service.GoodsInitialDataService;
+
+
+@Service
+public class GoodsInitialDataServiceImpl extends ServiceImpl<GoodsInitialDataDao, GoodsInitialDataEntity> implements GoodsInitialDataService {
+
+    @Autowired
+    private GoodsInitialDataDao goodsInitialDataDao;
+	
+	
+    @Override
+    public PageUtils queryPage(Map<String, Object> params) {
+        Page<GoodsInitialDataEntity> page = this.selectPage(
+                new Query<GoodsInitialDataEntity>(params).getPage(),
+                new EntityWrapper<GoodsInitialDataEntity>()
+        );
+
+        return new PageUtils(page);
+    }
+
+    
+    
+    /**
+     * 获取鞋子的首单、补单数据
+     */
+	@Override
+	public GoodsInitialDataEntity getShoeInitialData(Integer areaType, Integer areaSeq, Integer shoeSeq) {
+		//查询全国首单、补单数据
+		GoodsInitialDataEntity countryGoodsInitialData = new GoodsInitialDataEntity();
+		countryGoodsInitialData.setBranchOfficeSeq(0);
+		countryGoodsInitialData.setShoeSeq(shoeSeq);
+		countryGoodsInitialData = goodsInitialDataDao.selectOne(countryGoodsInitialData);
+		if(areaType == 1) {
+			return countryGoodsInitialData;
+		} else if(areaType == 3) { //查询分公司首单、补单数据
+			GoodsInitialDataEntity branchOfficeGoodsInitialData = new GoodsInitialDataEntity();
+			branchOfficeGoodsInitialData.setBranchOfficeSeq(areaSeq);
+			branchOfficeGoodsInitialData.setShoeSeq(shoeSeq);
+			branchOfficeGoodsInitialData = goodsInitialDataDao.selectOne(branchOfficeGoodsInitialData);
+			if(branchOfficeGoodsInitialData != null && countryGoodsInitialData != null) {
+				//添加全国预留数据
+				branchOfficeGoodsInitialData.setReserveNum(countryGoodsInitialData.getReserveNum());
+			}
+			return branchOfficeGoodsInitialData;
+		} else {
+			return null;
+		}
+		
+	}
+
+
+
+	/**
+	 * 新增首单数据
+	 */
+	@Override
+	public void insertOrUpdateOne(GoodsInitialDataEntity goodsInitialDataEntity) {
+		GoodsInitialDataEntity goodsInitialDataEntity2=new GoodsInitialDataEntity();
+		goodsInitialDataEntity2.setAreaSeq(goodsInitialDataEntity.getAreaSeq());
+		goodsInitialDataEntity2.setBranchOfficeSeq(goodsInitialDataEntity.getBranchOfficeSeq());
+		goodsInitialDataEntity2.setPeriodSeq(goodsInitialDataEntity.getPeriodSeq());
+		goodsInitialDataEntity2.setShoeID(goodsInitialDataEntity.getShoeID());
+		goodsInitialDataEntity2.setShoeSeq(goodsInitialDataEntity.getShoeSeq());
+		goodsInitialDataEntity2.setSxValue(goodsInitialDataEntity.getSxValue());
+		goodsInitialDataEntity2=goodsInitialDataDao.selectOne(goodsInitialDataEntity2);
+		if(goodsInitialDataEntity2==null) {
+			goodsInitialDataDao.insert(goodsInitialDataEntity);
+		}else {
+			goodsInitialDataEntity2.setFirstOrderNum(goodsInitialDataEntity.getFirstOrderNum());
+			goodsInitialDataEntity2.setPatchedNum(goodsInitialDataEntity.getPatchedNum());
+			goodsInitialDataEntity2.setReserveNum(goodsInitialDataEntity.getReserveNum());
+			goodsInitialDataDao.updateById(goodsInitialDataEntity2);
+		}
+		
+	}
+}

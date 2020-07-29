@@ -1,0 +1,1440 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <style type="text/css">
+        html {
+            font-size: 20px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            width: 96rem;
+            background: rgba(38, 33, 50, 1);
+            font-family: PingFangSC-Medium;
+        }
+
+        .content {
+            margin: 1rem;
+            display: inline-flex;
+        }
+
+        .content .left {
+            width: 28.5rem;
+        }
+
+        .content .right {
+            margin-left: 1.5rem;
+            width: 64rem;
+        }
+
+        .left > .title {
+            width: 100%;
+            display: flex;
+        }
+
+        .left > .title > img {
+            width: 9.25rem;
+            height: 1.7rem;
+        }
+
+        .left > .title > .name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 1);
+            margin-left: 2.1rem;
+        }
+
+        .card-title {
+            display: inline-flex;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .card-title .radio {
+            width: 0.25rem;
+            height: 0.9rem;
+            background: rgba(255, 44, 112, 1);
+        }
+
+        .card-title .name {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 1);
+            margin-left: 0.3rem;
+        }
+
+        .card-title .line {
+            width: 11.4rem;
+            height: 2px;
+            background: linear-gradient(270deg, rgba(38, 33, 50, 1), rgba(160, 134, 255, 1));
+            margin-left: 0.3rem;
+        }
+
+        .try-top .card-title .line {
+            width: 13.55rem;
+        }
+
+        .sale-quota .card-title .line {
+            width: 14.9rem;
+        }
+
+        .sale-month .card-title .line {
+            width: 17.7rem;
+        }
+
+        .sale-top .card-title .line {
+            width: 13.55rem;
+        }
+
+        .sub-right .card-title .line {
+            width: 14.6rem;
+        }
+
+        .right .top {
+            width: 64rem;
+            height: 14.55rem;
+            background: rgba(44, 45, 72, 1);
+            border-radius: 0.25rem;
+        }
+
+        .right .center {
+            display: inline-flex;
+        }
+
+        .right .center .sub-left {
+            width: 37.25rem;
+        }
+
+        .right .center .sub-right {
+            width: 25.25rem;
+            margin-left: 1.5rem;
+        }
+    </style>
+    <script type="text/javascript">
+        (function (doc, win) {
+            // orientationchange->手机屏幕转屏事件
+            // resize->页面大小改变事件(一边pc端有用)
+            var reEvt = "orientationchange" in win ? "orientationchange" : "resize";
+            win.addEventListener(reEvt, reFontSize);
+            // DOMContentLoaded->dom加载完就执行,onload要dom/css/js都加载完才执行
+            doc.addEventListener("DOMContentLoaded", reFontSize);
+        })(document, window);
+
+        function reFontSize() {
+            var html = document.getElementsByTagName("html")[0];
+            var clientW = window.innerWidth;
+            if (clientW) {
+                window.FontSize = 20 * (clientW / 1920);
+                html.style.fontSize = window.FontSize + "px";
+            }
+            if (window.chartResize) {
+                window.chartResize();
+            }
+        }
+
+        Date.prototype.Format = function (fmt) { //author: meizz
+            var o = {
+                "M+": this.getMonth() + 1,                 //月份
+                "d+": this.getDate(),                    //日
+                "H+": this.getHours(),                   //小时
+                "m+": this.getMinutes(),                 //分
+                "s+": this.getSeconds(),                 //秒
+                "q+": Math.floor((this.getMonth() + 3) / 3), //季度
+                "S": this.getMilliseconds()             //毫秒
+            };
+            if (/(y+)/.test(fmt))
+                fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+            for (var k in o)
+                if (new RegExp("(" + k + ")").test(fmt))
+                    fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+            return fmt;
+        };
+        var monthChineseData = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
+        Date.prototype.getChineseMonth = function () {
+            var month = this.getMonth();
+            return monthChineseData[month];
+        };
+    </script>
+</head>
+<body>
+<div class="loading" id="load"></div>
+<div class="content" id="main" style="display: none;">
+    <div class="left">
+        <div class="title"><img src="./image/logo.png" alt="logo"><a class="name">伊伴数据展示系统</a></div>
+        <div class="try-map">
+            <div class="card-title">
+                <div class="radio"></div>
+                <div class="name">实时试穿数据地图</div>
+                <div class="line"></div>
+            </div>
+            <div class="card-body" style="display: flex;" id="try-vue">
+                <div class="card-body-left" style="width: 21.7rem;position: relative;">
+                    <div class="all-try-data">
+                        <div style="display: flex;margin-left: 0.4rem;margin-top: 0.2rem;">
+                            <div style="font-size:0.9rem;font-weight:500;color:#FF7D00;">总</div>
+                            <div style="font-size:0.9rem;font-weight:500;color:#FFFFFF;">试穿数据</div>
+                            <div style="margin-left: 0.6rem;">
+                                <a v-for="item in (tryData.total_total+'').split('')"
+                                   style="border-radius:0.1rem;background:rgba(65,67,123,1);color:#fff;margin-left: 0.3rem;padding: 0.1rem;">{{item}}</a>
+                            </div>
+                        </div>
+                        <div style="display: flex;margin-left: 0.4rem;margin-top: 0.2rem;align-items: center;">
+                            <div style="font-size:0.7rem;font-weight:500;color: #FFFFFF;">有效数据</div>
+                            <div style="font-size:0.9rem;font-family:Arial-Black;font-weight:900;color:#0EA6E8;margin-left: 0.3rem;">
+                                {{tryData.total_valid}}
+                            </div>
+                            <div style="font-size:0.7rem;font-weight:500;color: #FFFFFF;margin-left: 0.5rem;">无效数据</div>
+                            <div style="font-size:0.9rem;font-family:Arial-Black;font-weight:900;color:#979797;margin-left: 0.3rem;">
+                                {{tryData.total_invalid}}
+                            </div>
+                        </div>
+                    </div>
+                    <div id="data-map" style="width:15.8rem;height:13.26rem;margin-left: 2.5rem;"></div>
+                </div>
+                <div class="card-body-right" style="width: 8.6rem;margin-left: 1.2rem;">
+                    <div style="height:4.75rem;background:rgba(51,49,86,1);border-radius:0.25rem;">
+                        <div style="font-size: 0.75rem;text-align: right;margin-right: 0.2rem;margin-top: 0.2rem;letter-spacing:0.2rem;">
+                            <a style="color: #FF7D00;">本日</a><a style="color: #FFFFFF;">试穿数据</a></div>
+                        <div style="font-size: 0.75rem;text-align: right;margin-right: 0.2rem;margin-top: 0.2rem;color: #ffffff;">
+                            {{tryData.today_total}}
+                        </div>
+                        <div style="height: 1rem;">
+                            <a style="color: #DBDBDC;font-size: 0.5rem;vertical-align:top;margin-left: 0.3rem;">有效数据</a>
+                            <a style="color: #0FB6FF;font-size: 0.5rem;vertical-align:top;margin-left: 0.3rem;">{{tryData.today_valid}}</a>
+                        </div>
+                        <div style="height: 1rem;margin-top: 0.25rem;">
+                            <a style="color: #DBDBDC;font-size: 0.5rem;vertical-align:top;margin-left: 0.3rem;">无效数据</a>
+                            <a style="color: #979797;font-size: 0.5rem;vertical-align:top;margin-left: 0.3rem;">{{tryData.today_invalid}}</a>
+                        </div>
+                    </div>
+                    <div style="height:4.75rem;background:rgba(51,49,86,1);border-radius:0.25rem;margin-top: 0.6rem;">
+                        <div style="font-size: 0.75rem;text-align: right;margin-right: 0.2rem;margin-top: 0.2rem;letter-spacing:0.2rem;">
+                            <a style="color: #FF7D00;">本周</a><a style="color: #FFFFFF;">试穿数据</a></div>
+                        <div style="font-size: 0.75rem;text-align: right;margin-right: 0.2rem;margin-top: 0.2rem;color: #ffffff;">
+                            {{tryData.week_total}}
+                        </div>
+                        <div style="height: 1rem;">
+                            <a style="color: #DBDBDC;font-size: 0.5rem;vertical-align:top;margin-left: 0.3rem;">有效数据</a>
+                            <a style="color: #0FB6FF;font-size: 0.5rem;vertical-align:top;margin-left: 0.3rem;">{{tryData.week_valid}}</a>
+                        </div>
+                        <div style="height: 1rem;margin-top: 0.25rem;">
+                            <a style="color: #DBDBDC;font-size: 0.5rem;vertical-align:top;margin-left: 0.3rem;">无效数据</a>
+                            <a style="color: #979797;font-size: 0.5rem;vertical-align:top;margin-left: 0.3rem;">{{tryData.week_invalid}}</a>
+                        </div>
+                    </div>
+                    <div style="height:4.75rem;background:rgba(51,49,86,1);border-radius:0.25rem;margin-top: 0.6rem;">
+                        <div style="font-size: 0.75rem;text-align: right;margin-right: 0.2rem;margin-top: 0.2rem;letter-spacing:0.2rem;">
+                            <a style="color: #FF7D00;">本月</a><a style="color: #FFFFFF;">试穿数据</a></div>
+                        <div style="font-size: 0.75rem;text-align: right;margin-right: 0.2rem;margin-top: 0.2rem;color: #ffffff;">
+                            {{tryData.month_total}}
+                        </div>
+                        <div style="height: 1rem;">
+                            <a style="color: #DBDBDC;font-size: 0.5rem;vertical-align:top;margin-left: 0.3rem;">有效数据</a>
+                            <a style="color: #0FB6FF;font-size: 0.5rem;vertical-align:top;margin-left: 0.3rem;">{{tryData.month_valid}}</a>
+                        </div>
+                        <div style="height: 1rem;margin-top: 0.25rem;">
+                            <a style="color: #DBDBDC;font-size: 0.5rem;vertical-align:top;margin-left: 0.3rem;">无效数据</a>
+                            <a style="color: #979797;font-size: 0.5rem;vertical-align:top;margin-left: 0.3rem;">{{tryData.month_invalid}}</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="try-data">
+            <div class="card-title">
+                <div class="radio"></div>
+                <div class="name">区域试穿数据统计</div>
+                <div class="line"></div>
+            </div>
+            <div class="card-body">
+                <div id="try-line-chart" style="width: 100%;height: 18rem;"></div>
+            </div>
+        </div>
+        <div class="try-top">
+            <div class="card-title">
+                <div class="radio"></div>
+                <div class="name">试穿top20</div>
+                <div class="line"></div>
+            </div>
+            <div class="card-body" style="display: flex;align-items: center;margin-top: 0.65rem;"
+                 id="month-try-top-vue">
+                <div style="width:1.4rem;height:3.3rem;background:linear-gradient(180deg,rgba(227,58,58,1) 0%,rgba(255,44,112,1) 100%);
+                border-radius:0.25rem;font-size:1rem;font-weight:600;text-align:center;color: #FFFFFF;margin-right: 0.1rem;">
+                    本月
+                </div>
+                <div style="width:6.05rem;height:7.75rem;background:rgba(255,255,255,1);border-radius:0.25rem;margin-left: 0.75rem;"
+                     v-for="(item,index) in topData" v-if="index<4">
+                    <div style="font-size:0.7rem;margin-top: 0.25rem;margin-left: 0.35rem;font-weight: 900;color: #FF0000">
+                        NO.{{index+1}}
+                    </div>
+                    <div style="margin-left: 0.35rem;">
+                        <img :src="item.img" style="width: 5.35rem;height: 4.4rem;"/>
+                    </div>
+                    <div style="margin-left: 0.35rem;margin-top: 0.1rem;color: #505050;font-size:0.6rem;">
+                        {{item.shoeId}}
+                    </div>
+                    <div style="margin-left: 0.35rem;margin-top: 0.05rem;font-size:0.5rem;">
+                        <a style="color: #FF0000;">销售{{item.saleCount}}双</a>
+                        <a style="color: #7C7D82;">试穿{{item.tryCount}}次</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="right">
+        <div class="top" style="display: flex;position: relative;">
+            <!--todo  指标top-->
+            <div style="width: 40rem;display: flex;" id="sale-quota-vue">
+                <div style="margin: 0.75rem 2.2rem 0 2.2rem;width: 14.5rem;">
+                    <div style="font-size: 1.2rem;color: #FFFFFF;">今年{{month}}月全国销售总指标</div>
+                    <div style="font-size: 2.4rem;color: #FF7D00;margin-top: 0.2rem;">{{monthQuota}}</div>
+                    <div style="font-size: 0.9rem;color: #FFFFFF;margin-top: 0.75rem;">已完成</div>
+                    <div style="font-size: 1.5rem;color: #08BC99;margin-top: 0.2rem;">{{completeQuota}}</div>
+                    <div style="display: flex;margin-top: 1.3rem;">
+                        <div style="width: 9.1rem;">
+                            <div style="font-size: 0.7rem;color: #FFF;">截止今日全年总销售额</div>
+                            <div style="font-size: 1.2rem;color: #7F85ED;margin-top: 0.2rem;">32235万</div>
+                        </div>
+                        <div style="width: 5.4rem;">
+                            <div style="font-size: 0.7rem;color: #FFF;">昨日销售额</div>
+                            <div style="font-size: 1.2rem;color: #7F85ED;margin-top: 0.2rem;">231万</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-left: 1rem;width: 20rem;margin-top: 1.2rem;">
+                    <div style="display: flex;">
+                        <div style="width: 8rem;font-size: 0.8rem;color: #FFFFFF;text-overflow : clip;">销售指标/销售额统计</div>
+                        <div style="width: 6rem;margin-left: 0.5rem;font-size: 0.7rem;color: #E2E2E2;">去年今日</div>
+                        <div style="width: 5rem;margin-left: 0.4rem;font-size: 0.7rem;color: #E2E2E2;text-overflow : clip;">
+                            今年较去年同比
+                        </div>
+                    </div>
+                    <div style="display: flex;align-items: center;margin-top: 0.7rem;">
+                        <a style="width: 8rem;font-size: 0.7rem;color: #E2E2E2;">{{month}}月全国销售总指标</a>
+                        <a style="width: 6rem;margin-left: 0.5rem;font-size: 1.5rem;color: #C48D57;">{{monthQuota}}</a>
+                        <a style="width: 5rem;margin-left: 0.4rem;font-size: 1rem;color: #40A3FF;">{{monthQuotaPercent}}</a>
+                    </div>
+                    <div style="display: flex;align-items: center;margin-top: 1.3rem;">
+                        <a style="width: 8rem;font-size: 0.75rem;color: #E2E2E2;">已完成</a>
+                        <a style="width: 6rem;margin-left: 0.5rem;font-size: 1.05rem;color: #34A2B3;">{{completeQuota}}</a>
+                        <a style="width: 5rem;margin-left: 0.4rem;font-size: 1.05rem;color: #40A3FF;">{{completeQuotaPercent}}</a>
+                    </div>
+                    <div style="display: flex;align-items: center;margin-top: 1.3rem;">
+                        <a style="width: 8rem;font-size: 0.75rem;color: #E2E2E2;">年总销售额</a>
+                        <a style="width: 6rem;margin-left: 0.5rem;font-size: 1.05rem;color: #7F85ED;">231万</a>
+                        <a style="width: 5rem;margin-left: 0.4rem;font-size: 1.05rem;color: #FF2A6F;">-20%</a>
+                    </div>
+                    <div style="display: flex;align-items: center;margin-top: 1.3rem;">
+                        <a style="width: 8rem;font-size: 0.7rem;color: #E2E2E2;">昨日销售额</a>
+                        <a style="width: 6rem;margin-left: 0.5rem;font-size: 1.05rem;color: #7F85ED;">231万</a>
+                        <a style="width: 5rem;margin-left: 0.4rem;font-size: 1.05rem;color: #FF2A6F;">-20%</a>
+                    </div>
+                </div>
+            </div>
+            <div style="position: absolute;top:5rem;left:10.5rem;width: 5rem;height: 5rem;" id="quota-pie"></div>
+            <div style="margin-left: 2.9rem;width: 18rem;margin-top: 0.75rem;" id="moth-week-pie"></div>
+        </div>
+        <div class="center">
+            <div class="sub-left">
+                <div class="sale-quota">
+                    <div class="card-title">
+                        <div class="radio"></div>
+                        <div class="name">当前各大区指标完成情况统计</div>
+                        <div class="line"></div>
+                    </div>
+                    <div class="card-body">
+                        <div id="quota-month-chart" style="width: 100%;height: 11rem;"></div>
+                    </div>
+                </div>
+                <div class="sale-month">
+                    <div class="card-title">
+                        <div class="radio"></div>
+                        <div class="name">最近30天全国销售额</div>
+                        <div class="line"></div>
+                    </div>
+                    <div class="card-body">
+                        <div id="sale-month-chart" style="width: 100%;height: 10rem;"></div>
+                    </div>
+                </div>
+                <div class="sale-top">
+                    <div class="card-title">
+                        <div class="radio"></div>
+                        <div class="name">销量top20</div>
+                        <div class="line"></div>
+                    </div>
+                    <div class="card-body" style="display: flex;align-items: center;margin-top: 0.65rem;"
+                         id="month-sale-top-vue">
+                        <div style="width:1.4rem;height:3.3rem;background:linear-gradient(180deg,rgba(227,58,58,1) 0%,rgba(255,44,112,1) 100%);
+                border-radius:0.25rem;font-size:1rem;font-weight:600;text-align:center;color: #FFFFFF;margin-right: 0.1rem;">
+                            本月
+                        </div>
+                        <div style="width:6.05rem;height:7.75rem;background:rgba(255,255,255,1);border-radius:0.25rem;margin-left: 0.75rem;"
+                             v-for="(item,index) in topData" v-if="index<5">
+                            <div style="font-size:0.7rem;margin-top: 0.25rem;margin-left: 0.35rem;font-weight: 900;color: #FF0000">
+                                NO.{{index+1}}
+                            </div>
+                            <div style="margin-left: 0.35rem;">
+                                <img :src="item.img" style="width: 5.35rem;height: 4.4rem;"/></div>
+                            <div style="margin-left: 0.35rem;margin-top: 0.1rem;color: #505050;font-size:0.6rem;">
+                                {{item.shoeId}}
+                            </div>
+                            <div style="margin-left: 0.35rem;margin-top: 0.05rem;font-size:0.5rem;">
+                                <a style="color: #FF0000;">销售{{item.saleCount}}双</a>
+                                <a style="color: #7C7D82;">试穿{{item.tryCount}}次</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="sub-right">
+                <div class="card-title">
+                    <div class="radio"></div>
+                    <div class="name">2018年度新品销售情况</div>
+                    <div class="line"></div>
+                </div>
+                <div style="margin-top: 0.65rem;height: 2rem;margin-left: 2rem;margin-right: 1.7rem;">
+                    <div style="display: flex;align-items: center;">
+                        <div style="width:1.9rem;height:0.57rem;background:#4A8AFF;"></div>
+                        <div style="font-size:0.6rem;font-weight:400;color:#FFFFFF;margin-left: 0.1rem;">今年本周销售</div>
+
+                        <div style="width:1.9rem;height:0.57rem;background:#5DFFB6;margin-left:1.45rem;"></div>
+                        <div style="font-size:0.6rem;font-weight:400;color:#FFFFFF;margin-left: 0.1rem;">同比增长</div>
+
+                        <div style="width:1.9rem;height:0.57rem;background: #F66C3A;margin-left:1.45rem;"></div>
+                        <div style="font-size:0.6rem;font-weight:400;color:#FFFFFF;margin-left: 0.1rem;">今年本周售罄率</div>
+                    </div>
+                    <div style="display: flex;">
+                        <div style="width:1.9rem;height:0.57rem;background:#5B8F9D;"></div>
+                        <div style="font-size:0.6rem;font-weight:400;color:#FFFFFF;margin-left: 0.1rem;">去年本周销售</div>
+
+                        <div style="width:1.9rem;height:0.57rem;background:#FF2A6F;margin-left:1.45rem;"></div>
+                        <div style="font-size:0.6rem;font-weight:400;color:#FFFFFF;margin-left: 0.1rem;">同比下降</div>
+
+                        <div style="width:1.9rem;height:0.57rem;background:#A5896D;margin-left:1.45rem;"></div>
+                        <div style="font-size:0.6rem;font-weight:400;color:#FFFFFF;margin-left: 0.1rem;">去年本周售罄率</div>
+                    </div>
+                </div>
+                <div class="card-body" style="height: 32rem;width: 23.5rem;display: flex;">
+                    <div id="new-sales-num-chart" style="height: 32rem;width: 13.5rem;"></div>
+                    <div id="new-sales-rate-chart" style="height: 32rem;width: 10rem;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="./javascript/axios.min.js"></script>
+<script src="./javascript/vue.min.js"></script>
+<script src="./javascript/echarts.js"></script>
+<script type="text/javascript">
+
+    var tryVue = new Vue({
+        el: '#try-vue',
+        data: {
+            tryData: {
+                total_total: ''
+            }
+        }
+    });
+
+    var saleQuotaVue = new Vue({
+        el: '#sale-quota-vue',
+        data: {
+            month: new Date().getChineseMonth(),
+            monthQuota: '',
+            completeQuota: '',
+            monthQuotaPercent: '',
+            completeQuotaPercent: ''
+        }
+    });
+
+    var monthTryTopVue = new Vue({
+        el: '#month-try-top-vue',
+        data: {
+            topData: []
+        }
+    });
+
+    var monthSaleTopVue = new Vue({
+        el: '#month-sale-top-vue',
+        data: {
+            topData: []
+        }
+    });
+
+    doLogin(allLoad);
+
+    function doLogin(callback) {
+        axios.request({
+            url: '/show-api/api/login',
+            method: 'post',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            params: {
+                userName: 'EBScreem',
+                password: '123'
+            }
+        }).then(function (result) {
+            var data = result.data;
+            if (data.code === 1) {
+                var RequestToken = data.result[0];
+                axios.defaults.headers.token = RequestToken.token;
+                callback();
+            }
+        }).catch(function (error) {
+        });
+    }
+
+    var mapChart, tryLineChart, monthWeekChart, quotaPieChart, quotaMonthChart, saleMonthChart, newSalesRateChart,
+        newSalesNumChart;
+    window.chartResize = function () {
+        if (mapChart) {
+            mapChart.resize();
+        }
+        if (tryLineChart) {
+            tryLineChart.resize();
+        }
+
+        if (monthWeekChart) {
+            monthWeekChart.resize();
+        }
+        if (quotaPieChart) {
+            quotaPieChart.resize();
+        }
+        if (quotaMonthChart) {
+            quotaMonthChart.resize();
+        }
+        if (saleMonthChart) {
+            saleMonthChart.resize();
+        }
+        if (newSalesNumChart) {
+            newSalesNumChart.resize();
+        }
+        if (newSalesRateChart) {
+            newSalesRateChart.resize();
+        }
+    };
+
+    function allLoad() {
+        loadMainData();
+        loadTryData();
+        drawTryLine();
+
+        loadQuotaData();
+
+        loadMonthSale();
+
+        loadMonthTop();
+
+        loadNewSales();
+    }
+
+    function getMapData() {
+        return axios.get('/show-api/api/tryMap/today');
+    }
+
+    function getLineData() {
+        return axios.get('/show-api/api/tryMap/dataLine');
+    }
+
+    function loadMainData() {
+        document.getElementById('load').style.display = 'none';
+        document.getElementById('main').style.display = 'inline-flex';
+
+        axios.get('./json/china.json').then(function (chinaJson) {
+            echarts.registerMap('china', chinaJson.data);
+            mapChart = echarts.init(document.getElementById('data-map'));
+
+            axios.all([getMapData(), getLineData()])
+                .then(axios.spread(function (acct, perms) {
+                    // 两个请求现在都执行完成
+                    var series = getSeries(acct.data.result, perms.data.result);
+                    loadMap(series);
+                }));
+        }).catch(function (error) {
+            console.error(error);
+        });
+    }
+
+    // 自定义图中要用到的颜色(依次为:未上传, 0~100条, 101~200条, 200条以上, null)
+    var color = ['#EED5CE', '#F1B945', '#FF7F00', '#DA2424', '#E42323'];
+
+    function loadMap(series) {
+        mapChart.setOption({
+            visualMap: [{//视觉映射组件
+                left: -5,
+                bottom: 5,
+                type: 'piecewise', //类型, 默认:piecewise(分段式)
+                //symbol 图元的图形类别。默认:'roundRect', 可选值为： 'circle', 'rect', 'roundRect', 'triangle', 'diamond', 'pin', 'arrow', 'none'
+                //自定义『分段式视觉映射组件（visualMapPiecewise）』的每一段的范围，以及每一段的文字，以及每一段的特别的样式。
+                pieces: [{
+                    symbol: 'none',
+                    value: NaN,
+                    label: '\r',
+                    color: color[4]
+                }, // 表示 value 等于 NaN 的情况(画终点圆圈)。
+                    {
+                        symbol: 'circle',
+                        value: 0,
+                        label: '未上传',
+                        color: color[0]
+                    }, // 表示 value 等于 0 的情况。
+                    {
+                        symbol: 'circle',
+                        min: 1,
+                        max: 100,
+                        label: '1-100',
+                        color: color[1]
+                    }, {
+                        symbol: 'circle',
+                        min: 101,
+                        max: 200,
+                        label: '101-200',
+                        color: color[2]
+                    }, {
+                        symbol: 'circle',
+                        min: 201,
+                        label: '>200',
+                        color: color[3]
+                    } // 不指定 max，表示 max 为无限大（Infinity）。
+                ],
+                textGap: 2, //两端文字主体之间的距离，单位为px
+                inverse: true, //是否顺序反转
+                orient: 'vertical', //如何放置 visualMap 组件，水平（'horizontal'）或者默认值:竖直（'vertical'）。
+                textStyle: {
+                    color: '#DBDBDC'
+                }
+            }],
+            geo: {//地理坐标系组件
+                map: 'china',
+                left: 0,
+                right: 0,
+                top: -10,
+                roam: false, //是否开启鼠标缩放和平移漫游(可以设置成 'scale' 或者 'move'。设置成 true 为都开启). 默认false
+                center: [104.114129, 37.550339], //当前视角的中心点，用经纬度表示
+                zoom: 1, //当前视角的缩放比例, 默认:1
+                nameMap: {//自定义地区的名称映射
+                    'china': '中国'
+                },
+                label: {//图形上的文本标签，可用于说明图形的一些数据信息
+                    normal: {
+                        show: false,
+                        textStyle: {
+                            color: '#999',
+                            fontSize: 10
+                        }
+                    },
+                    emphasis: {
+                        show: false,
+                        textStyle: {
+                            color: '#999',
+                            fontSize: 10
+                        }
+                    }
+                },
+                itemStyle: {//地图区域的多边形 图形样式
+                    normal: {
+                        areaColor: '#7F71AB',
+                        borderColor: '#7F71AB'
+                    },
+                    emphasis: {
+                        areaColor: '#7F71AB',
+                        borderColor: '#7F71AB'
+                    }
+                }
+            },
+            series: series
+        });
+    }
+
+    //********************  画三个图(起点散点图, 终点散点图, 航线图)  **********************
+    function getSeries(mapData, lineData) {
+        var mapSeries = [];
+        //1.散点图(起点)
+        mapSeries.push({//散点图1(起点)
+            type: 'scatter',
+            coordinateSystem: 'geo', // 表示使用的坐标系为地理坐标系
+            zlevel: 1, //zlevel用于 Canvas 分层，不同zlevel值的图形会放置在不同的 Canvas 中
+            symbolSize: 4, //散点的大小
+            label: {
+                normal: {// 默认的文本标签显示样式
+                    show: false,
+                    position: 'left', // 标签显示的位置
+                    formatter: function (data) {// 标签内容格式器
+                        return data.value[2] + "";
+                    }
+                }
+            },
+            data: mapData
+        });
+        //2.散点图(终点)  3.航线图
+        mapSeries.push({
+            type: 'effectScatter',
+            coordinateSystem: 'geo',
+            zlevel: 2,
+            symbolSize: 4,
+            rippleEffect: {
+                brushType: 'stroke'
+            },
+            label: {
+                normal: {
+                    show: false,
+                    position: 'left',
+                    formatter: '{b}'
+                }
+            },
+            itemStyle: {
+                normal: {
+                    color: color[4]
+                }
+            }, //散点颜色(终点)
+            data: [{
+                // 这里面的数据，由于一开始就知道终点位置是什么，所以直接写死，如果通过ajax来获取数据的话，还要进行相应的处理
+                name: "苏州",
+                value: [120.6519, 31.3989, NaN],
+                label: {
+                    normal: {
+                        position: 'right'
+                    }
+                }
+            }]
+        }, {
+            type: 'lines',
+            name: 'airline', //系列名称，在 setOption 更新数据和配置项时用于指定对应的系列。
+            zlevel: 2, // 用于分层，z-index的效果
+            effect: {
+                show: true, // 动效是否显示
+                period: 3, // 特效动画时间
+                loop: true, //是否循环显示特效。默认true
+                color: '#6DC3FF' // 特效颜色
+            },
+            lineStyle: {
+                normal: {// 正常情况下的线条样式
+                    color: color[0],
+                    shadowColor: 'rgba(0,0,0,0)', //阴影颜色。支持的格式同color。
+                    width: 0, // 因为是叠加效果，要是有宽度，线条会变粗，白色航线特效不明显
+                    curveness: -0.2 // 线条曲度
+                }
+            },
+            data: lineData // 特效的起始、终点位置
+        });
+        return mapSeries;
+    }
+
+
+    /**试穿面板数据*/
+    function loadTryData() {
+        axios.get('/show-api/api/largeScreenApi/total').then(function (result) {
+            if (result.data.code === 1) {
+                tryVue.tryData = result.data.result[0];
+            }
+        }).catch(function (reason) {
+            console.error(reason);
+        });
+    }
+
+    function drawTryLine() {
+        if (!tryLineChart) {
+            tryLineChart = echarts.init(document.getElementById('try-line-chart'));
+        }
+        var endDateString = new Date().Format("yyyy/MM/dd HH:mm:ss");
+        var startDate = new Date();
+        startDate.setFullYear(2010, 0, 1);
+        var startDateString = startDate.Format("yyyy/MM/dd HH:mm:ss");
+        axios.get('/show-api/api/tryShoes/statistics', {
+            params: {
+                type: 1,
+                areaSeqs: 0,
+                startDate: startDateString,
+                endDate: endDateString
+            }
+        }).then(function (result) {
+            if (result.data.code === 1) {
+                var childArray = result.data.result[0].detail[0].child;
+                var areaArray = [];
+                var validArray = [];
+                var invalidArray = [];
+                for (var index = 0; index < childArray.length; index++) {
+                    areaArray.push(childArray[index].areaName);
+                    validArray.push(childArray[index].valid);
+                    invalidArray.push(childArray[index].invalid);
+                }
+                tryLineChart.setOption({
+                    xAxis: {
+                        data: areaArray,
+                        axisLabel: {
+                            textStyle: {
+                                color: '#C8C8C8'
+                            },
+                            rotate: 50,
+                            padding: [-20, -20, 0, 0]
+
+                        },
+                        axisTick: {
+                            show: false
+                        },
+                        axisLine: {
+                            show: false
+                        }
+                    },
+                    yAxis: {
+                        name: '次数',
+                        nameTextStyle: {
+                            color: '#7E7C84'
+                        },
+                        axisLine: {
+                            show: false
+                        },
+                        axisTick: {
+                            show: false
+                        },
+                        axisLabel: {
+                            textStyle: {
+                                color: '#7E7C84'
+                            }
+                        },
+                        splitLine: {
+                            lineStyle: {
+                                color: '#433F4E'
+                            }
+                        }
+                    },
+                    grid: {
+                        width: "94%",
+                        height: "82%",
+                        top: "10%",
+                        left: "7%"
+                    },
+                    series: [
+                        { // For shadow
+                            type: 'bar',
+                            barGap: '-100%',
+                            barCategoryGap: '60%',
+                            animation: false
+                        },
+                        {
+                            name: 'bar1',
+                            type: 'bar',
+                            stack: 'one',
+                            itemStyle: {
+                                normal: {
+                                    color: new echarts.graphic.LinearGradient(
+                                        0, 0, 0, 1,
+                                        [
+                                            {offset: 0, color: '#15E7FF'},
+                                            {offset: 1, color: '#025EFF'}
+                                        ]
+                                    ),
+                                    barBorderColor: '#15E7FF',
+                                    barBorderWidth: 1,
+                                    label: {
+                                        show: true,
+                                        position: 'inside',
+                                        textStyle: {
+                                            color: '#FFFFFF'
+                                        }
+                                    }
+                                }
+                            },
+                            data: validArray
+                        },
+                        {
+                            name: 'bar2',
+                            type: 'bar',
+                            stack: 'one',
+                            itemStyle: {
+                                normal: {
+                                    color: '#262132',
+                                    barBorderColor: '#15E7FF',
+                                    barBorderWidth: 1,
+                                    label: {
+                                        show: true,
+                                        position: 'top',
+                                        formatter: function (params) {
+                                            for (var i = 0, l = areaArray.length; i < l; i++) {
+                                                if (areaArray[i] === params.name) {
+                                                    return validArray[i] + params.value;
+                                                }
+                                            }
+                                        },
+                                        textStyle: {
+                                            color: '#CCCBCF'
+                                        }
+                                    }
+                                }
+                            },
+                            data: invalidArray
+                        }
+                    ]
+                });
+            }
+        }).catch(function (reason) {
+            console.error(reason);
+        });
+    }
+
+    function loadQuotaData() {
+        axios.get('/show-api/api/salequotaanalyze/home').then(function (result) {
+            if (result.data.code === 1) {
+                var total = result.data.total;
+
+                var yearQuota, yearSales;
+                if (total.thisYearQuota > 10000) {
+                    yearQuota = (total.thisYearQuota / 10000).toFixed(1) + '万';
+                } else {
+                    yearQuota = total.thisYearQuota;
+                }
+                if (total.thisYearSales > 10000) {
+                    yearSales = (total.thisYearSales / 10000).toFixed(1) + '万';
+                } else {
+                    yearSales = total.thisYearSales;
+                }
+                saleQuotaVue.monthQuota = yearQuota;
+                saleQuotaVue.completeQuota = yearSales;
+
+                var quotaPercent, quotaCompletePercent;
+                if (total.lastYearQuota === 0) {
+                    quotaPercent = '-';
+                } else {
+                    quotaPercent = Math.round(100 * (total.thisYearQuota - total.lastYearQuota) / total.lastYearQuota) + '%';
+                }
+                saleQuotaVue.monthQuotaPercent = quotaPercent;
+                if (total.lastYearSales === 0) {
+                    quotaCompletePercent = '-';
+                } else {
+                    quotaCompletePercent = Math.round(100 * (total.thisYearSales - total.lastYearSales) / total.lastYearSales) + '%';
+                }
+                saleQuotaVue.completeQuotaPercent = quotaCompletePercent;
+
+                var quotaPieData = [];
+                quotaPieData.push({value: total.thisYearQuota - total.thisYearSales, text: '未完成'});
+                quotaPieData.push({value: total.thisYearSales, text: '已完成'});
+
+                var weekPieData = [];
+                var weeks = total.thisYearWeeks;
+                for (var dataIndex in weeks) {
+                    var weekData = weeks[dataIndex];
+                    var weekName;
+                    switch (parseInt(weekData.index)) {
+                        case 1:
+                            weekName = '第一周';
+                            break;
+                        case 2:
+                            weekName = '第二周';
+                            break;
+                        case 3:
+                            weekName = '第三周';
+                            break;
+                        case 4:
+                            weekName = '第四周';
+                            break;
+                        case 5:
+                            weekName = '第五周';
+                    }
+                    weekPieData.push({value: weekData.value, text: weekName});
+                }
+                weekPieData.push({value: total.thisYearQuota - total.thisYearSales, text: '未完成'});
+                loadMonthWeek(quotaPieData, weekPieData);
+
+                loadMonthQuota(result.data.list);
+            }
+        }).catch(function (reason) {
+        });
+    }
+
+    function loadMonthWeek(quotaPieData, weekPieData) {
+        quotaPieChart = echarts.init(document.getElementById('quota-pie'));
+        quotaPieChart.setOption({
+            series: [
+                {
+                    type: 'pie',
+                    radius: ['50%', '70%'],
+                    avoidLabelOverlap: false,
+                    label: {
+                        normal: {
+                            show: true,
+                            position: 'center',
+                            fontSize: '15',
+                            formatter: function (data) {
+                                if (data.dataIndex === 1) {
+                                    return Math.round(data.percent) + '%';
+                                } else {
+                                    return "";
+                                }
+                            },
+                            color: '#08BC99'
+                        }
+                    },
+                    labelLine: {
+                        normal: {
+                            show: false
+                        }
+                    },
+                    itemStyle: {
+                        normal: {
+                            color: function (params) {
+                                if (params.dataIndex === 0) {
+                                    return '#3C3B3B';
+                                } else {
+                                    return '#08BC99';
+                                }
+                            }
+                        }
+                    },
+                    data: quotaPieData
+                }
+            ]
+        });
+        monthWeekChart = echarts.init(document.getElementById('moth-week-pie'));
+        monthWeekChart.setOption({
+            title: {
+                text: '当月周完成情况',
+                x: 'center',
+                textStyle: {
+                    color: '#FFFFFF'
+                }
+            },
+            series: [
+                {
+                    name: '',
+                    type: 'pie',
+                    radius: '55%',
+                    label: {
+                        normal: {
+                            show: true,
+                            fontSize: '13',
+                            formatter: function (data) {
+                                if (data.value === 0) {
+                                    return '0';
+                                }
+                                var valueText;
+                                if (data.value > 10000) {
+                                    valueText = (data.value / 10000).toFixed(1) + '万';
+                                } else {
+                                    valueText = data.value;
+                                }
+                                return data.data.text + Math.round(data.percent) + '%\n' + valueText;
+                            }
+                        }
+                    },
+                    itemStyle: {
+                        normal: {
+                            color: function (params) {
+                                if (params.dataIndex === 0) {
+                                    return '#5D8BFF';
+                                } else if (params.dataIndex === 1) {
+                                    return '#57C5EF';
+                                } else if (params.dataIndex === 2) {
+                                    return '#5B8F9D';
+                                } else if (params.dataIndex === 3) {
+                                    return '#27CEE8';
+                                } else if (params.dataIndex === 4) {
+                                    return '#08BC99';
+                                } else {
+                                    return '#505162';
+                                }
+                            }
+                        }
+                    },
+                    data: weekPieData
+                }
+            ]
+        });
+    }
+
+    function loadMonthQuota(list) {
+        if (!quotaMonthChart) {
+            quotaMonthChart = echarts.init(document.getElementById('quota-month-chart'));
+        }
+
+        var areaArray = [];
+        var salesArray = [];
+        var noSalesArray = [];
+        for (var index = 0; index < list.length; index++) {
+            areaArray.push(list[index].areaName);
+            salesArray.push(list[index].thisYearSales);
+            var noSales = list[index].thisYearQuota - list[index].thisYearSales;
+            noSalesArray.push(noSales > 0 ? noSales : 0);
+        }
+        quotaMonthChart.setOption({
+            xAxis: {
+                data: areaArray,
+                axisLabel: {
+                    textStyle: {
+                        color: '#C8C8C8'
+                    }
+                },
+                axisTick: {
+                    show: false
+                },
+                axisLine: {
+                    show: false
+                }
+            },
+            yAxis: {
+                name: '销售额',
+                nameTextStyle: {
+                    color: '#7E7C84'
+                },
+                axisLine: {
+                    show: false
+                },
+                axisTick: {
+                    show: false
+                },
+                axisLabel: {
+                    formatter: function (value, index) {
+                        if (value > 10000) {
+                            return (value / 10000).toFixed(0) + '万';
+                        } else {
+                            return value;
+                        }
+                    },
+                    textStyle: {
+                        color: '#7E7C84'
+                    }
+                },
+                splitLine: {
+                    lineStyle: {
+                        color: '#433F4E'
+                    }
+                }
+            },
+            grid: {
+                width: "94%",
+                height: "70%",
+                top: "17%",
+                left: "8%"
+            },
+            series: [
+                { // For shadow
+                    type: 'bar',
+                    barGap: '-100%',
+                    barCategoryGap: '60%',
+                    animation: false
+                },
+                {
+                    name: 'bar1',
+                    type: 'bar',
+                    stack: 'one',
+                    itemStyle: {
+                        normal: {
+                            color: '#08BC99',
+                            label: {
+                                show: true,
+                                position: 'inside',
+                                formatter: function (params) {
+                                    var valueNum = params.value;
+                                    if (valueNum > 10000) {
+                                        return (valueNum / 10000).toFixed(1) + '万';
+                                    } else {
+                                        return valueNum;
+                                    }
+                                },
+                                textStyle: {
+                                    color: '#FFFFFF'
+                                }
+                            }
+                        }
+                    },
+                    data: salesArray
+                },
+                {
+                    name: 'bar2',
+                    type: 'bar',
+                    stack: 'one',
+                    itemStyle: {
+                        normal: {
+                            color: '#FF7D00',
+                            label: {
+                                show: true,
+                                position: 'top',
+                                formatter: function (params) {
+                                    for (var i = 0, l = areaArray.length; i < l; i++) {
+                                        if (areaArray[i] === params.name) {
+                                            var valueNum = salesArray[i] + params.value;
+                                            if (valueNum > 10000) {
+                                                return (valueNum / 10000).toFixed(1) + '万';
+                                            } else {
+                                                return valueNum;
+                                            }
+                                        }
+                                    }
+                                },
+                                textStyle: {
+                                    color: '#CCCBCF'
+                                }
+                            }
+                        }
+                    },
+                    data: noSalesArray
+                }
+            ]
+        });
+    }
+
+    function loadMonthSale() {
+        if (!saleMonthChart) {
+            saleMonthChart = echarts.init(document.getElementById('sale-month-chart'));
+        }
+        axios.get('/show-api/api/largeScreenApi/thirtyDaysSale').then(function (result) {
+            if (result.data.code === 1) {
+                var monthSales = result.data.result;
+                var categoryData = [];
+                var thisYearData = [];
+                var lastYearData = [];
+                for (var dataIndex in monthSales) {
+                    categoryData.push(monthSales[dataIndex].date);
+                    thisYearData.push(monthSales[dataIndex].sales);
+                    lastYearData.push(monthSales[dataIndex].lastyearSales);
+                }
+                saleMonthChart.setOption({
+                    grid: {
+                        width: "94%",
+                        height: "66%",
+                        top: "20%",
+                        left: "8%"
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: categoryData,
+                        axisLabel: {
+                            textStyle: {
+                                color: '#C8C8C8'
+                            }
+                        },
+                        axisPointer: {
+                            type: 'shadow'
+                        }
+
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: '销售额',
+                        nameTextStyle: {
+                            color: '#7E7C84'
+                        },
+                        axisLabel: {
+                            formatter: function (value) {
+                                if (value > 10000) {
+                                    return (value / 10000).toFixed(0) + '万';
+                                } else {
+                                    return value;
+                                }
+                            },
+                            textStyle: {
+                                color: '#7E7C84'
+                            }
+                        },
+                        splitLine: {
+                            lineStyle: {
+                                color: '#433F4E'
+                            }
+                        }
+                    },
+                    series: [
+                        {
+                            name: '今年',
+                            type: 'bar',
+                            itemStyle: {
+                                normal: {
+                                    color: '#7F5D03'
+                                }
+                            },
+                            data: thisYearData
+                        },
+                        {
+                            name: '去年',
+                            type: 'line',
+                            itemStyle: {
+                                normal: {
+                                    color: '#09B896'
+                                }
+                            },
+                            data: lastYearData
+                        }
+                    ]
+                });
+            }
+        }).catch(function (reason) {
+            console.error(reason);
+        });
+    }
+
+    function loadMonthTop() {
+        axios.get('/show-api/api/largeScreenApi/saleTop').then(function (result) {
+            if (result.data.code === 1) {
+                monthSaleTopVue.topData = result.data.result;
+            }
+        }).catch(function (reason) {
+            console.error(reason);
+        });
+
+        axios.get('/show-api/api/largeScreenApi/tryTop').then(function (result) {
+            if (result.data.code === 1) {
+                monthTryTopVue.topData = result.data.result;
+            }
+        }).catch(function (reason) {
+            console.error(reason);
+        });
+    }
+
+    function loadNewSales() {
+        if (!newSalesNumChart) {
+            newSalesNumChart = echarts.init(document.getElementById('new-sales-num-chart'));
+        }
+        if (!newSalesRateChart) {
+            newSalesRateChart = echarts.init(document.getElementById('new-sales-rate-chart'));
+        }
+        axios.get('/show-api/api/largeScreenApi/sX3WeekSale').then(function (result) {
+            if (result.data.code === 1) {
+                var categorySalesArray = result.data.result;
+                console.log(categorySalesArray);
+                var thisYearSaleOutRates = [], lastYearSaleOutRates = [],
+                    thisYearSaleNums = [], lastYearSaleNums = [],
+                    yAxisValues = [];
+                for (var index = 0; index < categorySalesArray.length; index++) {
+                    yAxisValues.push(categorySalesArray[index].yearSx3Name);
+                    thisYearSaleOutRates.push(categorySalesArray[index].sellOutRate);
+                    lastYearSaleOutRates.push(categorySalesArray[index].lastYearSellOutRate);
+                    thisYearSaleNums.push(categorySalesArray[index].saleNum);
+                    lastYearSaleNums.push(categorySalesArray[index].lastYearSaleNum);
+                }
+                newSalesNumChart.setOption({
+                    grid: {
+                        width: "65%",
+                        height: "90%",
+                        top: "2%"
+                    },
+                    xAxis: {
+                        type: 'value',
+                        inverse: true,
+                        axisLabel: {
+                            textStyle: {
+                                color: '#FFFFFF'
+                            }
+                        },
+                        splitLine: {
+                            show: false
+                        },
+                        axisLine: {
+                            lineStyle: {
+                                color: '#979797'
+                            }
+                        }
+                    },
+                    yAxis: {
+                        type: 'category',
+                        data: yAxisValues,
+                        position: 'right',
+                        axisLabel: {
+                            textStyle: {
+                                color: '#FFFFFF'
+                            }
+                        },
+                        axisLine: {
+                            lineStyle: {
+                                color: '#979797'
+                            }
+                        }
+                    },
+                    series: [
+                        {
+                            name: '今年',
+                            type: 'bar',
+                            barWidth: 20,
+                            itemStyle: {
+                                normal: {
+                                    color: '#4A8AFF'
+                                }
+                            },
+                            data: thisYearSaleNums
+                        },
+                        {
+                            name: '去年',
+                            type: 'bar',
+                            barWidth: 20,
+                            itemStyle: {
+                                normal: {
+                                    color: '#5B8F9D'
+                                }
+                            },
+                            data: lastYearSaleNums
+                        }
+                    ]
+                });
+                newSalesRateChart.setOption({
+                    grid: {
+                        width: "92%",
+                        height: "90%",
+                        top: "2%",
+                        left: "2%"
+                    },
+                    xAxis: {
+                        type: 'value',
+                        axisLabel: {
+                            textStyle: {
+                                color: '#FFFFFF'
+                            }
+                        },
+                        splitLine: {
+                            show: false
+                        },
+                        axisLine: {
+                            lineStyle: {
+                                color: '#979797'
+                            }
+                        }
+                    },
+                    yAxis: {
+                        type: 'category',
+                        data: yAxisValues,
+                        axisLabel: {
+                            show: false,
+                            textStyle: {
+                                color: '#FFFFFF'
+                            }
+                        },
+                        axisLine: {
+                            lineStyle: {
+                                color: '#979797'
+                            }
+                        }
+                    },
+                    series: [
+                        {
+                            name: '今年',
+                            type: 'bar',
+                            barWidth: 20,
+                            itemStyle: {
+                                normal: {
+                                    color: '#F66C3A'
+                                }
+                            },
+                            data: thisYearSaleOutRates
+                        },
+                        {
+                            name: '去年',
+                            type: 'bar',
+                            barWidth: 20,
+                            itemStyle: {
+                                normal: {
+                                    color: '#A5896D'
+                                }
+                            },
+                            data: lastYearSaleOutRates
+                        }
+                    ]
+                });
+            }
+        }).catch(function (reason) {
+            console.error(reason);
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="renderer" content="webkit">
+    <title>欢迎页</title>
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <link rel="stylesheet" href="${request.contextPath}/statics/css/bootstrap.min.css">
+    <link rel="stylesheet" href="${request.contextPath}/statics/css/AnimateEdit.css">
+    <link rel="stylesheet" href="${request.contextPath}/statics/plugins/ztree/css/zTreeStyle/zTreeStyle.css">
+    <link rel="stylesheet" href="${request.contextPath}/statics/plugins/ContextJS/css/context.standalone.css">
+    <link rel="stylesheet" href="${request.contextPath}/statics/plugins/daterangepicker/daterangepicker.css">
+</head>
+<body>
+
+<div class="container-fluid" id="app">
+    <div class="row">
+        <div class="col-xs-3">
+            <div class="template_tree_panel">
+                <div class="my-panel-title">总部模版</div>
+                <div class="template_tree_panel_content">
+                    <ul id="tree1" class="ztree"></ul>
+                </div>
+            </div>
+            <div class="template_tree_panel">
+                <div class="my-panel-title">我的模版</div>
+                <div class="template_tree_panel_content">
+                    <ul id="tree2" class="ztree"></ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-xs-6" id="center_area">
+            <!--onselectstart="return false;"-->
+            <div id="edit_area" onselectstart="return false;">
+                <div id="edit_content" v-show="isShowEditTemplate">
+                    <!--位置示意区-->
+                    <div id="screen">
+                        <div class="play_area">
+                            <div class="screen_title">视频播放区</div>
+                        </div>
+                        <div class="down_area">
+                            <div class="screen_title">热图轮播区</div>
+                        </div>
+                    </div>
+
+                    <!--装饰编辑区-->
+                    <div id="m1" class="static_material material_edit_border" :style="[style1]"></div>
+                    <div id="m2" class="static_material material_edit_border" :style="[style2]"></div>
+                    <div id="m3" class="static_material material_edit_border" :style="[style3]"></div>
+                    <div id="m4" class="static_material material_edit_border" :style="[style4]"></div>
+                    <div id="m5" class="static_material material_edit_border" :style="[style5]"></div>
+                    <div id="m6" class="static_material material_edit_border" :style="[style6]"></div>
+                    <div id="m7" class="static_material material_edit_border" :style="[style7]"></div>
+                    <div id="m8" class="static_material material_edit_border" :style="[style8]"></div>
+
+                    <!--预览动画-->
+                    <div id="previewAnimation" style="display: none"></div>
+                </div>
+
+                <!--编辑区素材设置-->
+                <div id="static_material_setting" class="form-horizontal" style="display: none;width: 500px">
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label">图宽比例(1-100)
+                            <a href="javascript:void(0)" data-toggle="tooltip" data-placement="bottom"
+                               title="相对于显示屏宽度的比例: 整数值">
+                                <span class="glyphicon glyphicon-question-sign"></span></a></label>
+                        <div class="col-sm-6 input-group">
+                            <input type="number" class="form-control" v-model.number="edit.width" required max="100"
+                                   min="1">
+                            <span class="input-group-addon">%</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label">图高比例(1-100)
+                            <a href="javascript:void(0)" data-toggle="tooltip" data-placement="bottom"
+                               title="相对于显示屏高度的比例: 整数值">
+                                <span class="glyphicon glyphicon-question-sign"></span></a></label>
+                        <div class="col-sm-6 input-group">
+                            <input type="number" class="form-control" v-model.number="edit.height" required max="100"
+                                   min="1">
+                            <span class="input-group-addon">%</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label">不透明度(1-10)
+                            <a href="javascript:void(0)" data-toggle="tooltip" data-placement="top"
+                               title="10完全不透明，0完全透明: 整数值">
+                                <span class="glyphicon glyphicon-question-sign"></span></a></label>
+                        <div class="col-sm-6" style="padding: 0">
+                            <input type="number" class="form-control" v-model.number="edit.opacity" required max="10"
+                                   min="1">
+                        </div>
+                    </div>
+                </div>
+                <!--编辑动画设置-->
+                <div id="animate_edit" style="display: none">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>小图片</th>
+                                <th>
+                                    尺寸(px)(10~80)
+                                    <a href="javascript:void(0)" data-toggle="tooltip" data-placement="bottom"
+                                       title="图片在屏幕上的真实大小">
+                                        <span class="glyphicon glyphicon-question-sign"></span></a>
+                                </th>
+                                <th>数量(1~10)</th>
+                                <th>
+                                    风向(-5~5)
+                                    <a href="javascript:void(0)" data-toggle="tooltip" data-placement="bottom"
+                                       title="负数向左飘，0向下飘，正数向右飘">
+                                        <span class="glyphicon glyphicon-question-sign"></span></a>
+                                </th>
+                                <th>
+                                    风速(0~5)
+                                    <a href="javascript:void(0)" data-toggle="tooltip" data-placement="bottom"
+                                       title="向下移动的速度，0静止">
+                                        <span class="glyphicon glyphicon-question-sign"></span></a>
+                                </th>
+                                <th>
+                                    不透明度(1~10)
+                                    <a href="javascript:void(0)" data-toggle="tooltip" data-placement="bottom"
+                                       title="10完全不透明，0完全透明">
+                                        <span class="glyphicon glyphicon-question-sign"></span></a>
+                                </th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>
+                                    <div class="material_animate" id="am1"></div>
+                                </td>
+                                <td><input type="number" class="form-control" v-model.number="animate1.size"/></td>
+                                <td><input type="number" class="form-control" v-model.number="animate1.count"/></td>
+                                <td><input type="number" class="form-control" v-model.number="animate1.windPower"/></td>
+                                <td><input type="number" class="form-control" v-model.number="animate1.speed"/></td>
+                                <td><input type="number" class="form-control" v-model.number="animate1.opacity"/></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="material_animate" id="am2"></div>
+                                </td>
+                                <td><input type="number" class="form-control" v-model.number="animate2.size"/></td>
+                                <td><input type="number" class="form-control" v-model.number="animate2.count"/></td>
+                                <td><input type="number" class="form-control" v-model.number="animate2.windPower"/></td>
+                                <td><input type="number" class="form-control" v-model.number="animate2.speed"/></td>
+                                <td><input type="number" class="form-control" v-model.number="animate2.opacity"/></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="material_animate" id="am3"></div>
+                                </td>
+                                <td><input type="number" class="form-control" v-model.number="animate3.size"/></td>
+                                <td><input type="number" class="form-control" v-model.number="animate3.count"/></td>
+                                <td><input type="number" class="form-control" v-model.number="animate3.windPower"/></td>
+                                <td><input type="number" class="form-control" v-model.number="animate3.speed"/></td>
+                                <td><input type="number" class="form-control" v-model.number="animate3.opacity"/></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="material_animate" id="am4"></div>
+                                </td>
+                                <td><input type="number" class="form-control" v-model.number="animate4.size"/></td>
+                                <td><input type="number" class="form-control" v-model.number="animate4.count"/></td>
+                                <td><input type="number" class="form-control" v-model.number="animate4.windPower"/></td>
+                                <td><input type="number" class="form-control" v-model.number="animate4.speed"/></td>
+                                <td><input type="number" class="form-control" v-model.number="animate4.opacity"/></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div id="btn_s">
+                <div class="btn_panel">
+                    <button id="bg_add_btn" class="btn btn-default btn-xs" v-show="btnIsShow">背景设置</button>
+                    <button id="bg_del_btn" class="btn btn-danger btn-xs" v-show="btnIsShow">删除背景</button>
+                    <button id="animal_btn" class="btn btn-primary btn-xs" v-show="btnIsShow">动画设置</button>
+                    <button id="review_btn" class="btn btn-info btn-sm" v-text="preview_title"
+                            v-show="btnIsShow"></button>
+                    <button id="submit_btn" class="btn btn-warning btn-sm" v-show="btnIsShow">保存设置</button>
+                </div>
+            </div>
+
+        </div>
+        <div class="col-xs-3">
+            <div class="material_panel">
+                <ul id="materialTab" class="nav nav-tabs">
+                    <li class="active" id="myTab"><a href="#self_material_wrap" data-toggle="tab"> 我的素材 </a></li>
+                    <li id="centerTab"><a href="#center_material_wrap" data-toggle="tab">总部素材</a></li>
+                </ul>
+                <div id="materialTabContent" class="tab-content">
+                    <div class="tab-pane fade in active" id="self_material_wrap">
+                        <!--我的素材内容-->
+                        <div id="self_material"></div>
+                        <ul id="self_material_page" class="pagination pagination-sm" style="margin: 0;padding: 0"></ul>
+                    </div>
+                    <div class="tab-pane fade" id="center_material_wrap">
+                        <!--总部素材的内容-->
+                        <div id="center_material"></div>
+                        <ul id="center_material_page" class="pagination pagination-sm"
+                            style="margin: 0;padding: 0"></ul>
+                    </div>
+                </div>
+                <div class="material-edit-btn">
+                    <!--<span class="glyphicon glyphicon-remove material-icon" onclick="removeMaterial()"></span>-->
+                    <span class="glyphicon glyphicon-plus material-icon" onclick="uploadMaterial()"></span>
+                </div>
+            </div>
+            <div class="shop_select_panel">
+                <div class="my-panel-title">门店选择区</div>
+                <div class="shop_select_panel_content">
+                    <ul id="tree3" class="ztree"></ul>
+                </div>
+                <div class="btn-group-vertical">
+                    <button type="button" class="btn btn-info btn-xs" id="shop_check_all_btn">全选</button>
+                    <button type="button" class="btn btn-default btn-xs" id="shop_no_check_btn">清空</button>
+                </div>
+            </div>
+            <div class="end_panel" id="datePickerVM">
+                <div class="my-panel-title">模版应用</div>
+                <div class="end_panel_content form-horizontal">
+                    <button id="validTimeSetting_btn" class="btn btn-info btn-sm"
+                            onclick="openDateRangeSettingPanel()" v-show="btnIsShow">设置生效时间
+                    </button>
+                    <div>
+                        开始时间: <span v-text="startTime"></span>
+                    </div>
+                    <div>
+                        结束时间: <span v-text="endTime"></span>
+                    </div>
+                    <br/>
+                    <div>
+                        确认应用时间: <span v-text="inputTime"></span>
+                    </div>
+
+                    <button id="ok_end_btn" class="btn btn-danger" style="margin-left: 30px;"
+                            onclick="validTemplate()" v-show="btnIsShow">确认应用
+                    </button>
+                </div>
+
+                <div class="modal fade" id="datePickerModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+                     aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                                <h4 class="modal-title" id="myModalLabel" v-text="datePickerTitle"></h4>
+                            </div>
+                            <div class="modal-body">
+                                <div style="height: 80px">
+                                    <div id="dateRangePicker1Wrap" class="col-md-10 date_picker_icon">
+                                        <input type="text" class="form-control" id="dateRangePicker1"
+                                               placeholder="请选择时间区间"
+                                               v-model.trim="dateRange" readonly>
+                                        <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer" style="height: 50px;">
+                                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                            </div>
+                        </div><!-- /.modal-content -->
+                    </div><!-- /.modal-dialog -->
+                </div>
+                <!-- /.modal -->
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!--上传素材图片-->
+<input type="file" id="uploadImg" name="myFile" multiple accept="image/png" style=" display: none"/>
+
+
+</body>
+<script src="${request.contextPath}/statics/libs/jquery.min.js"></script>
+<script src="${request.contextPath}/statics/libs/bootstrap.min.js"></script>
+<script src="${request.contextPath}/statics/libs/vue.min.js"></script>
+<script src="${request.contextPath}/statics/plugins/ztree/jquery.ztree.all.min.js"></script>
+<script src="${request.contextPath}/statics/plugins/ContextJS/js/context.js"></script>
+<script src="${request.contextPath}/statics/plugins/layer/layer.js"></script>
+<script src="${request.contextPath}/statics/plugins/daterangepicker/moment.js"></script>
+<script src="${request.contextPath}/statics/plugins/daterangepicker/daterangepicker.js"></script>
+<script src="${request.contextPath}/statics/libs/jquery.let_it_snow.js"></script>
+<script src="${request.contextPath}/statics/libs/jq-paginator.min.js"></script>
+<script src="${request.contextPath}/statics/js/tool.js"></script>
+<!--自定义js-->
+<script src="${request.contextPath}/statics/js/AnimateEdit.js"></script>
+
+<script>
+  $(function () {
+    resizeEditContent();
+
+    //编辑区大小随窗口自适应
+    var timer1;
+    window.onresize = function (ev) {
+      clearTimeout(timer1);
+      timer1 = setTimeout(function () {
+        resizeEditContent();
+      }, 500)
+    }
+
+    //编辑区选择
+    $("#edit_content").on("click", ".static_material", function (e) {
+      if ($(this).hasClass("s_m_active")) {
+        $(this).removeClass("s_m_active");
+      } else {
+        $(this).addClass("s_m_active");
+        $(this).siblings().removeClass("s_m_active");
+      }
+
+    })
+
+    //动画素材选择
+    $("#animate_edit .material_animate").on("click", function (e) {
+      if ($(this).hasClass("m_a_active")) {
+        $(this).removeClass("m_a_active");
+      } else {
+        $("#animate_edit .material_animate").removeClass("m_a_active");
+        $(this).addClass("m_a_active");
+      }
+    })
+
+  })
+
+  /*提示工具*/
+  $(function () {
+    $("[data-toggle='tooltip']").tooltip();
+  });
+
+  /*重置编辑区大小*/
+  function resizeEditContent() {
+    var w = $("#edit_area").width();
+    var h = $("#edit_area").height();
+
+    //按9/16比例计算宽高，适应窗口
+    var bei = w / 9;
+    bei = parseInt(bei);
+    for (var i = bei; i > 0; i--) {
+      if (16 * i < h) {
+        // console.log("bei: ", i);
+        //设置编辑器宽高
+        $("#edit_content").css({"width": i * 9 + "px", "height": i * 16 + "px"});
+        break;
+      }
+    }
+
+  }
+</script>
+</html>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.sys.dao.ShoesDataDailyDetailDao">
+    <insert id="insertList" parameterType="arraylist">
+        insert into NWGoods_ShoesData_Daily_Detail ([ErpOrderNum]
+        ,[Shop_Seq]
+        ,[ShopName]
+        ,[Shoes_Seq]
+        ,[ShoesId]
+        ,[Type]
+        ,[Color]
+        ,[Size]
+        ,[Count]
+        ,[UpdateTime]
+        ,[PeriodSeq]
+        ,[AreaSeq]
+        ,[BranchOfficeSeq]) values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+            #{item.erpOrderNum},
+            #{item.shopSeq},
+            #{item.shopName},
+            #{item.shoesSeq},
+            #{item.shoesId},
+            #{item.type},
+            #{item.color},
+            #{item.size},
+            #{item.count},
+            #{item.updateTime},
+            #{item.periodSeq},
+            #{item.areaSeq},
+            #{item.branchOfficeSeq}
+            )
+        </foreach>
+    </insert>
+</mapper>

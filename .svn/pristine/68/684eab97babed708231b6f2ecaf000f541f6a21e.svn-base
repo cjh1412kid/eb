@@ -1,0 +1,124 @@
+package com.nuite.modules.job.task;
+
+import com.google.gson.Gson;
+import com.nuite.common.utils.DateUtils;
+import com.nuite.common.utils.RedisKeys;
+import com.nuite.common.utils.RedisUtils;
+import com.nuite.modules.sys.service.SaleShoesDetailFromErpService;
+import com.nuite.modules.sys.service.SeriesService;
+import com.nuite.modules.sys.service.ShoeService;
+import com.nuite.modules.sys.service.TryShoesDetailService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import java.util.*;
+
+@Component
+public class ShopShowTopTask {
+    private Logger logger = LoggerFactory.getLogger(getClass());
+
+    @Autowired
+    private RedisUtils redisUtils;
+
+    @Autowired
+    private SaleShoesDetailFromErpService saleShoesDetailFromErpService;
+
+    @Autowired
+    private TryShoesDetailService tryShoesDetailService;
+
+    @Autowired
+    private ShoeService shoeService;
+
+    @Autowired
+    private SeriesService seriesService;
+
+    @Scheduled(cron = "0 0 7,11,15,19 * * ?")
+    public void saleShoesTop() {
+		Date startTaskTime = new Date();
+		logger.info("###ShopShowTopTask saleShoesTop方法，开始执行: " + startTaskTime);
+		
+		
+        Date today = DateUtils.getToday();
+        Date lastWeekToday = DateUtils.addDateDays(today, -28);
+        List<Map<String, Object>> saleDatum = saleShoesDetailFromErpService.selectShopTop10(lastWeekToday);
+
+        // key为门店seq，value为货号对应的销量数
+        Map<Integer, List<String>> shopSaleDataMap = new HashMap<>();
+        for (Map<String, Object> saleData : saleDatum) {
+            Integer shopSeq = (Integer) saleData.get("ShopSeq");
+            List<String> shoesDataMap;
+            if (shopSaleDataMap.containsKey(shopSeq)) {
+                shoesDataMap = shopSaleDataMap.get(shopSeq);
+            } else {
+                shoesDataMap = new ArrayList<>();
+                shopSaleDataMap.put(shopSeq, shoesDataMap);
+            }
+
+            String shoeId = (String) saleData.get("ShoeID");
+            String remark = (String) saleData.get("Remark");
+            Integer periodSeq = (Integer) saleData.get("PeriodSeq");
+            String shoeJson = "{\"ID\":\"" + shoeId + "\"," +
+                    "\"PERIOD\":" + (periodSeq == null ? "" : periodSeq.toString()) + "," +
+                    "\"DES\":\"" + (remark == null ? "" : remark) + "\"}";
+            shoesDataMap.add(shoeJson);
+        }
+
+        //对每一个门店进行销量的排序，为每一个门店生成一个销量前十的货号数组
+//        logger.info(new Gson().toJson(shopSaleDataMap));
+        try {
+            redisUtils.setNotExpire(RedisKeys.SALE_TOP_KEY, shopSaleDataMap);
+        } catch (Exception e) {
+            logger.error("销售数据保存redis失败");
+        }
+        
+		Date endTaskTime = new Date();
+		logger.info("###ShopShowTopTask saleShoesTop方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+    }
+
+    @Scheduled(cron = "0 0 7,11,15,19 * * ?")
+    public void tryShoesTop() {
+		Date startTaskTime = new Date();
+		logger.info("###ShopShowTopTask tryShoesTop方法，开始执行: " + startTaskTime);
+		
+		
+        Date today = DateUtils.getToday();
+        Date lastWeekToday = DateUtils.addDateDays(today, -28);
+        List<Map<String, Object>> tryDatum = tryShoesDetailService.selectShopTop10(lastWeekToday);
+
+        // key为门店seq，value为货号对应的试穿数量
+        Map<Integer, List<String>> shopTryDataMap = new HashMap<>();
+        for (Map<String, Object> tryData : tryDatum) {
+            Integer shopSeq = (Integer) tryData.get("ShopSeq");
+            List<String> shoesDataMap;
+            if (shopTryDataMap.containsKey(shopSeq)) {
+                shoesDataMap = shopTryDataMap.get(shopSeq);
+            } else {
+                shoesDataMap = new ArrayList<>();
+                shopTryDataMap.put(shopSeq, shoesDataMap);
+            }
+
+            String shoeId = (String) tryData.get("ShoeID");
+            String remark = (String) tryData.get("Remark");
+            Integer periodSeq = (Integer) tryData.get("PeriodSeq");
+            String shoeJson = "{\"ID\":\"" + shoeId + "\"," +
+                    "\"PERIOD\":" + (periodSeq == null ? "" : periodSeq.toString()) + "," +
+                    "\"DES\":\"" + (remark == null ? "" : remark) + "\"}";
+            shoesDataMap.add(shoeJson);
+        }
+
+        //对每一个门店进行销量的排序，为每一个门店生成一个销量前十的货号数组
+//        logger.info(new Gson().toJson(shopTryDataMap));
+        try {
+            redisUtils.setNotExpire(RedisKeys.TRY_TOP_KEY, shopTryDataMap);
+        } catch (Exception e) {
+            logger.error("试穿数据保存redis失败");
+        }
+        
+		Date endTaskTime = new Date();
+		logger.info("###ShopShowTopTask tryShoesTop方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+
+    }
+}

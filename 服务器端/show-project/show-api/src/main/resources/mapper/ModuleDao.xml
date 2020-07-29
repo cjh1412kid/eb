@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.dao.ModuleDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.entity.ModuleEntity" id="moduleMap">
+        <result property="seq" column="Seq"/>
+        <result property="topicName" column="TopicName"/>
+        <result property="topicSort" column="TopicSort"/>
+        <result property="moduleName" column="ModuleName"/>
+        <result property="moduleSort" column="ModuleSort"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+
+</mapper>

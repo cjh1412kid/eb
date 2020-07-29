@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.dao.WeekSalesDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.entity.WeekSalesEntity" id="weekSalesMap">
+        <result property="seq" column="Seq"/>
+        <result property="shopSeq" column="ShopSeq"/>
+        <result property="assistantSeq" column="AssistantSeq"/>
+        <result property="year" column="Year"/>
+        <result property="month" column="Month"/>
+        <result property="week" column="Week"/>
+        <result property="cutoffTime" column="CutoffTime"/>
+        <result property="monthGoal" column="MonthGoal"/>
+        <result property="weekGoal" column="WeekGoal"/>
+        <result property="weekAmount" column="WeekAmount"/>
+        <result property="weekPairs" column="WeekPairs"/>
+        <result property="continuityPercent" column="ContinuityPercent"/>
+        <result property="workerDescribe" column="WorkerDescribe"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="updateTime" column="UpdateTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+
+
+	
+	<!-- 查询上周销售报表 -->
+	<select id="getLastWeekSalesByParams" resultType="com.nuite.entity.WeekSalesEntity">
+		SELECT 
+			TOP 1 *, CAST([Year] as varchar(10)) + CAST([Month] as varchar(10)) + CAST(Week as varchar(10)) AS timeStr
+		FROM 
+			YHSmartDataRetail.dbo.NWReport_WeekSales
+		WHERE 
+			Del = 0 AND AssistantSeq = #{assistantSeq}
+			AND CAST([Year] as varchar(10)) + CAST([Month] as varchar(10)) + CAST(Week as varchar(10)) &lt; #{timeStr}
+		ORDER BY timeStr DESC
+	</select>
+	
+	
+
+</mapper>

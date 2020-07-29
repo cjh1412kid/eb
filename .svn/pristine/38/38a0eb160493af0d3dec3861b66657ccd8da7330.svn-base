@@ -1,0 +1,583 @@
+
+var vm = new Vue({
+	el : '#rrapp',
+	data : {
+		user:{},
+		type:1,
+		area:1,
+		startTime:'',
+		endTime:'',
+		periodSeq:'',
+		categorySeq:'',
+		selectPeriodName:'',
+		periods:[],
+		selectCategoryName:'',
+		categorys:[],
+		selectDateName:'',
+		dates:[],
+		warnning:'',
+		
+		showWeekSale:[],// 1.当前展示的上周销售排名Top20
+		showTotalSale:[],// 2.当前展示的累计销售排名Top20
+		showWeekSaleStrength:[],// 3.当前展示的上周销售强度排名Top20
+		showTotalSaleOutRate:[],// 4.当前展示的累计售罄率排名Top20
+		showWeekTry:[],// 5.当前展示的上周周试穿排名Top20
+		showTotalTry:[],// 6.当前展示的累计试穿排名Top20
+		
+		countryWeekSale:[],// 1.全国上周销售排名Top20
+		countryTotalSale:[],// 2.全国累计销售排名Top20
+		countryWeekSaleStrength:[],// 3.全国上周销售强度排名Top20
+		countryTotalSaleOutRate:[],// 4.全国累计售罄率排名Top20
+		countryWeekTry:[],// 5.全国上周周试穿排名Top20
+		countryTotalTry:[],// 6.全国累计试穿排名Top20
+		
+		branchofficeWeekSale:[],// 1.分公司上周销售排名Top20
+		branchofficeTotalSale:[],// 2.分公司累计销售排名Top20
+		branchofficeWeekSaleStrength:[],// 3.分公司上周销售强度排名Top20
+		branchofficeTotalSaleOutRate:[],// 4.分公司累计售罄率排名Top20
+		branchofficeWeekTry:[],// 5.分公司上周周试穿排名Top20
+		branchofficeTotalTry:[],// 6.分公司累计试穿排名Top20
+		
+		countryReplenishmentSuggest:[], //全国推荐补货列表
+		branchofficeReplenishmentSuggest:[], //分公司推荐补货列表
+		
+		shoeId:0,
+		suggestList:[],
+		title:'',
+		page:1,
+		
+		lookDetail:'',  //查看页面建议补单数据详情
+		lookSizeAllotDetailList:[], //查看页面货品已配码详情
+		lookSizeAllotTotalCount:'', //查看页面货品已配码详情合计数量
+		lookSizeAllotTotalNum:'', //查看页面货品已配码详情合计双数
+		
+		sizeAllotNowShoeSeq:'', //当前正在打开配码页面配码的鞋子seq
+		sizeAllotSuggestNum:'', //当前正在打开配码页面配码的建议补单量
+		sizeAllotAlreadyNum:'', //当前正在打开配码页面配码的已补单量
+		nbCode:1,				//配码页面模板南北选择
+		templatePerNum:3,		//配码页面模板件数选择
+		sizeTemplateList:'',  	//所有满足条件的配码模板List
+		seenTemplateDetail:0,   //是否展示配码详情（鼠标指上时显示）
+		templateDetail:[], 		//配码详情数组（包含所有尺码，没有的尺码数量是0）
+		sizeAllotDetailFromPage:{},  //主页面上保存的某个货号的配码详情
+		sizeAllotDetailInLayer:{},   //配码窗口修改配码时临时保存的的配码详情 （点击确定时保存到主页面上）
+		
+		pageCheckedShoeIds:0,		//主页面上当前勾选的货号总数（包括全国那边的）
+		pageCheckedSizeAllotNum:0,	//主页面上当前勾选的货号配码总数（包括全国那边的）
+		totalPlanPurchaseNum:'',	//此品类总的计划采购量
+		firstOrderAndPatchedNum:'',	//已经采购量（此品类首单+已经补的订单）
+		restPlanPurchaseNum:'' 		//剩余采购量（本次配码不应该超过这个数量）
+		
+	},
+	methods : {
+		getUser: function(){
+			$.getJSON(baseURL + "sys/user/info", function(r){
+				vm.user = r.user;
+				vm.type = r.user.roleSeq;
+			});
+		},
+		/* 获取波次列表 */
+		getPeriodList : function() {
+			$.get(baseURL + "sys/baseInfo/periods", function(r) {
+	            if (r.code === 1) {
+	            	vm.periods=r.result
+	            } else {
+	            	alert(r.msg);
+	            }
+			});
+		},
+		getDateList:function(){
+			var date=new Date();
+			var date2=new Date();
+			var startTime=getFirstDayOfWeek(date);// 获取本周一
+			var endTime=getLastDayOfWeek(date2);// 获取本周一
+			var dateList=[];
+			for(var i = 0; i < 1; i++){   //加入1周可选时间，修改i上限可展示更多可选时间
+				endTime=getEndDayOfWeek(endTime)
+				startTime=getStartDayOfWeek(startTime)
+				dateList.push({'date':timeFormat(startTime)+"——"+timeFormat(endTime),'seq':i,'startTime':timeFormat(startTime),'endTime':timeFormat(getAddDayOfWeek(endTime))})
+			}
+			this.dates=dateList
+			this.selectDateName=dateList[0].date
+			this.startTime=dateList[0].startTime
+			this.endTime=dateList[0].endTime
+			if(new Date(this.endTime).getDate() == new Date().getDate()){
+				this.warnning = '昨日销售数据正在同步中，结果有误差';
+			} else {
+				this.warnning = '';
+			}
+		},
+		categoryList:function(){
+			var selectPeriodName=vm.selectPeriodName;
+			$.get(baseURL + "sys/baseInfo/categorys?periodName="+selectPeriodName, function(r) {
+	            if (r.code === 1) {
+	            	vm.categorys=r.result
+	            } else {
+	            	alert(r.msg);
+	            }
+			});
+		},
+		chooseArea:function(type){
+			vm.type = type;
+			if(vm.type == 1){ //展示全国数据
+				vm.showWeekSale = vm.countryWeekSale;
+				vm.showTotalSale = vm.countryTotalSale;
+				vm.showWeekSaleStrength = vm.countryWeekSaleStrength;
+				vm.showTotalSaleOutRate = vm.countryTotalSaleOutRate;
+				vm.showWeekTry = vm.countryWeekTry;
+				vm.showTotalTry = vm.countryTotalTry;
+			} else if(vm.type == 3){  //展示分公司数据
+				vm.showWeekSale = vm.branchofficeWeekSale;
+				vm.showTotalSale = vm.branchofficeTotalSale;
+				vm.showWeekSaleStrength = vm.branchofficeWeekSaleStrength;
+				vm.showTotalSaleOutRate = vm.branchofficeTotalSaleOutRate;
+				vm.showWeekTry = vm.branchofficeWeekTry;
+				vm.showTotalTry = vm.branchofficeTotalTry;
+			}
+		},
+		periodSelect:function(period){
+			vm.selectPeriodName=period.name
+			vm.periodSeq=period.seq
+			this.categoryList();
+			vm.selectCategoryName='';
+			this.getData();
+		},
+		categorySelect:function(categoryName){
+			vm.selectCategoryName=categoryName
+			this.getData();
+		},
+		dateSelect:function(date){
+			vm.selectDateName=date.date
+			vm.startTime=date.startTime
+			vm.endTime=date.endTime
+			if(new Date(vm.endTime).getDate() == new Date().getDate()){
+				vm.warnning = '昨日销售数据正在同步中，结果有误差';
+			} else {
+				vm.warnning = '';
+			}
+			this.getData();
+		},
+		/*鼠标指上货号6个排行自动滚动*/
+		enter:function(shoeId){
+			if(!shoeId){
+				shoeId=0;
+			}
+			vm.shoeId=shoeId
+			var showWeekSale = vm.showWeekSale;
+			var showTotalSale = vm.showTotalSale;
+			var showWeekSaleStrength = vm.showWeekSaleStrength;
+			var showTotalSaleOutRate = vm.showTotalSaleOutRate;
+			var showWeekTry = vm.showWeekTry;
+			var showTotalTry = vm.showTotalTry;
+			if(showWeekSale){
+				for (var i = 0; i < showWeekSale.length; i++) {
+					if(showWeekSale[i].shoeId==shoeId){
+						document.getElementById('box1').scrollTop=74*i
+					}
+				}
+			}
+			if(showTotalSale){
+				for (var i = 0; i < showTotalSale.length; i++) {
+					if(showTotalSale[i].shoeId==shoeId){
+						document.getElementById('box2').scrollTop=74*i
+					}
+				}
+			}
+			if(showWeekSaleStrength){
+				for (var i = 0; i < showWeekSaleStrength.length; i++) {
+					if(showWeekSaleStrength[i].shoeId==shoeId){
+						document.getElementById('box3').scrollTop=74*i
+					}
+				}
+			}
+			if(showTotalSaleOutRate){
+				for (var i = 0; i < showTotalSaleOutRate.length; i++) {
+					if(showTotalSaleOutRate[i].shoeId==shoeId){
+						document.getElementById('box4').scrollTop=74*i
+					}
+				}
+			}
+			if(showWeekTry){
+				for (var i = 0; i < showWeekTry.length; i++) {
+					if(showWeekTry[i].shoeId==shoeId){
+						document.getElementById('box5').scrollTop=74*i
+					}
+				}
+			}
+			if(showTotalTry){
+				for (var i = 0; i < showTotalTry.length; i++) {
+					if(showTotalTry[i].shoeId==shoeId){
+						document.getElementById('box6').scrollTop=74*i
+					}
+				}
+			}
+			
+			
+			
+		},
+		getData:function(){
+			var sxValue = vm.selectCategoryName;
+			var startDate = vm.startTime;
+			var endDate = vm.endTime;
+			var periodSeq = vm.periodSeq
+			if(sxValue && startDate && endDate && periodSeq){
+				var loadingShade = layer.open({
+					type: 3
+                });
+				$.ajax({
+					type : "get",
+					url : baseURL + "sys/replenishment/top",
+					data:{
+						sxValue: vm.selectCategoryName,
+						startDate: vm.startTime,
+						endDate: vm.endTime,
+						periodSeq: vm.periodSeq,
+					},
+					success : function(r){
+							if(r.code == 1){
+								vm.countryWeekSale = r.result[0].countryWeekSale;
+								vm.countryTotalSale = r.result[0].countryTotalSale;
+								vm.countryWeekSaleStrength = r.result[0].countryWeekSaleStrength;
+								vm.countryTotalSaleOutRate = r.result[0].countryTotalSaleOutRate;
+								vm.countryWeekTry = r.result[0].countryWeekTry;
+								vm.countryTotalTry = r.result[0].countryTotalTry;
+								
+								vm.countryReplenishmentSuggest = r.result[0].countryReplenishmentSuggest;
+									
+								if(vm.user.roleSeq == 3){
+									vm.branchofficeWeekSale = r.result[0].branchofficeWeekSale;
+									vm.branchofficeTotalSale = r.result[0].branchofficeTotalSale;
+									vm.branchofficeWeekSaleStrength = r.result[0].branchofficeWeekSaleStrength;
+									vm.branchofficeTotalSaleOutRate = r.result[0].branchofficeTotalSaleOutRate;
+									vm.branchofficeWeekTry = r.result[0].branchofficeWeekTry;
+									vm.branchofficeTotalTry = r.result[0].branchofficeTotalTry;
+									
+									vm.branchofficeReplenishmentSuggest = r.result[0].branchofficeReplenishmentSuggest;
+								}
+								vm.chooseArea(vm.type);
+							}
+							//最后数据加载完 让 loading层消失
+							layer.close(loadingShade);
+						},
+					error : function(){
+						layer.close(loadingShade);
+						alert("请求失败!");
+					}
+					});
+			}
+			
+			
+		},
+		//点击查看推荐列表详情
+		look:function(detail, td){
+			vm.lookDetail = detail;
+			var str = $(td).attr("lookSizeAllotDetail");
+			var json = JSON.parse(str);
+			
+			vm.lookSizeAllotDetailList = [];
+			vm.lookSizeAllotTotalCount = '';
+			vm.lookSizeAllotTotalNum = '';
+        	
+        	//遍历配码详情，组装配码详情List
+			if(!jQuery.isEmptyObject(json)){
+				$.get(baseURL + "sys/sizeAllotTemplate/getAllTemplates", function(r) {
+			        if (r.code === 1) {
+			        	var resultList = r.result;
+						var lookSizeAllotDetailList = [];
+			        	var totalCount = 0;
+			        	var totalNum = 0;
+						for (var key in json) {
+							var seq = key;
+							var count = json[key];
+							totalCount += count;
+							for (var i = 0; i < resultList.length; i++) {
+								var sizeTemplate = resultList[i];
+								var templateSeq = sizeTemplate["seq"];
+								var templateTotalNum = sizeTemplate["totalNum"];
+								if(templateSeq == seq){
+									sizeTemplate["count"] = count;
+									totalNum += templateTotalNum * count;
+									lookSizeAllotDetailList.push(sizeTemplate);
+									break;
+								}
+							}
+						}
+						vm.lookSizeAllotDetailList = lookSizeAllotDetailList;
+						vm.lookSizeAllotTotalCount = totalCount;
+						vm.lookSizeAllotTotalNum = totalNum;
+			        } else {
+			        	alert(r.msg);
+			        }
+				});
+			}
+
+			
+	        layer.open({
+	            type: 1,
+	            offset: '10px',
+	            skin: 'layui-layer-molv',
+	            title: false,
+	            area: ['588px', '799px'],
+	            shade: 0.1,
+	            shadeClose: true,
+	            content: jQuery("#detailLayer")
+	          });
+		},
+		
+		/*鼠标指上显示配码模板的配码详情*/
+		sizeAllotEnter:function(sizeTemplate, event){
+			if(!sizeTemplate){
+				vm.seenTemplateDetail = 0;
+			} else {
+				vm.seenTemplateDetail = 1;
+				vm.templateDetail = sizeTemplate.templateDetailArr;
+				$("#templateDetail_Id").css("top", event.y-100); //设置提示div的位置
+			}
+		},
+		
+		//修改配码某一编码的件数
+		sizeAllotChangeCount:function(sizeTemplate) {
+			if(!sizeTemplate.count > 0){
+				sizeTemplate.count = '';
+			}
+			var seq = sizeTemplate.seq;
+			var count = sizeTemplate.count;
+			var perNum = sizeTemplate.totalNum;  //每件数量
+			
+			//将临时修改的件数，放入临时修改配码详情map，待点击确认时存入页面配码详情
+			if(vm.sizeAllotDetailInLayer.hasOwnProperty(seq)){ //如果已存在，修改原有的值，并计算已配码的变化量，修改sizeAllotAlreadyNum
+				var oldCount = vm.sizeAllotDetailInLayer[seq];
+				var changeNum = (count - oldCount) * perNum;
+				vm.sizeAllotAlreadyNum = vm.sizeAllotAlreadyNum + changeNum;
+				vm.sizeAllotDetailInLayer[seq] = count;
+				if(count == ''){
+					delete vm.sizeAllotDetailInLayer[seq];
+				}
+			} else { //如果不存在，直接插入，并计算这条记录的总量，修改sizeAllotAlreadyNum
+				var changeNum = count * perNum;
+				vm.sizeAllotAlreadyNum = vm.sizeAllotAlreadyNum + changeNum;
+				vm.sizeAllotDetailInLayer[seq] = count;
+			}
+			
+		},
+		/* 确认提交补单 */
+		submitReplenish:function(){
+			var shoeAndNumList = []; //提交后台的货号配码详情
+			
+			var flag = true;
+			var wrongShoeIds = '';
+		    $('input[name="chooseSuggest"]:checked').each(function(){
+				var shoeSeq = $(this).attr("shoeSeq");
+				var shoeId = $(this).attr("shoeId");
+				var suggestReplenishNum = $(this).attr("suggestReplenishNum");
+				var sizeAllotAlreadyNum = parseInt($(this).attr("sizeAllotAlreadyNum"));
+				if(!sizeAllotAlreadyNum || sizeAllotAlreadyNum <= 0){
+					wrongShoeIds += (' ' + shoeId);
+					flag = false;
+					return;
+				}
+				var str = $(this).attr("sizeAllotDetailFromPage");
+				var sizeAllotDetail = JSON.parse(str);
+				
+				//组装提交后台的货号配码参数格式
+				var shoeAndNumMap = {};
+				shoeAndNumMap['shoeSeq'] = shoeSeq;
+				shoeAndNumMap['shoeId'] = shoeId;
+				shoeAndNumMap['totalNum'] = sizeAllotAlreadyNum;
+				shoeAndNumMap['sizeAllotDetail'] = sizeAllotDetail;
+				shoeAndNumList.push(shoeAndNumMap);
+			});
+		    
+			if(!flag){
+				alert('货号' + wrongShoeIds + '未完成配码');
+				return;
+			}
+		    
+			if(shoeAndNumList.length <= 0){
+				alert('请至少选择一个货号补单');
+				return;
+			}
+			
+			confirm('确定要提交总部？', function(){
+				$.ajax({
+                    type: "POST",
+				    url: baseURL + "sys/patch/submit",
+    				data:{
+    					selectPeriodName:vm.selectPeriodName,
+    					periodSeq:vm.periodSeq,
+    					sxValue: vm.selectCategoryName,
+    					startDate:vm.startTime,
+    					endDate: vm.endTime,
+    					shoeAndNum:JSON.stringify(shoeAndNumList)
+    				},
+				    success: function(r){
+						if(r.code == 1){
+							alert('提交成功', function(index){
+								$("#jqGrid").trigger("reloadGrid");
+							});
+						}else{
+							alert(r.msg);
+						}
+					}
+				});
+			});
+		}
+	},
+	
+	created : function() {
+		this.getPeriodList();
+		this.getDateList();
+		this.getUser();
+	},
+	
+	
+});
+function getFirstDayOfWeek (date) {
+	   var weekday = date.getDay()||7; // 获取星期几,getDay()返回值是 0（周日） 到 6（周六）
+										// 之间的一个整数。0||7为7，即weekday的值为1-7
+		date.setDate(date.getDate()-weekday+1);// 往前算（weekday-1）天，年份、月份会自动变化
+	   return date;
+	 }
+function getLastDayOfWeek (date) {
+	   var weekday = date.getDay()||7; // 获取星期几,getDay()返回值是 0（周日） 到 6（周六）
+										// 之间的一个整数。0||7为7，即weekday的值为1-7
+		date.setDate(date.getDate()-weekday+8);// 往前算（weekday-1）天，年份、月份会自动变化
+	   return date;
+	 }
+function getStartDayOfWeek (date) {
+		date.setDate(date.getDate()-7);// 往前算（weekday-1）天，年份、月份会自动变化
+	   return date;
+}
+function getEndDayOfWeek (date) {
+	date.setDate(date.getDate()-8);// 往前算（weekday-1）天，年份、月份会自动变化
+	   return date;
+}
+function getAddDayOfWeek (date) {
+	date.setDate(date.getDate()+1);// 往前算（weekday-1）天，年份、月份会自动变化
+	   return date;
+}
+
+function timeFormat(date) {
+	if (!date || typeof(date) === "string") {
+		this.error("参数异常，请检查...");
+	}
+	var y = date.getFullYear(); // 年
+	var m = date.getMonth() + 1; // 月
+	var d = date.getDate(); // 日
+	
+	return y + "/" + m + "/" + d;
+}
+
+function checkboxOnclick(checkbox){
+	console.log($(checkbox).attr("sizeAllotDetailFromPage"));
+	
+	if (checkbox.checked == true){
+		//选中checkbox，从页面该条货号的自定义属性获取配码详情，存入vm当前操作字段
+		vm.sizeAllotNowShoeSeq = $(checkbox).attr("shoeSeq");
+		vm.sizeAllotSuggestNum = $(checkbox).attr("suggestReplenishNum");
+		vm.sizeAllotAlreadyNum = parseInt($(checkbox).attr("sizeAllotAlreadyNum")=="" ? 0 : $(checkbox).attr("sizeAllotAlreadyNum"));
+		
+		var str = $(checkbox).attr("sizeAllotDetailFromPage");
+		var json = JSON.parse(str);
+		vm.sizeAllotDetailFromPage = json;
+		vm.sizeAllotDetailInLayer = json;
+		
+	    layer.open({
+	    	type: 1,
+	        offset: '10px',
+	        skin: 'layui-layer-molv',
+	        title: false,
+	        area: ['638px', '638px'],
+	        shade: 0.3,
+	        shadeClose: false,
+	        resize:false,
+	        closeBtn: 0,
+	        content: jQuery("#sizeAllotLayer"),
+	        btn: ['确定', '取消'],
+	        btn1: function (index) {
+	        	var jsonStr = JSON.stringify(vm.sizeAllotDetailInLayer); //将JSON对象转化为JSON字符
+	        	$(checkbox).attr("sizeAllotDetailFromPage", jsonStr);
+	        	$(checkbox).attr("sizeAllotAlreadyNum", vm.sizeAllotAlreadyNum);
+	        	document.getElementById(vm.type + ":" + vm.sizeAllotNowShoeSeq).innerHTML = vm.sizeAllotAlreadyNum;
+	        	document.getElementById("look" + vm.type + ":" + vm.sizeAllotNowShoeSeq).setAttribute("lookSizeAllotDetail", jsonStr);
+	        	layer.close(index);
+	        	//计算勾选的货号总数，配码总数
+	        	calculateCheckedShoeIdsSizeAllotNum();
+	        },
+	        btn2: function (index) {
+	        	layer.close(index);
+	        	//计算勾选的货号总数，配码总数
+	        	calculateCheckedShoeIdsSizeAllotNum();
+	        }
+	     });
+	    getTemplates();
+		
+	} else { //取消勾选
+    	//计算勾选的货号总数，配码总数
+    	calculateCheckedShoeIdsSizeAllotNum();
+		console.log(checkbox.value);
+	}
+}
+
+//选择南北
+function selectNBcode(code) {
+	vm.nbCode = code;
+	getTemplates();
+}
+
+//选择每件数量
+function selectPerNumTemplate(num) {
+	vm.templatePerNum = num;
+	getTemplates();
+}
+
+//请求后台指定模板List，并加入可能已经配码的件数
+function getTemplates() {
+	$.get(baseURL + "sys/sizeAllotTemplate/getTemplates?nbCode=" + vm.nbCode + "&perNum=" + vm.templatePerNum, function(r) {
+        if (r.code === 1) {
+        	var resultList = r.result;
+        	
+        	//添加当前鞋子可能已存储的配码详情
+			if(vm.sizeAllotDetailInLayer){
+				var sizeAllotDetailMap = vm.sizeAllotDetailInLayer;
+				
+				for (var key in sizeAllotDetailMap) {
+					var seq = key;
+					var count = sizeAllotDetailMap[key];
+					
+					for (var i = 0; i < resultList.length; i++) {
+						var sizeTemplate = resultList[i];
+						var templateSeq = sizeTemplate["seq"];
+						if(templateSeq == seq){
+							sizeTemplate["count"] = count;
+							break;
+						}
+					}
+					
+				}
+			}
+			
+        	vm.sizeTemplateList = resultList;
+        } else {
+        	alert(r.msg);
+        }
+	});
+}
+
+
+//计算勾选的货号总数，配码总数
+function calculateCheckedShoeIdsSizeAllotNum() {
+	var pageCheckedShoeIds = 0;			//pageCheckedShoeIds:0,			 主页面上当前勾选的货号总数（包括全国那边的）
+	var pageCheckedSizeAllotNum = 0;		//pageCheckedSizeAllotNum:0,	 主页面上当前勾选的货号配码总数（包括全国那边的）
+    $('input[name="chooseSuggest"]:checked').each(function(){
+    	pageCheckedShoeIds++;
+		var sizeAllotAlreadyNum = parseInt($(this).attr("sizeAllotAlreadyNum") == '' ? 0 : $(this).attr("sizeAllotAlreadyNum"));
+		pageCheckedSizeAllotNum = pageCheckedSizeAllotNum + sizeAllotAlreadyNum;
+	});
+    
+    vm.pageCheckedShoeIds = pageCheckedShoeIds;
+	vm.pageCheckedSizeAllotNum = pageCheckedSizeAllotNum;
+}
+
+
+

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.dao.ShopShowControlDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.entity.ShopShowControlEntity" id="shopShowControlMap">
+        <result property="seq" column="Seq"/>
+        <result property="userSeq" column="UserSeq"/>
+        <result property="shopSeqs" column="ShopSeqs"/>
+        <result property="defaultTry" column="DefaultTry"/>
+        <result property="defaultSale" column="DefaultSale"/>
+        <result property="recommendShoes" column="RecommendShoes"/>
+        <result property="sValidDate" column="SValidDate"/>
+        <result property="eValidDate" column="EValidDate"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+
+
+	<!-- 新增门店展示控制 -->
+	<insert id="insertShopShowControl" parameterType="com.nuite.entity.ShopShowControlEntity">
+ 	    <selectKey keyProperty="shopShowControl.seq" resultType="Integer" order="BEFORE">
+            SELECT MAX(Seq)+1 FROM YHSmartDataRetail.dbo.NWBase_ShopShowControl
+        </selectKey>
+        INSERT INTO YHSmartDataRetail.dbo.NWBase_ShopShowControl
+        (Seq, ShopSeqs, DefaultTry, DefaultSale, RecommendShoes, SValidDate, EValidDate, UserSeq, InputTime, Del) 
+        VALUES
+        (
+	        #{shopShowControl.seq},
+	        #{shopShowControl.shopSeqs},
+	        #{shopShowControl.defaultTry},
+	        #{shopShowControl.defaultSale},
+	        #{shopShowControl.recommendShoes},
+	        #{shopShowControl.sValidDate},
+	        #{shopShowControl.eValidDate},
+	        #{shopShowControl.userSeq},
+	        #{shopShowControl.inputTime},
+	        #{shopShowControl.del}
+        )
+	</insert>
+	
+</mapper>

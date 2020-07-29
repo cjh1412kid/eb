@@ -1,0 +1,18 @@
+package com.nuite.modules.sys.dao;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import com.baomidou.mybatisplus.mapper.BaseMapper;
+import com.nuite.modules.sys.entity.PatchEntity;
+
+/**
+ * 分公司补单表
+ * @author yy
+ * @date 2019-10-21 10:20:05
+ */
+@Mapper
+public interface PatchDao extends BaseMapper<PatchEntity> {
+	
+	 Integer allPatchNum(@Param("shoesSeq")Integer shoesSeq,@Param("branchOfficeSeq")Integer branchOfficeSeq);
+}

@@ -1,0 +1,76 @@
+package com.nuite.modules.sys.service;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+public interface ReplenishmentService {
+
+	/**
+	 * 试穿排行
+	 * @param areaType 区域类型（1:全国 3:分公司）
+	 * @param areaSeq
+	 * @param periodSeq
+	 * @param sxValue
+	 * @param dateType  时间类型（1:某一段时间 2:累计）
+	 * @param startDate
+	 * @param endDate
+	 * @param topNum
+	 * @return
+	 */
+	List<Map<String, Object>> getTryTop(Integer areaType, Integer areaSeq, Integer periodSeq, String sxValue, Integer dateType, Date startDate,
+			Date endDate, int topNum);
+
+	/**
+	 * 销售排行
+	 * @param areaType 区域类型（1:全国 3:分公司）
+	 * @param areaSeq
+	 * @param periodSeq
+	 * @param sxValue
+	 * @param dateType  时间类型（1:某一段时间 2:累计）
+	 * @param startDate
+	 * @param endDate
+	 * @param topNum
+	 * @return
+	 */
+	List<Map<String, Object>> getSaleTop(Integer areaType, Integer areaSeq, Integer periodSeq, String sxValue, Integer dateType, Date startDate, 
+			Date endDate, int topNum);
+
+	
+	/**
+	 * 售罄率排行
+	 * @param areaType 区域类型（1:全国 3:分公司）
+	 * @param areaSeq
+	 * @param periodSeq
+	 * @param sxValue
+	 * @param topNum
+	 * @return
+	 */
+	List<Map<String, Object>> getSaleOutRateTop(Integer areaType, Integer areaSeq, Integer periodSeq, String sxValue, int topNum);
+	
+	
+	/**
+	 * 销售强度排行
+	 * @param areaType
+	 * @param areaSeq
+	 * @param periodSeq
+	 * @param sxValue
+	 * @param startDate
+	 * @param endDate
+	 * @param topNum
+	 * @return
+	 */
+	List<Map<String, Object>> getSaleStrengthTop(Integer areaType, Integer areaSeq, Integer periodSeq, String sxValue, Date startDate, Date endDate, int topNum);
+	
+	
+	/**
+	 * 区域内鞋子的库存
+	 * @param areaType
+	 * @param areaSeq
+	 * @param shoeSeq
+	 * @return
+	 */
+	Integer getShoeStock(Integer areaType, Integer areaSeq, Integer shoeSeq);
+	
+}
+

@@ -1,0 +1,106 @@
+spring:
+  redis:
+    database: 1
+    host: 192.168.2.188
+    port: 6379
+    password:      # 密码（默认为空）
+    timeout: 6000ms  # 连接超时时长（毫秒）
+    jedis:
+      pool:
+        max-active: 1000  # 连接池最大连接数（使用负值表示没有限制）
+        max-wait: -1ms      # 连接池最大阻塞等待时间（使用负值表示没有限制）
+        max-idle: 10      # 连接池中的最大空闲连接
+        min-idle: 5       # 连接池中的最小空闲连接
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driverClassName: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    druid:
+      first:  #数据源1
+        url: jdbc:sqlserver://127.0.0.1:1433;DatabaseName=YHSmartDataRetail
+        username: sa
+        password: 123456
+      second: #数据源2
+        url: jdbc:sqlserver://127.0.0.1:1433;DatabaseName=cb_new_eb
+        username: sa
+        password: 123456
+      initial-size: 10
+      max-active: 100
+      min-idle: 10
+      max-wait: 60000
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 20
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      stat-view-servlet:
+        enabled: true
+        url-pattern: /druid/*
+        #login-username: admin
+        #login-password: admin
+      filter:
+        stat:
+          log-slow-sql: true
+          slow-sql-millis: 1000
+          merge-sql: false
+        wall:
+          config:
+            multi-statement-allow: true
+            
+  base_app:
+    #图片访问项目路径
+    picture_base_url: http://192.168.2.146:8000/picture
+    #图片上传项目名称
+    picture_base_upload_project: /picture
+    #基础信息表目录
+    base_dir: sr_base
+    #Base_Brand表文件夹名称
+    base_brand: Base_Brand
+    #Base_User表文件夹名称
+    base_user: Base_User
+    #Goods_Shoes表文件夹名称
+    goods_shoes: Goods_Shoes
+     #轮播图文件夹
+    sowing_map: sowing
+    #websocket连接IP地址
+    websocket_host: 127.0.0.1
+    #websocket连接端口号
+    websocket_port: 9092
+    #依婷公主公司序号
+    ytgz_companyseq: 3
+    order_platform_app:
+        #订货平台表目录
+        order_platform_dir: order_platform_app
+        #PublicityPic表文件夹名称
+        publicity_pic: PublicityPic
+        #CommunityCONTENT表文件夹名称
+        community_content: CommunityCONTENT
+        #OnlineMessage表文件夹名称
+        online_message: OnlineMessage
+        #Order表文件夹名称
+        order: Order
+        #OrderExpress表文件夹名称
+        orderExpress: OrderExpress
+        #MeetingGoods表文件夹名称
+        meetingGoods: MeetingGoods
+        #融云对接参数
+        rongCloud_appKey: bmdehs6pbrams
+        rongCloud_appSecret: 9pv8WLA45NBkIn
+        #极光对接参数
+        jPush_appKey: 786b8f291a7234c795b5b7e9
+        jPush_masterSecret: 5854214ae3206668811fc0dc
+        #iOS平台推送环境
+        jPush_apns_production: false
+        #亲加对接参数
+        gotye_username: xyd1041903129@163.com
+        gotye_password: xuyindeng111
+        gotye_api_url: https://demoapi.livevip.com.cn/liveApi
+    online_sales_app:
+        online_dir: online_sales_app
+        #专题图片保存文件夹
+        topic_dir: topic
+logging:
+  level: debug
+  level.com.nuite: debug

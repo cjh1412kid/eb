@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.sys.dao.RolePermissionDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.modules.sys.entity.RolePermissionEntity" id="rolePermissionMap">
+        <result property="seq" column="Seq"/>
+        <result property="roleSeq" column="RoleSeq"/>
+        <result property="permissionSeq" column="PermissionSeq"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+
+</mapper>

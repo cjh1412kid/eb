@@ -1,0 +1,101 @@
+package com.nuite.modules.sys.service.impl;
+
+import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.mapper.Wrapper;
+import com.baomidou.mybatisplus.plugins.Page;
+import com.baomidou.mybatisplus.service.impl.ServiceImpl;
+import com.nuite.common.utils.PageUtils;
+import com.nuite.common.utils.Query;
+import com.nuite.modules.sys.dao.DeadlineRaiseRateDao;
+import com.nuite.modules.sys.entity.DeadlineRaiseRateEntity;
+import com.nuite.modules.sys.service.DeadlineRaiseRateService;
+
+
+@Service
+public class DeadlineRaiseRateServiceImpl extends ServiceImpl<DeadlineRaiseRateDao, DeadlineRaiseRateEntity> implements DeadlineRaiseRateService {
+
+	
+    @Autowired
+    private DeadlineRaiseRateDao deadlineRaiseRateDao;
+    
+    
+    @Override
+    public PageUtils queryPage(Map<String, Object> params) {
+        Page<DeadlineRaiseRateEntity> page = this.selectPage(
+                new Query<DeadlineRaiseRateEntity>(params).getPage(),
+                new EntityWrapper<DeadlineRaiseRateEntity>()
+        );
+
+        return new PageUtils(page);
+    }
+
+    
+    
+    
+    /**
+     * 获取配置的"销售对比最少销售天数"
+     */
+	@Override
+	public Integer getThisYearMinSalesDaysSetting() {
+		Calendar c = Calendar.getInstance();
+		int year = c.get(Calendar.YEAR);    //获取年
+		  
+		Wrapper<DeadlineRaiseRateEntity> wrapper = new EntityWrapper<DeadlineRaiseRateEntity>();
+		wrapper.where("Year = {0}", year).orderBy("Seq desc");
+		List<DeadlineRaiseRateEntity> list = deadlineRaiseRateDao.selectList(wrapper);
+		if(list != null && list.size() > 0) {
+			return list.get(0).getMinSalesDays();
+		} else {
+			return null;
+		}
+	}
+
+
+
+	/**
+	 * 获取配置的"年增长率"
+	 */
+	@Override
+	public Integer getThisYearRaiseRateSetting() {
+		Calendar c = Calendar.getInstance();
+		int year = c.get(Calendar.YEAR);    //获取年
+		  
+		Wrapper<DeadlineRaiseRateEntity> wrapper = new EntityWrapper<DeadlineRaiseRateEntity>();
+		wrapper.where("Year = {0}", year).orderBy("Seq desc");
+		List<DeadlineRaiseRateEntity> list = deadlineRaiseRateDao.selectList(wrapper);
+		if(list != null && list.size() > 0) {
+			return list.get(0).getRaiseRate();
+		} else {
+			return null;
+		}
+	}
+
+
+
+
+	/**
+	 * 获取今年的配置
+	 */
+	@Override
+	public DeadlineRaiseRateEntity getThisYearSetting() {
+		Calendar c = Calendar.getInstance();
+		int year = c.get(Calendar.YEAR);    //获取年
+		
+		Wrapper<DeadlineRaiseRateEntity> wrapper = new EntityWrapper<DeadlineRaiseRateEntity>();
+		wrapper.where("Year = {0}", year).orderBy("Seq desc");;
+		List<DeadlineRaiseRateEntity> list = deadlineRaiseRateDao.selectList(wrapper);
+		if(list != null && list.size() > 0) {
+			return list.get(0);
+		} else {
+			return null;
+		}
+	}
+
+}

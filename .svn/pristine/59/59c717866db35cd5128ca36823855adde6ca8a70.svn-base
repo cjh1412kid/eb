@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.dao.SaleAndStockDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.entity.SaleAndStockEntity" id="saleAndStockMap">
+        <result property="seq" column="Seq"/>
+        <result property="shopSeq" column="ShopSeq"/>
+        <result property="year" column="Year"/>
+        <result property="week" column="Week"/>
+        <result property="sX3Code" column="SX3Code"/>
+        <result property="saleCount" column="SaleCount"/>
+        <result property="totalPrice" column="TotalPrice"/>
+        <result property="avgUnitPrice" column="AvgUnitPrice"/>
+        <result property="shoeIdNum" column="ShoeIdNum"/>
+        <result property="stock" column="Stock"/>
+        <result property="totalStock" column="TotalStock"/>
+        <result property="stockPercent" column="StockPercent"/>
+        <result property="completeRate" column="CompleteRate"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="updateTime" column="UpdateTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+
+
+    <select id="getSaleCountTotalPriceOneSX3" resultType="java.util.Map">
+		SELECT 
+			SUM (A.SaleCount) AS saleCount, SUM(A.RealPrice) AS totalPrice
+		FROM 
+			[YHSmartDataRetail].[dbo].[NWGoods_SaleShoesDetail] A 
+		LEFT JOIN [YHSmartDataRetail].[dbo].[NWGoods_Shoe] B ON A.ShoeID = B.ShoeID
+		WHERE 
+			A.ShopSeq = #{shopSeq} AND B.SX3 = #{sx3Code} AND A.SaleDate >= #{startTimeStr} AND A.SaleDate &lt;= #{endTimeStr}
+    </select>
+    
+    
+    
+    <select id="getShoeIdNumOneSX3" resultType="java.lang.Integer">
+    select count(1) FROM (
+		SELECT 
+			DISTINCT(A.ShoeID)
+		FROM 
+			[YHSmartDataRetail].[dbo].[NWGoods_SaleShoesDetail] A 
+		LEFT JOIN [YHSmartDataRetail].[dbo].[NWGoods_Shoe] B ON A.ShoeID = B.ShoeID
+		WHERE 
+			A.ShopSeq = #{shopSeq} AND B.SX3 = #{sx3Code} AND A.SaleDate >= #{startTimeStr} AND A.SaleDate &lt;= #{endTimeStr}
+			) t
+    </select>
+    
+    
+    <select id="getStockOneSX3" resultType="java.lang.Integer">
+		SELECT 
+			SUM (A.Stock) AS Stock
+		FROM 
+			[dbo].[NWGoods_ShoesData] A
+		LEFT JOIN [YHSmartDataRetail].[dbo].[NWGoods_Shoe] B ON A.ShoeSeq = B.Seq
+		
+		WHERE 
+			A.ShopSeq = #{shopSeq} AND B.SX3 = #{sx3Code}
+    </select>
+    
+    
+</mapper>

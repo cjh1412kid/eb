@@ -1,0 +1,16 @@
+package com.nuite.modules.sys.service;
+
+import java.util.List;
+import java.util.Map;
+
+import com.baomidou.mybatisplus.service.IService;
+import com.nuite.modules.sys.entity.PatchDetailEntity;
+
+public interface PatchDetailService extends IService<PatchDetailEntity> {
+
+	List<Map<String, Object>> getAllSizeAllotTemplate(Integer periodSeq,String sxValue,Integer week,Integer branchOfficeSeq);
+	
+	Integer getAllBoxCount(Integer shoesSeq);
+	
+	Integer getAllData(Integer shoesSeq,Integer sizeAllotTemplateSeq,Integer branchOfficeSeq);
+}

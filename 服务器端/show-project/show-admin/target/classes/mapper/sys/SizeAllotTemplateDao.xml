@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.sys.dao.SizeAllotTemplateDao">
+
+
+	<select id="getAllSizeAllotTemplate" resultType="java.util.Map">
+	SELECT
+	A.Seq AS NSeq,
+	B.Seq AS BSeq,
+	A.Name AS NName,
+	B.Name BName,
+	A.TotalNum AS totalNum 
+FROM
+	[dbo].[NWReplenishment_SizeAllotTemplate] A
+	LEFT JOIN [dbo].[NWReplenishment_SizeAllotTemplate] B ON RIGHT ( A.Name, 2 ) = RIGHT ( B.Name, 2 ) 
+WHERE
+	A.NBFlag= 1 
+	AND B.NBFlag= 2 
+	AND A.Del= 0 
+	AND B.Del= 0
+	</select>
+</mapper>

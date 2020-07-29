@@ -1,0 +1,363 @@
+
+var vm = new Vue({
+	el : '#rrapp',
+	data : {
+		area:1,
+		startTime:'',
+		endTime:'',
+		periodSeq:'',
+		categorySeq:'',
+		type:1,
+		selectPeriodName:'',
+		periods:[],
+		selectCategoryName:'',
+		categorys:[],
+		selectDateName:'',
+		dates:[],
+		countryReplenishmentSuggest:[],//组装汇总推荐补货列表
+		countryTotalSale:[],// 4.全国累计销售排名Top20
+		countryTotalSaleOutRate:[],// 5.全国累计售罄率排名Top20
+		countryTotalTry:[],// 2.全国累计试穿排名Top20
+		countryWeekSale:[],// 3.全国某一周销售排名Top20
+		countryWeekSaleStrength:[],// 6.全国上周销售强度排名Top20
+		countryWeekTry:[],//全国某一周试穿排名Top20
+		branchofficeReplenishmentSuggest:[],
+		shoeId:0,
+		suggestList:[],
+		title:'',
+		page:1,
+		lookDetail:''
+	},
+	methods : {
+		/* 获取波次列表 */
+		getPeriodList : function() {
+			$.get(baseURL + "sys/baseInfo/periods", function(r) {
+	            if (r.code === 1) {
+	            	vm.periods=r.result
+	            } else {
+	            	alert(r.msg);
+	            }
+			});
+		},
+		getDateList:function(){
+			var date=new Date();
+			var date2=new Date();
+			var startTime=getFirstDayOfWeek(date);// 获取本周一
+			var endTime=getLastDayOfWeek(date2);// 获取本周一
+			var dateList=[];
+			for(var i=0;i<19;i++){
+				endTime=getEndDayOfWeek(endTime)
+				startTime=getStartDayOfWeek(startTime)
+				dateList.push({'date':timeFormat(startTime)+"——"+timeFormat(endTime),'seq':i,'startTime':timeFormat(startTime),'endTime':timeFormat(getAddDayOfWeek(endTime))})
+			}
+			this.dates=dateList
+		},
+		categoryList:function(){
+			var selectPeriodName=vm.selectPeriodName;
+			$.get(baseURL + "sys/baseInfo/categorys?periodName="+selectPeriodName, function(r) {
+	            if (r.code === 1) {
+	            	vm.categorys=r.result
+	            } else {
+	            	alert(r.msg);
+	            }
+			});
+		},
+		chooseArea:function(type){
+			vm.type=type;
+			this.getData();
+		},
+		periodSelect:function(period){
+			vm.selectPeriodName=period.name
+			vm.periodSeq=period.seq
+			this.categoryList();
+			vm.selectCategoryName='',
+			this.getData();
+		},
+		categorySelect:function(categoryName){
+			vm.selectCategoryName=categoryName
+			this.getData();
+		},
+		dateSelect:function(date){
+			vm.selectDateName=date.date
+			vm.startTime=date.startTime
+			vm.endTime=date.endTime
+			this.getData();
+		},
+		enter:function(shoeId){
+			if(!shoeId){
+				shoeId=0;
+			}
+			vm.shoeId=shoeId
+			var countryWeekSale=vm.countryWeekSale;
+			var countryTotalSale=vm.countryTotalSale;
+			var countryWeekSaleStrength=vm.countryWeekSaleStrength;
+			var countryTotalSaleOutRate=vm.countryTotalSaleOutRate;
+			var countryWeekTry=vm.countryWeekTry;
+			var countryTotalTry=vm.countryTotalTry;
+			if(countryWeekSale){
+				for (var i = 0; i < countryWeekSale.length; i++) {
+					if(countryWeekSale[i].shoeId==shoeId){
+						document.getElementById('box1').scrollTop=74*i
+					}
+				}
+			}
+			if(countryTotalSale){
+				for (var i = 0; i < countryTotalSale.length; i++) {
+					if(countryTotalSale[i].shoeId==shoeId){
+						document.getElementById('box2').scrollTop=74*i
+					}
+				}
+			}
+			if(countryWeekSaleStrength){
+				for (var i = 0; i < countryWeekSaleStrength.length; i++) {
+					if(countryWeekSaleStrength[i].shoeId==shoeId){
+						document.getElementById('box3').scrollTop=74*i
+					}
+				}
+			}
+			if(countryTotalSaleOutRate){
+				for (var i = 0; i < countryTotalSaleOutRate.length; i++) {
+					if(countryTotalSaleOutRate[i].shoeId==shoeId){
+						document.getElementById('box4').scrollTop=74*i
+					}
+				}
+			}
+			if(countryWeekTry){
+				for (var i = 0; i < countryWeekTry.length; i++) {
+					if(countryWeekTry[i].shoeId==shoeId){
+						document.getElementById('box5').scrollTop=74*i
+					}
+				}
+			}
+			if(countryTotalTry){
+				for (var i = 0; i < countryTotalTry.length; i++) {
+					if(countryTotalTry[i].shoeId==shoeId){
+						document.getElementById('box6').scrollTop=74*i
+					}
+				}
+			}
+			
+			
+			
+		},
+		getData:function(){
+			var sxValue= vm.selectCategoryName;
+			var startDate=vm.startTime;
+			var endDate=vm.endTime;
+			var periodSeq=vm.periodSeq
+			if(sxValue&&startDate&&endDate&&periodSeq){
+				$.ajax({
+					type : "get",
+					url : baseURL + "sys/replenishment/top",
+					data:{
+						sxValue: vm.selectCategoryName,
+						startDate:vm.startTime,
+						endDate: vm.endTime,
+						periodSeq:vm.periodSeq,
+					     },
+					success : function(r){
+							if(r.code==1){
+								if(vm.type==2){
+									vm.countryReplenishmentSuggest=r.result[0].countryReplenishmentSuggest
+									vm.countryTotalSale=r.result[0].countryTotalSale
+									vm.countryTotalSaleOutRate=r.result[0].countryTotalSaleOutRate
+									vm.countryTotalTry=r.result[0].countryTotalTry
+									vm.countryWeekSale=r.result[0].countryWeekSale
+									vm.countryWeekSaleStrength=r.result[0].countryWeekSaleStrength
+									vm.countryWeekTry=r.result[0].countryWeekTry
+								}else{
+									vm.countryReplenishmentSuggest=r.result[0].countryReplenishmentSuggest
+									vm.countryTotalSale=r.result[0].branchofficeTotalSale
+									vm.countryTotalSaleOutRate=r.result[0].branchofficeTotalSaleOutRate
+									vm.countryTotalTry=r.result[0].branchofficeTotalTry
+									vm.countryWeekSale=r.result[0].branchofficeWeekSale
+									vm.countryWeekSaleStrength=r.result[0].branchofficeWeekSaleStrength
+									vm.countryWeekTry=r.result[0].branchofficeWeekTry
+									if(r.result[0].branchofficeReplenishmentSuggest){
+										vm.branchofficeReplenishmentSuggest=r.result[0].branchofficeReplenishmentSuggest
+									}
+									
+								
+								}
+							}
+						}
+					});
+			}
+			
+			
+		},
+		look:function(detail){
+			vm.lookDetail = detail;
+			console.log(vm.lookDetail);
+	        layer.open({
+	            type: 1,
+	            offset: '50px',
+	            skin: 'layui-layer-molv',
+	            title: "详情",
+	            area: ['600px', '380px'],
+	            shade: 0,
+	            shadeClose: false,
+	            content: jQuery("#detailLayer"),
+	            btn: ['确定', '取消'],
+	            btn1: function (index) {
+	              layer.close(index);
+	            }
+	          });
+		},
+		choose:function(e,detail){
+			if(vm.type==2){
+				return;
+			}
+			var flag=false
+			var branchofficeReplenishmentSuggest=vm.branchofficeReplenishmentSuggest;
+			for (var i = 0; i < branchofficeReplenishmentSuggest.length; i++) {
+				var replenishment=branchofficeReplenishmentSuggest[i]
+				if(replenishment.shoeId==detail.shoeId){
+					flag=true;
+					break;
+				}
+			}
+			if(flag&&!e.target.checked){
+				for (var i = 0; i < branchofficeReplenishmentSuggest.length; i++) {
+					var replenishment=branchofficeReplenishmentSuggest[i]
+					if(replenishment.shoeId==detail.shoeId){
+						branchofficeReplenishmentSuggest.splice(i, 1);
+					}
+				}
+			}else if(!flag&&e.target.checked){
+				var suggest={'rank':detail.rank,'shoeSeq':detail.shoeSeq,'topNum':detail.topNum,'shoeId':detail.shoeId,'img':detail.img,'stock':0,'countryStock':detail.stock,'isDarkHorse':detail.isDarkHorse}
+				branchofficeReplenishmentSuggest.push(suggest)
+			}
+			
+			
+		},
+		del:function(detail){
+			var branchofficeReplenishmentSuggest=vm.branchofficeReplenishmentSuggest;
+			for (var i = 0; i < branchofficeReplenishmentSuggest.length; i++) {
+				var replenishment=branchofficeReplenishmentSuggest[i]
+				if(replenishment.shoeId==detail.shoeId){
+					branchofficeReplenishmentSuggest.splice(i, 1);
+				}
+			}
+			var countryReplenishmentSuggest=vm.countryReplenishmentSuggest
+			for (var i = 0; i < countryReplenishmentSuggest.length; i++) {
+				var replenishment=countryReplenishmentSuggest[i]
+				if(replenishment.shoeId==detail.shoeId){
+					replenishment.checked=false
+				}
+			}
+		},
+		preview:function(){
+			vm.title='全国'
+			vm.page=1;
+			vm.suggestList=vm.countryReplenishmentSuggest
+			  layer.open({
+			        type: 1,
+			        offset: '50px',
+			        skin: 'layui-layer-molv',
+			        area: ['1600px', '830px'],
+			        shade: 0,
+			        shadeClose: false,
+			        title:false,
+			        content: jQuery("#goodsLayer"),
+			      });
+			
+		},
+		previewOther:function(){	
+			vm.title='分公司'
+			vm.page=1
+			vm.suggestList=vm.branchofficeReplenishmentSuggest
+			  layer.open({
+			        type: 1,
+			        offset: '50px',
+			        skin: 'layui-layer-molv',
+			        area: ['1600px', '830px'],
+			        shade: 0,
+			        shadeClose: false,
+			        title:false,
+			        content: jQuery("#goodsLayer"),
+			      });
+		},
+		submitReplenish:function(){ //确认提交补单
+			var checkedValue = [];
+		    $('input[name="chooseSuggest"]:checked').each(function(){
+		    	checkedValue.push($(this).val());
+			});
+			if(checkedValue.length <= 0){
+				alert('请至少选择一个货号补单');
+				return;
+			}
+			confirm('确定要提交总部？', function(){
+				$.ajax({
+                    type: "POST",
+				    url: baseURL + "sys/patch/submit",
+    				data:{
+    					selectPeriodName:vm.selectPeriodName,
+    					periodSeq:vm.periodSeq,
+    					sxValue: vm.selectCategoryName,
+    					startDate:vm.startTime,
+    					endDate: vm.endTime,
+    					shoeAndNum:JSON.stringify(checkedValue)
+    				},
+				    success: function(r){
+						if(r.code == 1){
+							alert('提交成功', function(index){
+								$("#jqGrid").trigger("reloadGrid");
+							});
+						}else{
+							alert(r.msg);
+						}
+					}
+				});
+			});
+		}
+	},
+	next:function(){
+		vm.page=2
+	},
+	before:function(){
+		vm.page=1
+	},
+	created : function() {
+		this.getPeriodList();
+		this.getDateList();
+//		this.categoryList();
+	},
+	
+	
+});
+function getFirstDayOfWeek (date) {
+	   var weekday = date.getDay()||7; // 获取星期几,getDay()返回值是 0（周日） 到 6（周六）
+										// 之间的一个整数。0||7为7，即weekday的值为1-7
+		date.setDate(date.getDate()-weekday+1);// 往前算（weekday-1）天，年份、月份会自动变化
+	   return date;
+	 }
+function getLastDayOfWeek (date) {
+	   var weekday = date.getDay()||7; // 获取星期几,getDay()返回值是 0（周日） 到 6（周六）
+										// 之间的一个整数。0||7为7，即weekday的值为1-7
+		date.setDate(date.getDate()-weekday+8);// 往前算（weekday-1）天，年份、月份会自动变化
+	   return date;
+	 }
+function getStartDayOfWeek (date) {
+		date.setDate(date.getDate()-7);// 往前算（weekday-1）天，年份、月份会自动变化
+	   return date;
+}
+function getEndDayOfWeek (date) {
+	date.setDate(date.getDate()-8);// 往前算（weekday-1）天，年份、月份会自动变化
+	   return date;
+}
+function getAddDayOfWeek (date) {
+	date.setDate(date.getDate()+1);// 往前算（weekday-1）天，年份、月份会自动变化
+	   return date;
+}
+
+	function timeFormat(date) {
+		    if (!date || typeof(date) === "string") {
+		          this.error("参数异常，请检查...");
+		     }
+		     var y = date.getFullYear(); // 年
+		     var m = date.getMonth() + 1; // 月
+		    var d = date.getDate(); // 日
+		
+		     return y + "/" + m + "/" + d;
+		 }

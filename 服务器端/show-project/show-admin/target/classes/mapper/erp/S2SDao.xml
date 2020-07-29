@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nuite.modules.erp.dao.S2SDao">
+    <resultMap id="StockMap" type="com.nuite.modules.erp.entity.ErpStockEntity">
+        <result property="stockNum" column="stockNum"/>
+        <result property="fromShopName" column="fromShopName"/>
+        <result property="shopName" column="shopName"/>
+        <result property="shoesId" column="shoesId"/>
+        <result property="type" column="type"/>
+        <result property="colorName" column="colorName"/>
+        <result property="colorCode" column="colorCode"/>
+        <result property="sizeCode" column="sizeCode"/>
+        <result property="stockCount" column="stockCount"/>
+        <result property="outDate" column="outDate"/>
+        <result property="updateTime" column="updateTime"/>
+    </resultMap>
+
+    <select id="selectList" resultMap="StockMap">
+        select STOCK.*,COLOR.color_name as colorName,INSHOP.names as shopName,type=2 from (
+        select WHOSE.nos as stockNum,
+        SHOP.names as fromShopName,
+        WHOSE.incusno,
+        WHOSE.outdate as outDate,
+        WHOSE.gxrq as updateTime,
+        DETAIL.colthno as shoesId,
+        substring(DETAIL.color,1,charindex('-',DETAIL.color)-1) as colorCode,
+        substring(DETAIL.color,charindex('-',DETAIL.color)+1,len(DETAIL.color)) as sizeCode,
+        DETAIL.nb as stockCount,
+        DETAIL.price as tagPrice,
+        DETAIL.endprice as realPrice
+        from [trun] WHOSE
+        left join [trunb] DETAIL on WHOSE.nos=DETAIL.nos
+        left join [db] SHOP on WHOSE.cusno=SHOP.dbno
+        left join [db] INSHOP on WHOSE.incusno=SHOP.dbno
+        where DETAIL.nb is not null
+        <if test="startTime != null">
+            and WHOSE.gxrq<![CDATA[ >]]>#{startTime}
+        </if>
+        <if test="endTime != null">
+            and WHOSE.gxrq<![CDATA[ <=]]>#{endTime}
+        </if>
+        ) STOCK
+        left join [gg_color] COLOR on STOCK.colorCode=COLOR.color_no
+        left join [db] INSHOP on STOCK.incusno=INSHOP.dbno
+        order by STOCK.updateTime
+    </select>
+</mapper>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.sys.dao.BrandDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.modules.sys.entity.BrandEntity" id="brandMap">
+        <result property="seq" column="Seq"/>
+        <result property="identifyCode" column="IdentifyCode"/>
+        <result property="innerKey" column="InnerKey"/>
+        <result property="prefix" column="Prefix"/>
+        <result property="brandName" column="BrandName"/>
+        <result property="companySeq" column="CompanySeq"/>
+        <result property="qRCodeName" column="QRCodeName"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+
+    <select id="queryQRCode" resultType="java.util.Map">
+        select COMPANY.InnerKey as CompanyKey,BRAND.InnerKey as BrandKey,BRAND.QRCodeName as QRCodeName from NWBase_Shop as SHOP
+        left join NWBase_Area as AREA on SHOP.AreaSeq=AREA.Seq
+        left join NWBase_Brand as BRAND on BRAND.Seq=AREA.BrandSeq
+        left join NWBase_Company as COMPANY on COMPANY.Seq=BRAND.CompanySeq
+        where SHOP.Seq=#{ShopSeq}
+    </select>
+</mapper>

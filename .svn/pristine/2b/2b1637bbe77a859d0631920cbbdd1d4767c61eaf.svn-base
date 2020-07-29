@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Controls>
+<btnclose>关闭.png</btnclose>
+<btnminsize>最小化.png</btnminsize>
+<lablog>logo.png</lablog>
+<btnset>设置.png</btnset>
+<btntj>统计.png</btntj>
+<pnlmiddle>视频头.png</pnlmiddle>
+<pnltop>头背景.png</pnltop>
+<btnstart>播放按钮.png</btnstart>
+</Controls>

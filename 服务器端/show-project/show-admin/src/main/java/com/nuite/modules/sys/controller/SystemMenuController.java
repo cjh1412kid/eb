@@ -1,0 +1,191 @@
+package com.nuite.modules.sys.controller;
+
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.nuite.common.exception.RRException;
+import com.nuite.common.utils.Constant;
+import com.nuite.common.utils.R;
+import com.nuite.modules.sys.entity.SysMenuEntity;
+import com.nuite.modules.sys.service.SysMenuService;
+
+/**
+ * 系统菜单
+ */
+@RestController
+@RequestMapping("/sys/menu")
+public class SystemMenuController extends AbstractController {
+
+    @Autowired
+    private SysMenuService sysMenuService;
+
+
+    /**
+     * 导航菜单
+     */
+    @GetMapping("/nav")
+    public R nav() {
+        //根据用户的区域获取菜单
+        List<SysMenuEntity> menuList = sysMenuService.getRoleMenuList(getUser().getRoleSeq());
+
+        return R.ok().put("menuList", menuList);
+    }
+
+    /**
+     * 工厂管理员选择可分配菜单列表
+     */
+    @GetMapping("/mylist")
+    public List<SysMenuEntity> myList() {
+        return sysMenuService.getAuthorList(getUserId());
+    }
+
+    /**
+     * 所有菜单列表
+     */
+    @GetMapping("/list")
+    @RequiresPermissions("sys:menu:list")
+    public List<SysMenuEntity> list() {
+        List<SysMenuEntity> menuList = sysMenuService.selectList(null);
+        for (SysMenuEntity sysMenuEntity : menuList) {
+            SysMenuEntity parentMenuEntity = sysMenuService.selectById(sysMenuEntity.getParentSeq());
+            if (parentMenuEntity != null) {
+                sysMenuEntity.setParentName(parentMenuEntity.getName());
+            }
+        }
+
+        return menuList;
+    }
+
+    /**
+     * 选择菜单(添加、修改菜单)
+     */
+    @GetMapping("/select")
+    @RequiresPermissions("sys:menu:select")
+    public R select() {
+        //查询列表数据
+        List<SysMenuEntity> menuList = sysMenuService.queryNotButtonList();
+
+        //添加顶级菜单
+        SysMenuEntity root = new SysMenuEntity();
+        root.setSeq(0);
+        root.setName("一级菜单");
+        root.setParentSeq(-1L);
+        root.setOpen(true);
+        menuList.add(root);
+
+        return R.ok().put("menuList", menuList);
+    }
+
+
+    /**
+     * 菜单信息
+     */
+    @GetMapping("/info/{menuId}")
+    @RequiresPermissions("sys:menu:info")
+    public R info(@PathVariable("menuId") Long menuId) {
+        SysMenuEntity menu = sysMenuService.selectById(menuId);
+        return R.ok().put("menu", menu);
+    }
+
+    /**
+     * 保存
+     */
+    @PostMapping("/save")
+    @RequiresPermissions("sys:menu:save")
+    public R save(@RequestBody SysMenuEntity menu) {
+        //数据校验
+        verifyForm(menu);
+
+        sysMenuService.insert(menu);
+
+        return R.ok();
+    }
+
+    /**
+     * 修改
+     */
+    @PostMapping("/update")
+    @RequiresPermissions("sys:menu:update")
+    public R update(@RequestBody SysMenuEntity menu) {
+        //数据校验
+        verifyForm(menu);
+
+        sysMenuService.updateById(menu);
+
+        return R.ok();
+    }
+
+    /**
+     * 删除
+     */
+    @PostMapping("/delete/{menuId}")
+    @RequiresPermissions("sys:menu:delete")
+    public R delete(@PathVariable("menuId") Integer menuId) {
+        if (menuId <= 3) {
+            return R.error("系统菜单，不能删除");
+        }
+
+        //判断是否有子菜单或按钮
+        List<SysMenuEntity> menuList = sysMenuService.queryListParentId(menuId);
+        if (menuList.size() > 0) {
+            return R.error("请先删除子菜单或按钮");
+        }
+
+        sysMenuService.delete(menuId);
+
+        return R.ok();
+    }
+
+    /**
+     * 验证参数是否正确
+     */
+    private void verifyForm(SysMenuEntity menu) {
+        if (StringUtils.isBlank(menu.getName())) {
+            throw new RRException("菜单名称不能为空");
+        }
+
+        if (menu.getParentSeq() == null) {
+            throw new RRException("上级菜单不能为空");
+        }
+
+        //菜单
+        if (menu.getType() == Constant.MenuType.MENU.getValue()) {
+            if (StringUtils.isBlank(menu.getUrl())) {
+                throw new RRException("菜单URL不能为空");
+            }
+        }
+
+        //上级菜单类型
+        int parentType = Constant.MenuType.CATALOG.getValue();
+        if (menu.getParentSeq() != 0) {
+            SysMenuEntity parentMenu = sysMenuService.selectById(menu.getParentSeq());
+            parentType = parentMenu.getType();
+        }
+
+        //目录、菜单
+        if (menu.getType() == Constant.MenuType.CATALOG.getValue() ||
+                menu.getType() == Constant.MenuType.MENU.getValue()) {
+            if (parentType != Constant.MenuType.CATALOG.getValue()) {
+                throw new RRException("上级菜单只能为目录类型");
+            }
+            return;
+        }
+
+        //按钮
+        if (menu.getType() == Constant.MenuType.BUTTON.getValue()) {
+            if (parentType != Constant.MenuType.MENU.getValue()) {
+                throw new RRException("上级菜单只能为菜单类型");
+            }
+            return;
+        }
+    }
+}

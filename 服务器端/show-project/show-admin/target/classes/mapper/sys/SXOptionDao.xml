@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.sys.dao.SXOptionDao">
+    <insert id="insertWithSeq" parameterType="com.nuite.modules.sys.entity.SXOptionEntity">
+        <selectKey keyProperty="seq" order="BEFORE" resultType="Integer">
+              select case when max(Seq) is null then 1 else max(Seq)+1 end from [NWGoods_SXOption]
+        </selectKey>
+        insert into [NWGoods_SXOption] (Seq,SXSeq,Code,Value,InputTime,Del)
+        values (#{seq},#{sXSeq},#{code},#{value},#{inputTime},#{del})
+    </insert>
+</mapper>

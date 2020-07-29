@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.dao.ProductTopDao">
+
+	<!-- 历史日平均销量三根参考线: 获取计算平均值的开始日期  （区域内一个月没有销量后的第一天，或者第一次开始有销量的那天） -->
+	<select id="getSaleCountDayAvgStartDate" resultType="java.util.Date">
+		WITH aaa AS
+		(
+		(SELECT '0' as [No], '2016-01-01' as [SaleDate])
+		UNION ALL 
+		SELECT ROW_NUMBER() OVER (ORDER BY SaleDate ASC) AS No, SaleDate 
+		FROM [YHSmartDataRetail].[dbo].[NWGoods_SaleShoesDetail] 
+			WHERE shoeSeq = #{shoeSeq} 
+			<if test = "areaType==1">
+			</if>
+			<if test = "areaType==2">
+			    AND AreaSeq = #{areaSeq}
+			</if>
+			<if test = "areaType==3">
+			    AND BranchOfficeSeq = #{areaSeq}
+			</if>
+			<if test = "areaType==4">
+			    AND ShopSeq = #{areaSeq}
+			</if>
+		)
+		
+		SELECT TOP 1 SaleDate1 FROM 
+		(
+		SELECT
+			A.SaleDate AS SaleDate1, B.SaleDate AS SaleDate2, DATEDIFF(DAY, B.SaleDate, A.SaleDate) AS dayDiff
+		FROM aaa A
+		LEFT JOIN aaa B ON A.No = B.NO + 1
+		) bbb  WHERE dayDiff > 30 ORDER BY SaleDate1 DESC
+	</select>
+	
+</mapper>

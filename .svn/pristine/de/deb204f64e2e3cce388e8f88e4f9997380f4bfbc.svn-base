@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>公告管理</title>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta
+	content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+	name="viewport">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/css/bootstrap.min.css">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/css/font-awesome.min.css">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/plugins/daterangepicker/daterangepicker.css">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/plugins/datepicker/datepicker3.css">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/plugins/jqgrid/ui.jqgrid-bootstrap.css">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/plugins/ztree/css/metroStyle/metroStyle.css">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/css/main.css">
+<script src="${request.contextPath}/statics/libs/jquery.min.js"></script>
+<script src="${request.contextPath}/statics/plugins/layer/layer.js"></script>
+<script src="${request.contextPath}/statics/libs/bootstrap.min.js"></script>
+<script src="${request.contextPath}/statics/libs/vue.min.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/jqgrid/grid.locale-cn.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/jqgrid/jquery.jqGrid.min.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/ztree/jquery.ztree.all.min.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/daterangepicker/moment.min.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/daterangepicker/daterangepicker.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/datepicker/bootstrap-datepicker.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/datepicker/locales/bootstrap-datepicker.zh-CN.js"></script>
+<script src="${request.contextPath}/statics/js/common.js"></script>
+<style type="text/css">
+.back {
+	background-color: #2573AF;
+	height: 800px;
+	width: 100%;
+}
+.panel{
+	background-color: #2573AF;
+}
+.choose {
+	width: 130px;
+	height: 30px;
+	background-color: #ffffff;
+	text-align: center;
+	line-height: 30px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: 20px;
+}
+
+.noChoose {
+	width: 130px;
+	height: 25px;
+	background-color: #ffffff;
+	text-align: center;
+	line-height: 30px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: 20px;
+}
+.img{
+	height: 19px;
+	width: 31px;
+}
+.tbody {
+    display:block;
+
+    overflow-y:scroll;
+    -webkit-overflow-scrolling: touch; // 为了滚动顺畅 
+}
+
+.tbody::-webkit-scrollbar {
+    display: none; // 隐藏滚动条
+}
+
+.thead, .tbody .tr {
+    display:table;
+    width:100%;
+    table-layout:fixed;
+}
+
+.thead {
+    width: calc( 100%)
+}
+a:focus,a:hover {
+	color: #F48384
+}
+.form{
+	margin-left: 20px;
+}
+</style>
+</head>
+
+
+
+<body>
+	<div id="rrapp" v-cloak>
+		<div class="back">
+				<div class="form-group col-sm-6">
+					<div class="col-xs-4" style="margin-top: 40px; display: flex">
+						<div :class="type==1?'choose':'noChoose'" @click="chooseArea(1)"
+							id="nanjing">南京分公司</div>
+						<div :class="type==2?'choose':'noChoose'" @click="chooseArea(2)"
+							id="allArea">全国</div>
+					</div>
+
+				</div>
+				<div class="form-group col-sm-2">
+					<div class="col-xs-3 control-label"
+						style="margin-top: 20px; color: #fff; line-height: 35px">时间段</div>
+					<div class="dropdown col-xs-6" style="margin-top: 20px">
+						<a role="button" data-toggle="dropdown" class="btn btn-default">{{selectDateName
+							|| '选择时间段'}} <span class="caret"></span>
+						</a>
+						<ul class="dropdown-menu multi-level" role="menu"
+							aria-labelledby="dropdownMenu">
+							<!-- <li class="dropdown-submenu"><a tabindex="-1"
+							@click="dateSelect('')">所有时间段</a></li> -->
+							<li class="dropdown-submenu" v-for="item in dates"><a
+								tabindex="-1" @click="dateSelect(item)">{{item.date}}</a></li>
+						</ul>
+					</div>
+				</div>
+				<div class="form-group col-sm-1" style="margin-left: 35px">
+					<div class="col-xs-6 control-label"
+						style="margin-top: 20px; color: #fff; line-height: 35px">季节</div>
+					<div class="dropdown col-xs-4" style="margin-top: 20px">
+						<a role="button" data-toggle="dropdown" class="btn btn-default">{{selectPeriodName
+							|| '选择季节'}} <span class="caret"></span>
+						</a>
+						<ul class="dropdown-menu multi-level" role="menu"
+							aria-labelledby="dropdownMenu">
+							<!-- 	<li class="dropdown-submenu"><a tabindex="-1"
+							@click="periodSelect(-1)">所有季节</a></li> -->
+							<li class="dropdown-submenu" v-for="item in periods"><a
+								tabindex="-1" @click="periodSelect(item)">{{item.name}}</a></li>
+						</ul>
+					</div>
+				</div>
+				<div class="form-group col-sm-1" style="margin-left: 35px">
+					<div class="col-xs-6 control-label"
+						style="margin-top: 20px; color: #fff; line-height: 35px">品类</div>
+					<div class="dropdown col-xs-4" style="margin-top: 20px">
+						<a role="button" data-toggle="dropdown" class="btn btn-default">{{selectCategoryName
+							|| '选择品类'}} <span class="caret"></span>
+						</a>
+						<ul class="dropdown-menu multi-level" role="menu"
+							aria-labelledby="dropdownMenu">
+							<!-- <li class="dropdown-submenu"><a tabindex="-1"
+							@click="periodSelect('')">所有品类</a></li> -->
+							<li class="dropdown-submenu" v-for="item in categorys"><a
+								tabindex="-1" @click="categorySelect(item)">{{item}}</a></li>
+						</ul>
+					</div>
+				
+			</div>
+			<div class="form-group col-sm-6"
+				style="height: 730px; background-color: #EFF4F7;margin-left: 10px;margin-top: -15px;">
+				<div
+					style="width: 30%; height: 350px; background-color: #fff; margin-left: 20px; position: relative; display: inline-block; text-align: center;">
+					<div style="font-size: 16px; font-weight: bold; position: relative; top: 5px;">上周销售前20</div>
+					<form class="form-horizontal"
+						style="width: 100%;">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">排名</td>
+										<td class="td" style="width: 38%">货号</td>
+										<td class="td" style="width: 30%">销售</td>
+										<!-- <td class="td">删除</td> -->
+									</tr>
+								</thead>
+								<tbody class="tbody" style="height: 270px" ref="box1" id="box1">
+									<tr v-for="detail in countryWeekSale" class="tr">
+									<td>{{detail.saleRank}}<img :src="detail.img"  class="img"/></td>
+								 	<td style="width: 38%;color:#FF4236" v-if="detail.shoeId==shoeId">{{detail.shoeId}}</td>
+								 	<td style="width: 38%;" v-else>{{detail.shoeId}}</td>
+								 	<td style="width: 30%">{{detail.saleCount}}</td>
+								 	<!-- <td></td> -->
+									</tr>
+								</tbody>
+								
+								</table>
+						</div>
+						</form>
+				</div>
+				<div
+					style="width: 30%; height: 350px; background-color: #fff; margin-left: 20px; position: relative; display: inline-block; text-align: center;">
+					<div  style="font-size: 16px; font-weight: bold; position: relative; top: 5px;">累计销售前20</div>
+					<form class="form-horizontal"
+						style="width: 100%;">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">排名</td>
+										<td class="td" style="width: 38%">货号</td>
+										<td class="td" style="width: 30%">销售</td>
+										<!-- <td class="td">删除</td> -->
+									</tr>
+								</thead>
+								<tbody class="tbody"  style="height: 270px" ref="box2" id="box2">
+									<tr v-for="detail in countryTotalSale" class="tr">
+									<td>{{detail.saleRank}}<img :src="detail.img" class="img" /></td>
+								 	<td style="width: 38%;color:#FF4236" v-if="detail.shoeId==shoeId">{{detail.shoeId}}</td>
+								 	<td style="width: 38%;" v-else>{{detail.shoeId}}</td>
+								 	<td style="width: 30%">{{detail.saleCount}}</td>
+								 	<!-- <td></td> -->
+									</tr>
+								</tbody>
+								
+								</table>
+						</div>
+						</form>
+				</div>
+				<div
+					style="width: 30%; height: 350px; background-color: #fff; margin-left: 20px; position: relative; display: inline-block; text-align: center;">
+					<div  style="font-size: 16px; font-weight: bold; position: relative; top: 5px;">销售强度前20</div>
+				<form class="form-horizontal"
+						style="width: 100%;">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td" style="width: 15%">排名</td>
+										<td class="td" style="width: 35%">货号</td>
+										<td class="td" style="width: 15%">销量</td>
+										<td class="td" style="width: 10%">门店数</td>
+										<td class="td" style="width: 20%">销售强度</td>
+										<!-- <td class="td">删除</td> -->
+									</tr>
+								</thead>
+								<tbody class="tbody"  style="height: 270px" ref="box3" id="box3">
+									<tr v-for="detail in countryWeekSaleStrength" class="tr">
+									<td style="width: 15%">{{detail.saleStrengthRank}}<img :src="detail.img"  class="img"/></td>
+								 	<td style="width: 35%;color:#FF4236" v-if="detail.shoeId==shoeId">{{detail.shoeId}}</td>
+								 	<td style="width: 35%;" v-else>{{detail.shoeId}}</td>
+								 	<td style="width: 15%">{{detail.saleCount}}</td>
+								 	<td style="width: 10%">{{detail.cabinetShopNum}}</td>
+								 	<td style="width: 20%">{{detail.saleStrength}}</td>
+								 	<!-- <td></td> -->
+									</tr>
+								</tbody>
+								
+								</table>
+						</div>
+						</form>
+				</div>
+				<div
+					style="width: 30%; height: 350px; background-color: #fff; margin-left: 20px; position: relative; top: 5px; display: inline-block; text-align: center;">
+					<div  style="font-size: 16px; font-weight: bold; position: relative; top: 5px;">累计售罄率前20</div>
+				<form class="form-horizontal"
+						style="width: 100%;">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">排名</td>
+										<td class="td" style="width: 38%">货号</td>
+										<td class="td" style="width: 30%">售罄率</td>
+										<!-- <td class="td">删除</td> -->
+									</tr>
+								</thead>
+								<tbody class="tbody"  style="height: 270px" ref="box4" id="box4">
+									<tr v-for="detail in countryTotalSaleOutRate" class="tr">
+									<td>{{detail.saleoutRank}}<img :src="detail.img"  class="img"/></td>
+								 	<td style="width: 38%;color:#FF4236" v-if="detail.shoeId==shoeId">{{detail.shoeId}}</td>
+								 	<td style="width: 38%;" v-else>{{detail.shoeId}}</td>
+								 	<td style="width: 30%">{{detail.selloutRate}}</td>
+								 	<!-- <td></td> -->
+									</tr>
+								</tbody>
+								
+								</table>
+						</div>
+						</form>
+				</div>
+				<div
+					style="width: 30%; height: 350px; background-color: #fff; margin-left: 20px; position: relative; top: 5px; display: inline-block; text-align: center;">
+					<div  style="font-size: 16px; font-weight: bold; position: relative; top: 5px;">上周试穿次数前20</div>
+				<form class="form-horizontal"
+						style="width: 100%;">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">排名</td>
+										<td class="td" style="width: 38%">货号</td>
+										<td class="td" style="width: 30%">试穿次数</td>
+										<!-- <td class="td">删除</td> -->
+									</tr>
+								</thead>
+								<tbody class="tbody"  style="height: 270px" ref="box5" id="box5">
+									<tr v-for="detail in countryWeekTry" class="tr">
+									<td>{{detail.tryRank}}<img :src="detail.img" class="img" /></td>
+								 	<td style="width: 38%;color:#FF4236" v-if="detail.shoeId==shoeId">{{detail.shoeId}}</td>
+								 	<td style="width: 38%;" v-else>{{detail.shoeId}}</td>
+								 	<td style="width: 30%"> {{detail.tryCount}}</td>
+								 	<!-- <td></td> -->
+									</tr>
+								</tbody>
+								
+								</table>
+						</div>
+						</form>
+				</div>
+				<div
+					style="width: 30%; height: 350px; background-color: #fff; margin-left: 20px; position: relative; top: 5px; display: inline-block; text-align: center;">
+					<div style="font-size: 16px; font-weight: bold; position: relative; top: 5px;">累计试穿次数前20</div>
+				<form class="form-horizontal"
+						style="width: 100%;">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">排名</td>
+										<td class="td" style="width: 38%">货号</td>
+										<td class="td" style="width: 30%">试穿次数</td>
+										<!-- <td class="td">删除</td> -->
+									</tr>
+								</thead>
+								<tbody class="tbody"  style="height: 270px" ref="box6" id="box6">
+									<tr v-for="detail in countryTotalTry" class="tr">
+									<td>{{detail.tryRank}}<img :src="detail.img" class="img"/></td>
+								 	<td style="width: 38%;color:#FF4236" v-if="detail.shoeId==shoeId">{{detail.shoeId}}</td>
+								 	<td style="width: 38%;" v-else>{{detail.shoeId}}</td>
+								 	<td style="width: 30%">{{detail.tryCount}}</td>
+								 	<!-- <td></td> -->
+									</tr>
+								</tbody>
+								
+								</table>
+						</div>
+						</form>
+				</div>
+			</div>
+			 <div class="form-group col-sm-2"
+				style="height: 730px; background-color: #EFF4F7;margin-left: 10px;margin-top: -15px;">
+				<div v-if="type==1"
+					style="width: 100%; height: 700px;  position: relative; top: 5px; display: inline-block; text-align: center;">
+					<div style="font-size: 16px; font-weight: bold; position: relative; top: 5px;">分公司补单建议({{branchofficeReplenishmentSuggest.length}}个货号)</div>
+				<form class="form-horizontal"
+						style="width: 100%;">
+						<div class="form-group">
+						<table class="table table-bordered" style="margin-bottom:0px">
+								<thead class="thead">
+									<tr>
+										<td class="td">序号</td>
+										<td class="td" style="width: 38%">货号</td>
+										<td class="td" style="width: 20%">平均/公司/全国库存</td>
+										<td class="td" style="width: 12%">黑马</td>
+										 <td class="td" style="width: 12%">选中</td> 
+									</tr>
+								</thead>
+								<tbody class="tbody" style="height: 560px">
+									<tr v-for="(detail,index) in branchofficeReplenishmentSuggest" class="tr" @mouseenter="enter(detail.shoeId)" @mouseleave="enter()">
+									<td>{{index+1}}<img :src="detail.img" class="img"/></td>
+								 	<td v-if="detail.topNum==6" style="color: #001E51;width: 38%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==5||detail.topNum==4" style="color: #083C98;width: 38%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==3||detail.topNum==2" style="color: #666ED6;width: 38%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==1" style="color: #BDDDF4;width: 38%">{{detail.shoeId}}</td>
+								 	<td style="width: 20%">{{detail.perShopStock}}/{{detail.stock}}/{{detail.countryStock}}</td>
+								 	<td style="width: 12%" v-if="detail.isDarkHorse==1">是</td>
+								 	<td style="width: 12%" v-if="detail.isDarkHorse==0">否</td>
+<!-- 								 	<td @click="del(detail)" style="color: #F83034;font-size: 20px;cursor: pointer;">×</td>  -->
+								 	 <td style="width: 12%"><input type="checkbox" name="chooseSuggest"  /></td>
+									</tr>
+								</tbody>
+								
+								</table>
+						</div>
+						</form>
+						<div>
+						推荐强度 <div style="background-color: #001E51;width: 20px;height: 10px;display: inline-block;"></div>
+						<div style="background-color: #083C98;width: 20px;height: 10px;display: inline-block;"></div>
+						<div style="background-color: #666ED6;width: 20px;height: 10px;display: inline-block;"></div>
+						<div style="background-color: #BDDDF4;width: 20px;height: 10px;display: inline-block;"></div>
+						</div>
+						<div style="display: inline-block;margin-left: 55px">强</div><div style="display: inline-block;margin-left: 55px;">弱</div>
+							<input style="position: relative;left: 100px;top: -20px;" type="button" class="btn btn-primary" @click="previewOther" value="预览"/>
+				</div>
+				</div> 
+				<div class="form-group col-sm-2"
+				style="height: 730px; background-color: #EFF4F7;margin-left: 10px;margin-top: -15px;">
+				<div
+					style="width: 100%; height: 700px;  position: relative; top: 5px; display: inline-block; text-align: center;">
+					<div style="font-size: 16px; font-weight: bold; position: relative; top: 5px;">全国补单建议({{countryReplenishmentSuggest.length}}个货号)</div>
+				<form class="form-horizontal"
+						style="width: 100%;">
+						<div class="form-group">
+						<table class="table table-bordered" style="margin-bottom:0px">
+								<thead class="thead">
+									<tr>
+										<td class="td">序号</td>
+										<td class="td" style="width: 38%">货号</td>
+										<td class="td" style="width: 15%">库存</td>
+										<td class="td" style="width: 15%">黑马</td>
+										 <td class="td">选择</td>
+									</tr>
+								</thead>
+								<tbody class="tbody" style="height: 560px">
+									<tr v-for="detail in countryReplenishmentSuggest" class="tr" @mouseenter="enter(detail.shoeId)" @mouseleave="enter()">
+									<td>{{detail.rank}}<img :src="detail.img" class="img"/></td>
+								 	<td v-if="detail.topNum==6" style="color: #001E51;width: 38%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==5||detail.topNum==4" style="color: #083C98;width: 38%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==3||detail.topNum==2" style="color: #666ED6;width: 38%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==1" style="color: #BDDDF4;width: 38%">{{detail.shoeId}}</td>
+								 	<td style="width: 15%">{{detail.stock}}</td>
+								 	<td style="width: 15%" v-if="detail.isDarkHorse==1">是</td>
+								 	<td style="width: 15%" v-if="detail.isDarkHorse==0"></td>
+								 	 <td><input type="checkbox" name="choose"  @click="choose($event,detail)" v-model="detail.checked" :disabled="detail.existInBranchofficeList"/>{{detail.existInBranchofficeList==1?'已存在':'未存在'}}</td>
+									</tr>
+								</tbody>
+								
+								</table>
+						</div>
+						</form>
+						<div>
+						推荐强度 <div style="background-color: #001E51;width: 20px;height: 10px;display: inline-block;"></div>
+						<div style="background-color: #083C98;width: 20px;height: 10px;display: inline-block;"></div>
+						<div style="background-color: #666ED6;width: 20px;height: 10px;display: inline-block;"></div>
+						<div style="background-color: #BDDDF4;width: 20px;height: 10px;display: inline-block;"></div>
+						</div>
+						<div style="display: inline-block;margin-left: 55px">强</div><div style="display: inline-block;margin-left: 55px;">弱</div>
+						<input style="position: relative;left: 100px;top: -20px;" type="button" class="btn btn-primary" @click="preview" value="预览"/>
+				</div>
+				</div>  
+				
+		</div>
+ 		<div id="goodsLayer" style="display: none;padding:10px;">
+ 			<div class="head" style="display: flex;">
+ 						<div  style="font-size: 16px; font-weight: bold; position: relative; top: 5px;	display: flex;align-items: center;justify-content: center;margin-left: 300px">{{title}}补单建议({{suggestList.length}}个货号)</div>
+ 						<div  style="font-size: 14px; font-weight: bold; position: relative; top: 5px;	display: flex;align-items: center;justify-content: center;margin-left: 50px">推荐强度 </div>
+ 						<div style="background-color: #FF0000;width: 40px;height: 20px;display: flex;align-items: center;justify-content: center;margin-left: 25px;margin-top: 5px"></div>
+						<div style="background-color: #FFA800;width: 40px;height: 20px;display: flex;align-items: center;justify-content: center;margin-left: 25px;margin-top: 5px"></div>
+						<div style="background-color: #676DD6;width: 40px;height: 20px;display: flex;align-items: center;justify-content: center;margin-left: 25px;margin-top: 5px"></div>
+						<div style="background-color: #BDDDF4;width: 40px;height: 20px;display: flex;align-items: center;justify-content: center;margin-left: 25px;margin-top: 5px"></div>
+						
+						<a v-if="suggestList.length>40&&page==1" class="next"  style="font-size: 14px;margin-top: 5px;margin-left: 50px" @click="next">下一页</a>
+											<a v-if="suggestList.length>40&&page==2" class="next"  style="font-size: 14px;margin-top: 5px;margin-left: 50px" @click="before">上一页</a>
+						</div>
+						<div style="display: inline-block;margin-left: 610px;position: relative;top: -18px;color: #fff">强</div><div style="display: inline-block;margin-left: 180px;position: relative;top: -18px;color: #fff">弱</div>		
+ 		
+ 			<div class="body" style="display: flex;">
+ 				<form class="form-horizontal form"
+						style="width: 25%;" v-if="suggestList.length>0">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">序号</td>
+										<td class="td" style="width: 30%">货号</td>
+										<td class="td" style="width: 14%">库存</td>
+										<td class="td" style="width: 14%">黑马</td>
+										 <td class="td">选择</td>
+									</tr>
+								</thead>
+								<tbody class="tbody" style="height: 560px">
+									<tr v-for="(detail,index) in suggestList" class="tr" v-if="index<10&&page==1"  style="height: 55px">
+									<td>{{index+1}}<img :src="detail.img" class="img"/></td>
+								 	<td v-if="detail.topNum==6" style="color: #FF0000;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==5||detail.topNum==4" style="color: #FFA800;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==3||detail.topNum==2" style="color: #676DD6;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==1" style="color: #BDDDF4;width: 30%">{{detail.shoeId}}</td>
+								 	<td style="width: 14%">{{detail.stock}}</td>
+								 	 	<td style="width: 14%" v-if="detail.isDarkHorse==1">是</td>
+								 	<td style="width: 14%" v-if="detail.isDarkHorse==0"></td>
+								 	 <td><input type="checkbox" name="choose"   @click="choose($event,detail)" v-model="detail.checked"/></td>
+									</tr>
+								</tbody>
+								</table>
+						</div>
+						</form>
+						<form class="form-horizontal form"
+						style="width: 25%;" v-if="suggestList.length>10">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">序号</td>
+										<td class="td" style="width: 30%">货号</td>
+										<td class="td" style="width: 14%">库存</td>
+										<td class="td" style="width: 14%">黑马</td>
+										 <td class="td">选择</td>
+									</tr>
+								</thead>
+								<tbody class="tbody" style="height: 560px">
+									<tr v-for="(detail,index) in suggestList" class="tr" v-if="index<20&&index>=10&&page==1"  style="height: 55px">
+									<td>{{index+1}}<img :src="detail.img" class="img"/></td>
+								 	<td v-if="detail.topNum==6" style="color: #FF0000;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==5||detail.topNum==4" style="color: #FFA800;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==3||detail.topNum==2" style="color: #676DD6;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==1" style="color: #BDDDF4;width: 30%">{{detail.shoeId}}</td>
+								 	<td style="width: 14%">{{detail.stock}}</td>
+								 	<td style="width: 14%" v-if="detail.isDarkHorse==1">是</td>
+								 	<td style="width: 14%" v-if="detail.isDarkHorse==0"></td>
+								 	 <td><input type="checkbox" name="choose"   @click="choose($event,detail)" v-model="detail.checked"/></td>
+									</tr>
+								</tbody>
+								</table>
+						</div>
+						</form>
+						<form class="form-horizontal form"
+						style="width: 25%;" v-if="suggestList.length>20">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">序号</td>
+										<td class="td" style="width: 30%">货号</td>
+										<td class="td" style="width: 14%">库存</td>
+										<td class="td" style="width: 14%">黑马</td>
+										 <td class="td">选择</td>
+									</tr>
+								</thead>
+								<tbody class="tbody" style="height: 560px">
+									<tr v-for="(detail,index) in suggestList" class="tr" v-if="index<30&&index>=20&&page==1"  style="height: 55px">
+										<td>{{index+1}}<img :src="detail.img" class="img"/></td>
+								 	<td v-if="detail.topNum==6" style="color: #FF0000;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==5||detail.topNum==4" style="color: #FFA800;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==3||detail.topNum==2" style="color: #676DD6;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==1" style="color: #BDDDF4;width: 30%">{{detail.shoeId}}</td>
+								 	<td style="width: 14%">{{detail.stock}}</td>
+								 	<td style="width: 14%" v-if="detail.isDarkHorse==1">是</td>
+								 	<td style="width: 14%" v-if="detail.isDarkHorse==0"></td>
+								 	 <td><input type="checkbox" name="choose"   @click="choose($event,detail)" v-model="detail.checked"/></td>
+									</tr>
+								</tbody>
+								</table>
+						</div>
+						</form>
+						<form class="form-horizontal form"
+						style="width: 25%;" v-if="suggestList.length>30">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">序号</td>
+										<td class="td" style="width: 30%">货号</td>
+										<td class="td" style="width: 14%">库存</td>
+										<td class="td" style="width: 14%">黑马</td>
+										 <td class="td">选择</td>
+									</tr>
+								</thead>
+								<tbody class="tbody" style="height: 560px">
+									<tr v-for="(detail,index) in suggestList" class="tr" v-if="index<40&&index>=30&&page==1"  style="height: 55px">
+									<td>{{index+1}}<img :src="detail.img" class="img"/></td>
+								 	<td v-if="detail.topNum==6" style="color: #FF0000;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==5||detail.topNum==4" style="color: #FFA800;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==3||detail.topNum==2" style="color: #676DD6;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==1" style="color: #BDDDF4;width: 30%">{{detail.shoeId}}</td>
+								 	<td style="width: 14%">{{detail.stock}}</td>
+								 	<td style="width: 14%" v-if="detail.isDarkHorse==1">是</td>
+								 	<td style="width: 14%" v-if="detail.isDarkHorse==0"></td>
+								 	 <td><input type="checkbox" name="choose"   @click="choose($event,detail)" v-model="detail.checked"/></td>
+									</tr>
+								</tbody>
+								</table>
+						</div>
+						</form>
+							<form class="form-horizontal form"
+						style="width: 25%;" v-if="suggestList.length>40">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">序号</td>
+										<td class="td" style="width: 30%">货号</td>
+										<td class="td" style="width: 14%">库存</td>
+											<td class="td" style="width: 14%">黑马</td>
+										 <td class="td">选择</td>
+									</tr>
+								</thead>
+								<tbody class="tbody" style="height: 560px">
+									<tr v-for="(detail,index) in suggestList" class="tr" v-if="index<50&&index>=40&&page==2"  style="height: 55px">
+										<td>{{index+1}}<img :src="detail.img" class="img"/></td>
+								 	<td v-if="detail.topNum==6" style="color: #FF0000;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==5||detail.topNum==4" style="color: #FFA800;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==3||detail.topNum==2" style="color: #676DD6;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==1" style="color: #BDDDF4;width: 30%">{{detail.shoeId}}</td>
+								 	<td style="width: 14%">{{detail.stock}}</td>
+								 	<td style="width: 14%" v-if="detail.isDarkHorse==1">是</td>
+								 	<td style="width: 14%" v-if="detail.isDarkHorse==0"></td>
+								 	 <td><input type="checkbox" name="choose"   @click="choose($event,detail)" v-model="detail.checked"/></td>
+									</tr>
+								</tbody>
+								</table>
+						</div>
+						</form>
+							<form class="form-horizontal form"
+						style="width: 25%;" v-if="suggestList.length>50">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">序号</td>
+										<td class="td" style="width: 30%">货号</td>
+										<td class="td" style="width: 14%">库存</td>
+											<td class="td" style="width: 14%">黑马</td>
+										 <td class="td">选择</td>
+									</tr>
+								</thead>
+								<tbody class="tbody" style="height: 560px">
+									<tr v-for="(detail,index) in suggestList" class="tr" v-if="index<60&&index>=50&&page==2"  style="height: 55px">
+									<td>{{index+1}}<img :src="detail.img" class="img"/></td>
+								 	<td v-if="detail.topNum==6" style="color: #FF0000;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==5||detail.topNum==4" style="color: #FFA800;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==3||detail.topNum==2" style="color: #676DD6;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==1" style="color: #BDDDF4;width: 30%">{{detail.shoeId}}</td>
+								 	<td style="width: 14%">{{detail.stock}}</td>
+								 	<td style="width: 14%" v-if="detail.isDarkHorse==1">是</td>
+								 	<td style="width: 14%" v-if="detail.isDarkHorse==0"></td>
+								 	 <td><input type="checkbox" name="choose"   @click="choose($event,detail)" v-model="detail.checked"/></td>
+									</tr>
+								</tbody>
+								</table>
+						</div>
+						</form>
+							<form class="form-horizontal form"
+						style="width: 25%;" v-if="suggestList.length>60">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">序号</td>
+										<td class="td" style="width: 30%">货号</td>
+										<td class="td" style="width: 14%">库存</td>
+											<td class="td" style="width: 14%">黑马</td>
+										 <td class="td">选择</td>
+									</tr>
+								</thead>
+								<tbody class="tbody" style="height: 560px">
+									<tr v-for="(detail,index) in suggestList" class="tr" v-if="index<70&&index>=60&&page==2"  style="height: 55px">
+									<td>{{index+1}}<img :src="detail.img" class="img"/></td>
+								 	<td v-if="detail.topNum==6" style="color: #FF0000;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==5||detail.topNum==4" style="color: #FFA800;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==3||detail.topNum==2" style="color: #676DD6;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==1" style="color: #BDDDF4;width: 30%">{{detail.shoeId}}</td>
+								 	<td style="width: 14%">{{detail.stock}}</td>
+								 	<td style="width: 14%" v-if="detail.isDarkHorse==1">是</td>
+								 	<td style="width: 14%" v-if="detail.isDarkHorse==0"></td>
+								 	 <td><input type="checkbox" name="choose"   @click="choose($event,detail)" v-model="detail.checked"/></td>
+									</tr>
+								</tbody>
+								</table>
+						</div>
+						</form>
+							<form class="form-horizontal form"
+						style="width: 25%;" v-if="suggestList.length>70">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">序号</td>
+										<td class="td" style="width: 30%">货号</td>
+										<td class="td" style="width: 14%">库存</td>
+											<td class="td" style="width: 14%">黑马</td>
+										 <td class="td">选择</td>
+									</tr>
+								</thead>
+								<tbody class="tbody" style="height: 560px">
+									<tr v-for="(detail,index) in suggestList" class="tr" v-if="index<80&&index>=70&&page==2" style="height: 55px">
+									<td>{{index+1}}<img :src="detail.img" class="img"/></td>
+								 	<td v-if="detail.topNum==6" style="color: #FF0000;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==5||detail.topNum==4" style="color: #FFA800;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==3||detail.topNum==2" style="color: #676DD6;width: 30%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==1" style="color: #BDDDF4;width: 30%">{{detail.shoeId}}</td>
+								 	<td style="width: 14%">{{detail.stock}}</td>
+								 	<td style="width: 14%" v-if="detail.isDarkHorse==1">是</td>
+								 	<td style="width: 14%" v-if="detail.isDarkHorse==0"></td>
+								 	 <td><input type="checkbox" name="choose"   @click="choose($event,detail)" v-model="detail.checked"/></td>
+									</tr>
+								</tbody>
+								</table>
+						</div>
+						</form>
+						</div>
+ 			</div>
+	 	</div>
+	
+
+
+	<script
+		src="${request.contextPath}/statics/js/modules/order_platform/replenish.js"></script>
+</body>
+</html>

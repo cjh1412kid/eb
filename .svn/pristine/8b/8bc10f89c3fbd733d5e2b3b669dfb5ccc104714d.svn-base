@@ -1,0 +1,212 @@
+package com.nuite.task;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import com.nuite.common.utils.RedisUtils;
+import com.nuite.dao.BrandDao;
+import com.nuite.entity.BrandEntity;
+import com.nuite.entity.ShoeViewEntity;
+import com.nuite.service.ShoeService;
+import com.nuite.service.TopService;
+import com.nuite.utils.RedisKeys;
+
+
+@Component("topTask")
+public class TopTask{
+	private Logger logger = LoggerFactory.getLogger(getClass());
+	
+    @Autowired
+    private BaseTask baseTask;
+    
+    @Autowired
+    private BrandDao brandDao;
+    
+    @Autowired
+    private TopService topService;
+    
+    @Autowired
+    private ShoeService shoeService;
+    
+    @Autowired
+    private RedisUtils redisUtils;
+    
+    
+    
+	/**
+     * 试穿Top20
+     */
+	@Scheduled(cron = "0 30 0/3 * * ?" )
+    public void tryTop() {
+		Date startTaskTime = new Date();
+		logger.info("###TopTask tryTop方法，开始执行: " + startTaskTime);
+    	try {
+    		List<BrandEntity> brandList = brandDao.selectList(null);	//所有品牌
+    		int[] typeList = {1,2,3}; //所有类型  （目前门店不缓存）
+    		List<Date> startDateList = baseTask.getStartDateList(); //所有开始时间
+    		Date endDate = baseTask.getTodayDate(); //结束时间（今日）
+    		
+    		
+    		//循环品牌
+    		for(BrandEntity brandEntity : brandList) {
+    			
+				List<Integer> periodSeqList = baseTask.getAllPeriodSeqsByBrandSeq(brandEntity.getSeq()); //所有波次
+				
+    			//循环type
+    			for(int type : typeList) {
+    			
+    				List<Integer> areaSeqList = baseTask.getAreaSeqsByTypeAndBrandSeq(brandEntity.getSeq(), type);  //类型所有区域序号
+    				//循环areaSeqs
+    				for(Integer areaSeq : areaSeqList) {
+    					
+    	        		//根据区域筛选条件，获取安装设备的门店序号List   （目前只缓存单个区域）
+    	        		List<Integer> shopSeqList = baseTask.getShopSeqListByAreaSeq(type, areaSeq, brandEntity.getSeq());
+    	        		if(shopSeqList == null || shopSeqList.size() == 0) {
+    	        			continue;
+    	        		}
+    	        		
+    	        		//循环波次
+    					for(Integer periodSeq : periodSeqList) {
+    		    			List<Integer> periodSeqs = new ArrayList<Integer>();
+    		    			periodSeqs.add(periodSeq);
+    						//循环时间段
+			    			for(Date startDate : startDateList) {
+			        		
+				    			/** 试穿Top20 controller方法 **/
+				        		/* 获取指定门店序号List、指定波次List，指定起止日期，指定top的按试穿量从大到小 的货号、试穿次数、平均试穿时间 */
+				        		List<Map<String, Object>> goodIdTryCount = topService.getTopGoodIdTryCount(shopSeqList, periodSeqs, startDate, endDate, 30);
+				
+				        		for(int i = 0; i < goodIdTryCount.size(); i++) {
+				        			Map<String, Object> map = goodIdTryCount.get(i);
+				        			
+				        			//根据货号查询鞋子视图
+				        			ShoeViewEntity shoeViewEntity = shoeService.getShoeViewByShoeId((String)map.get("shoeId"));
+				
+				        			//添加销售量
+				        			/** 获取指定 '门店序号'，指定 '起止日期' 时间段内某 '货号' 的销售量('波次序号' 仅用于确定要查询的分表) **/
+				        			int saleCount = topService.getShoeIdSalesFromShopsInSomeDate(shopSeqList, shoeViewEntity.getPeriodSeq(), shoeViewEntity.getShoeID(), startDate, endDate);
+				        			map.put("saleCount", saleCount);
+				        		}
+				        		
+				    		/** 试穿Top20controller方法 **/
+				    		
+				    		
+				    		/** 存入Redis **/
+				    		String redisKey = RedisKeys.getTopTryTopRedisKey(brandEntity.getSeq(), type, areaSeq, periodSeq, startDate, endDate);
+				        	redisUtils.set(redisKey, goodIdTryCount, 60 * 60 * 9);
+							/** 存入Redis **/
+			    			}
+    					}
+    				}   
+    			} 
+    		}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+		}
+		Date endTaskTime = new Date();
+		logger.info("###TopTask tryTop方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+    }
+
+
+
+	
+	
+	
+	
+	
+	
+	
+	/**
+     * 销售Top20
+     */
+	@Scheduled(cron = "0 40 1/8 * * ?" )
+    public void saleTop() {
+		Date startTaskTime = new Date();
+		logger.info("###TopTask saleTop方法，开始执行: " + startTaskTime);
+    	try {
+    		List<BrandEntity> brandList = brandDao.selectList(null);	//所有品牌
+    		int[] typeList = {1,2,3}; //所有类型  （目前门店不缓存）
+    		List<Date> startDateList = baseTask.getStartDateList(); //所有开始时间
+    		Date endDate = baseTask.getTodayDate(); //结束时间（今日） //TODO 改为有销售数据的最近一日
+    		
+    		
+    		//循环品牌
+    		for(BrandEntity brandEntity : brandList) {
+    			
+				List<Integer> periodSeqList = baseTask.getAllPeriodSeqsByBrandSeq(brandEntity.getSeq()); //所有波次
+				
+    			//循环type
+    			for(int type : typeList) {
+    			
+    				List<Integer> areaSeqList = baseTask.getAreaSeqsByTypeAndBrandSeq(brandEntity.getSeq(), type);  //类型所有区域序号
+    				//循环areaSeqs
+    				for(Integer areaSeq : areaSeqList) {
+		    			List<Integer> areaSeqs = new ArrayList<Integer>();
+		    			areaSeqs.add(areaSeq);
+		    			
+    	        		//根据区域筛选条件，获取安装设备的门店序号List   （目前只缓存单个区域）
+    	        		List<Integer> shopSeqList = baseTask.getShopSeqListByAreaSeq(type, areaSeq, brandEntity.getSeq());
+    	        		if(shopSeqList == null || shopSeqList.size() == 0) {
+    	        			continue;
+    	        		}
+    	        		
+    	        		//循环波次
+    					for(Integer periodSeq : periodSeqList) {
+    		    			List<Integer> periodSeqs = new ArrayList<Integer>();
+    		    			periodSeqs.add(periodSeq);
+    						//循环时间段
+			    			for(Date startDate : startDateList) {
+			        		
+			    				//循环销售和滞销 1:销量 2:滞销
+			    				for(int topType = 1; topType <=2; topType++) {
+					    			/** 销售Top20 controller方法 **/
+				    	    		/* 获取指定区域内、指定波次List，指定起止日期，指定top的按销量排序 的货号、销售量 */
+				    	    		List<Map<String, Object>> goodIdSaleCount = topService.getTopGoodIdSaleCount(type, areaSeqs, periodSeqs, startDate, endDate, 30, topType);
+	
+				    	    		for(int i = 0; i < goodIdSaleCount.size(); i++) {
+				    	    			Map<String, Object> map = goodIdSaleCount.get(i);
+				    	    			
+				    	    			//根据货号查询鞋子视图
+				    	    			ShoeViewEntity shoeViewEntity = shoeService.getShoeViewByShoeId((String)map.get("shoeId"));
+	
+				    	    			//添加试穿次数、平均试穿时间
+				    	    			/** 获取指定 '门店序号'，指定 '起止日期' 时间段内某 '货号' 的销售量('波次序号' 仅用于确定要查询的分表) **/
+				    	    			Map<String, Object> tryCountTimes = topService.getShoeIdTryCountTimesMap(shopSeqList, shoeViewEntity.getPeriodSeq(), shoeViewEntity.getShoeID(), startDate, endDate);
+				    	    			map.putAll(tryCountTimes);
+				    	    		}
+					        		
+					    		/** 销售Top20controller方法 **/
+					    		
+					    		
+					    		/** 存入Redis **/
+					    		String redisKey = RedisKeys.getTopSaleTopRedisKey(brandEntity.getSeq(), type, areaSeq, periodSeq, startDate, endDate, topType);
+					        	redisUtils.set(redisKey, goodIdSaleCount, 60 * 60 * 24);
+								/** 存入Redis **/
+			    				}
+			    			}
+    					}
+    				}   
+    			} 
+    		}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+		}
+		Date endTaskTime = new Date();
+		logger.info("###TopTask saleTop方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+    }
+    
+    
+
+}

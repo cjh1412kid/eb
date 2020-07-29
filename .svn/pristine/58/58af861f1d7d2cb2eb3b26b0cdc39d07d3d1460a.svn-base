@@ -1,0 +1,46 @@
+package com.nuite.modules.sys.service.impl;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.plugins.Page;
+import com.baomidou.mybatisplus.service.impl.ServiceImpl;
+import com.nuite.common.utils.PageUtils;
+import com.nuite.common.utils.Query;
+import com.nuite.modules.sys.dao.ShoesDataDao;
+import com.nuite.modules.sys.entity.ShoesDataEntity;
+import com.nuite.modules.sys.service.ShoesDataService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+
+
+@Service
+public class ShoesDataServiceImpl extends ServiceImpl<ShoesDataDao, ShoesDataEntity> implements ShoesDataService {
+
+	@Autowired
+	private ShoesDataDao shoesDataDao;
+	
+    @Override
+    public PageUtils queryPage(Map<String, Object> params) {
+        Page<ShoesDataEntity> page = this.selectPage(
+                new Query<ShoesDataEntity>(params).getPage(),
+                new EntityWrapper<ShoesDataEntity>()
+        );
+
+        return new PageUtils(page);
+    }
+
+	@Override
+	public ShoesDataEntity getOneByShoeSeq(Integer shoeSeq) {
+		EntityWrapper<ShoesDataEntity> wrapper=new EntityWrapper<ShoesDataEntity>();
+		wrapper.where("ShoeSeq={0}", shoeSeq);
+		List<ShoesDataEntity> shoesDataEntities=shoesDataDao.selectList(wrapper);
+		if(shoesDataEntities!=null&&shoesDataEntities.size()>0) {
+			return shoesDataEntities.get(0);
+		}
+		return null;
+	}
+
+}

@@ -1,0 +1,105 @@
+
+var vm = new Vue({
+    el: '#rrapp',
+    data: {
+ 
+    },
+    methods: {
+    	uploadSizeAllotTemplate : function () {
+//            parent.window.showLoading();
+            $('#goodsExcelForm').ajaxSubmit({
+                url: baseURL + 'sys/importData/uploadSizeAllotTemplate',
+                dataType: 'json',
+                success: function (r) {
+                    if (r.code === 0) {
+                        alert(r.msg, function () {
+                            location.reload();
+                        });
+                    } else {
+                        alert(r.msg);
+                    }
+//                    $("#goodsExcelForm").resetForm();
+//                    parent.window.hideLoading();
+                },
+                error: function (r) {
+                    alert("导入配码出错！");
+//                    $("#goodsExcelForm").resetForm();
+//                    parent.window.hideLoading();
+                }
+            });
+        },
+        uploadGoodsData: function () {
+//          parent.window.showLoading();
+          $('#goodsDataExcelForm').ajaxSubmit({
+              url: baseURL + 'sys/importData/uploadGoodsData',
+              dataType: 'json',
+              success: function (r) {
+                  if (r.code === 0) {
+                      alert(r.msg, function () {
+                          location.reload();
+                      });
+                  } else {
+                      alert(r.msg);
+                  }
+//                  $("#goodsExcelForm").resetForm();
+//                  parent.window.hideLoading();
+              },
+              error: function (r) {
+                  alert("导入配码出错！");
+//                  $("#goodsExcelForm").resetForm();
+//                  parent.window.hideLoading();
+              }
+          });
+      },
+      uploadReplenishment: function () {
+//        parent.window.showLoading();
+        $('#replenishmentExcelForm').ajaxSubmit({
+            url: baseURL + 'sys/importData/replenishment',
+            dataType: 'json',
+            success: function (r) {
+                if (r.code === 0) {
+                    alert(r.msg, function () {
+                        location.reload();
+                    });
+                } else {
+                    alert(r.msg);
+                }
+//                $("#goodsExcelForm").resetForm();
+//                parent.window.hideLoading();
+            },
+            error: function (r) {
+                alert("导入配码出错！");
+//                $("#goodsExcelForm").resetForm();
+//                parent.window.hideLoading();
+            }
+        });
+    },
+    uploadpurchasePlan: function () {
+//      parent.window.showLoading();
+      $('#purchasePlanFileExcelForm').ajaxSubmit({
+          url: baseURL + 'sys/importData/purchasePlan',
+          dataType: 'json',
+          success: function (r) {
+              if (r.code === 0) {
+                  alert(r.msg, function () {
+                      location.reload();
+                  });
+              } else {
+                  alert(r.msg);
+              }
+//              $("#goodsExcelForm").resetForm();
+//              parent.window.hideLoading();
+          },
+          error: function (r) {
+              alert("导入配码出错！");
+//              $("#goodsExcelForm").resetForm();
+//              parent.window.hideLoading();
+          }
+      });
+  },
+     
+    },
+    created: function () {
+      
+    }
+});

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.dao.ConvertDao">
+
+	
+	<!-- 查询 NWGoods_TryShoesDetail_isValid_periodSeq表 多个门店 某一天 试穿次数 -->
+	<select id="getShopsTryNumOneDay" resultType="java.lang.Integer">
+		SELECT 
+			Count(1) 
+		FROM 
+			YHSmartDataRetail.dbo.NWGoods_TryShoesDetail_${isValid}_${periodSeq} 
+		WHERE
+			Del = 0 AND ShopSeq IN (${shopSeqs}) 
+			AND DateDiff(dd, #{date}, DataTime) = 0 
+	</select>
+	
+	
+	
+	<!-- 查询 NWGoods_TryShoesDetail_isValid_periodSeq表 多个门店 某一天 某一货号 试穿次数 -->
+	<select id="getShopsShoeIdTryNumOneDay" resultType="java.lang.Integer">
+		SELECT 
+			Count(1) 
+		FROM 
+			YHSmartDataRetail.dbo.NWGoods_TryShoesDetail_${isValid}_${periodSeq} 
+		WHERE
+			Del = 0 
+			AND ShopSeq IN (${shopSeqs}) 
+			AND ShoeID = #{shoeId} 
+			AND DateDiff(dd, #{date}, DataTime) = 0 
+	</select>
+
+	
+	
+		<!-- 获取指定 '门店序号'，指定 '起止日期' 时间段内某 '货号' 的销售量 -->
+	<select id="getAreasSaleNumOneDay" resultType="java.lang.Integer">
+		SELECT 
+			SUM (SaleCount) 
+		FROM 
+			YHSmartDataRetail.dbo.NWGoods_SaleShoesDetail_${periodSeq} 
+		WHERE
+			Del = 0 
+			<if test = "type==2">
+			    AND AreaSeq IN (${areaSeqs})
+			</if>
+			<if test = "type==3">
+			    AND BranchOfficeSeq IN (${areaSeqs})
+			</if>
+			<if test = "type==4">
+			    AND ShopSeq IN (${areaSeqs})
+			</if>
+			AND DateDiff(dd, #{date}, SaleDate) = 0 
+	</select>
+	
+	
+	<!-- 获取指定 '门店序号'，指定 '起止日期' 时间段内某 '货号' 的销售量 -->
+	<select id="getAreasShoeIdSaleNumOneDay" resultType="java.lang.Integer">
+		SELECT 
+			SUM (SaleCount) 
+		FROM 
+			YHSmartDataRetail.dbo.NWGoods_SaleShoesDetail_${periodSeq} 
+		WHERE
+			Del = 0 
+			<if test = "type==2">
+			    AND AreaSeq IN (${areaSeqs})
+			</if>
+			<if test = "type==3">
+			    AND BranchOfficeSeq IN (${areaSeqs})
+			</if>
+			<if test = "type==4">
+			    AND ShopSeq IN (${areaSeqs})
+			</if>
+			AND ShoeID = #{shoeId} 
+			AND DateDiff(dd, #{date}, SaleDate) = 0 
+	</select>
+	
+	
+</mapper>

@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Controls>
+
+<btnclose>close.png</btnclose>
+<btnminsize>minsize.png</btnminsize>
+<pnlTop>topPic.png</pnlTop>
+<pnlMain>mainPic.png</pnlMain>
+<btnNumber>btnNumber.png</btnNumber>
+<btnTime>btnTime.png</btnTime>
+<btnIE>btnIE.png</btnIE>
+<btnSales>btnSales.png</btnSales>
+<btnTable>btnTable.png</btnTable>
+<btnLast>btnLast.png</btnLast>
+<btnNext>btnNext.png</btnNext>
+</Controls>

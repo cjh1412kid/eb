@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>公告管理</title>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta
+	content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+	name="viewport">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/css/bootstrap.min.css">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/css/font-awesome.min.css">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/plugins/daterangepicker/daterangepicker.css">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/plugins/datepicker/datepicker3.css">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/plugins/jqgrid/ui.jqgrid-bootstrap.css">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/plugins/ztree/css/metroStyle/metroStyle.css">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/css/main.css">
+<script src="${request.contextPath}/statics/libs/jquery.min.js"></script>
+<script src="${request.contextPath}/statics/plugins/layer/layer.js"></script>
+<script src="${request.contextPath}/statics/libs/bootstrap.min.js"></script>
+<script src="${request.contextPath}/statics/libs/vue.min.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/jqgrid/grid.locale-cn.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/jqgrid/jquery.jqGrid.min.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/ztree/jquery.ztree.all.min.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/daterangepicker/moment.min.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/daterangepicker/daterangepicker.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/datepicker/bootstrap-datepicker.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/datepicker/locales/bootstrap-datepicker.zh-CN.js"></script>
+<script src="${request.contextPath}/statics/js/common.js"></script>
+<style type="text/css">
+.back {
+	background-color: #2573AF;
+	height: 800px;
+	width: 100%;
+}
+.panel{
+	background-color: #2573AF;
+}
+.choose {
+	width: 130px;
+	height: 30px;
+	background-color: #ffffff;
+	text-align: center;
+	line-height: 30px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: 20px;
+}
+
+.noChoose {
+	width: 130px;
+	height: 25px;
+	background-color: #ffffff;
+	text-align: center;
+	line-height: 30px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: 20px;
+}
+.img{
+	height: 19px;
+	width: 32px;
+}
+.tbody {
+    display:block;
+
+    overflow-y:scroll;
+    -webkit-overflow-scrolling: touch; // 为了滚动顺畅 
+}
+
+.tbody::-webkit-scrollbar {
+    display: none; // 隐藏滚动条
+}
+
+.thead, .tbody .tr {
+    display:table;
+    width:100%;
+    table-layout:fixed;
+}
+
+.thead {
+    width: calc( 100%)
+}
+</style>
+</head>
+
+
+
+<body>
+	<div id="rrapp" v-cloak>
+		<div class="back">
+				<div class="form-group col-sm-6">
+					<div class="col-xs-4" style="margin-top: 40px; display: flex">
+						<div :class="type==1?'choose':'noChoose'" @click="chooseArea(1)"
+							id="nanjing">南京分公司</div>
+						<div :class="type==2?'choose':'noChoose'" @click="chooseArea(2)"
+							id="allArea">全国</div>
+					</div>
+
+				</div>
+				<div class="form-group col-sm-2">
+					<div class="col-xs-3 control-label"
+						style="margin-top: 20px; color: #fff; line-height: 35px">时间段</div>
+					<div class="dropdown col-xs-6" style="margin-top: 20px">
+						<a role="button" data-toggle="dropdown" class="btn btn-default">{{selectDateName
+							|| '选择时间段'}} <span class="caret"></span>
+						</a>
+						<ul class="dropdown-menu multi-level" role="menu"
+							aria-labelledby="dropdownMenu">
+							<!-- <li class="dropdown-submenu"><a tabindex="-1"
+							@click="dateSelect('')">所有时间段</a></li> -->
+							<li class="dropdown-submenu" v-for="item in dates"><a
+								tabindex="-1" @click="dateSelect(item)">{{item.date}}</a></li>
+						</ul>
+					</div>
+				</div>
+				<div class="form-group col-sm-1" style="margin-left: 35px">
+					<div class="col-xs-6 control-label"
+						style="margin-top: 20px; color: #fff; line-height: 35px">季节</div>
+					<div class="dropdown col-xs-4" style="margin-top: 20px">
+						<a role="button" data-toggle="dropdown" class="btn btn-default">{{selectPeriodName
+							|| '选择季节'}} <span class="caret"></span>
+						</a>
+						<ul class="dropdown-menu multi-level" role="menu"
+							aria-labelledby="dropdownMenu">
+							<!-- 	<li class="dropdown-submenu"><a tabindex="-1"
+							@click="periodSelect(-1)">所有季节</a></li> -->
+							<li class="dropdown-submenu" v-for="item in periods"><a
+								tabindex="-1" @click="periodSelect(item)">{{item.name}}</a></li>
+						</ul>
+					</div>
+				</div>
+				<div class="form-group col-sm-1" style="margin-left: 35px">
+					<div class="col-xs-6 control-label"
+						style="margin-top: 20px; color: #fff; line-height: 35px">品类</div>
+					<div class="dropdown col-xs-4" style="margin-top: 20px">
+						<a role="button" data-toggle="dropdown" class="btn btn-default">{{selectCategoryName
+							|| '选择品类'}} <span class="caret"></span>
+						</a>
+						<ul class="dropdown-menu multi-level" role="menu"
+							aria-labelledby="dropdownMenu">
+							<!-- <li class="dropdown-submenu"><a tabindex="-1"
+							@click="periodSelect('')">所有品类</a></li> -->
+							<li class="dropdown-submenu" v-for="item in categorys"><a
+								tabindex="-1" @click="categorySelect(item)">{{item}}</a></li>
+						</ul>
+					</div>
+				
+			</div>
+			<div class="form-group col-sm-6"
+				style="height: 730px; background-color: #EFF4F7;margin-left: 10px;margin-top: -15px;">
+				<div
+					style="width: 30%; height: 350px; background-color: #fff; margin-left: 20px; position: relative; display: inline-block; text-align: center;">
+					<div style="font-size: 16px; font-weight: bold; position: relative; top: 5px;">上周销售前20</div>
+					<form class="form-horizontal"
+						style="width: 100%;">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">排名</td>
+										<td class="td" style="width: 38%">货号</td>
+										<td class="td" style="width: 30%">销售</td>
+										<!-- <td class="td">删除</td> -->
+									</tr>
+								</thead>
+								<tbody class="tbody" style="height: 270px">
+									<tr v-for="detail in countryWeekSale" class="tr">
+									<td>{{detail.saleRank}}<img :src="detail.img"  class="img"/></td>
+								 	<td style="width: 38%;color:#FF4236" v-if="detail.shoeId==shoeId">{{detail.shoeId}}</td>
+								 	<td style="width: 38%;" v-else>{{detail.shoeId}}</td>
+								 	<td style="width: 30%">{{detail.saleCount}}</td>
+								 	<!-- <td></td> -->
+									</tr>
+								</tbody>
+								
+								</table>
+						</div>
+						</form>
+				</div>
+				<div
+					style="width: 30%; height: 350px; background-color: #fff; margin-left: 20px; position: relative; display: inline-block; text-align: center;">
+					<div  style="font-size: 16px; font-weight: bold; position: relative; top: 5px;">累计销售前20</div>
+					<form class="form-horizontal"
+						style="width: 100%;">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">排名</td>
+										<td class="td" style="width: 38%">货号</td>
+										<td class="td" style="width: 30%">销售</td>
+										<!-- <td class="td">删除</td> -->
+									</tr>
+								</thead>
+								<tbody class="tbody"  style="height: 270px">
+									<tr v-for="detail in countryTotalSale" class="tr">
+									<td>{{detail.saleRank}}<img :src="detail.img" class="img" /></td>
+								 	<td style="width: 38%;color:#FF4236" v-if="detail.shoeId==shoeId">{{detail.shoeId}}</td>
+								 	<td style="width: 38%;" v-else>{{detail.shoeId}}</td>
+								 	<td style="width: 30%">{{detail.saleCount}}</td>
+								 	<!-- <td></td> -->
+									</tr>
+								</tbody>
+								
+								</table>
+						</div>
+						</form>
+				</div>
+				<div
+					style="width: 30%; height: 350px; background-color: #fff; margin-left: 20px; position: relative; display: inline-block; text-align: center;">
+					<div  style="font-size: 16px; font-weight: bold; position: relative; top: 5px;">销售强度前20</div>
+				<form class="form-horizontal"
+						style="width: 100%;">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">排名</td>
+										<td class="td" style="width: 38%">货号</td>
+										<td class="td" style="width: 30%">销售强度</td>
+										<!-- <td class="td">删除</td> -->
+									</tr>
+								</thead>
+								<tbody class="tbody"  style="height: 270px">
+									<tr v-for="detail in countryWeekSaleStrength" class="tr">
+									<td>{{detail.saleStrengthRank}}<img :src="detail.img"  class="img"/></td>
+								 	<td style="width: 38%;color:#FF4236" v-if="detail.shoeId==shoeId">{{detail.shoeId}}</td>
+								 	<td style="width: 38%;" v-else>{{detail.shoeId}}</td>
+								 	<td style="width: 30%">{{detail.saleStrength}}</td>
+								 	<!-- <td></td> -->
+									</tr>
+								</tbody>
+								
+								</table>
+						</div>
+						</form>
+				</div>
+				<div
+					style="width: 30%; height: 350px; background-color: #fff; margin-left: 20px; position: relative; top: 5px; display: inline-block; text-align: center;">
+					<div  style="font-size: 16px; font-weight: bold; position: relative; top: 5px;">累计售罄率前20</div>
+				<form class="form-horizontal"
+						style="width: 100%;">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">排名</td>
+										<td class="td" style="width: 38%">货号</td>
+										<td class="td" style="width: 30%">售罄率</td>
+										<!-- <td class="td">删除</td> -->
+									</tr>
+								</thead>
+								<tbody class="tbody"  style="height: 270px">
+									<tr v-for="detail in countryTotalSaleOutRate" class="tr">
+									<td>{{detail.saleoutRank}}<img :src="detail.img"  class="img"/></td>
+								 	<td style="width: 38%;color:#FF4236" v-if="detail.shoeId==shoeId">{{detail.shoeId}}</td>
+								 	<td style="width: 38%;" v-else>{{detail.shoeId}}</td>
+								 	<td style="width: 30%">{{detail.selloutRate}}</td>
+								 	<!-- <td></td> -->
+									</tr>
+								</tbody>
+								
+								</table>
+						</div>
+						</form>
+				</div>
+				<div
+					style="width: 30%; height: 350px; background-color: #fff; margin-left: 20px; position: relative; top: 5px; display: inline-block; text-align: center;">
+					<div  style="font-size: 16px; font-weight: bold; position: relative; top: 5px;">上周试穿次数前20</div>
+				<form class="form-horizontal"
+						style="width: 100%;">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">排名</td>
+										<td class="td" style="width: 38%">货号</td>
+										<td class="td" style="width: 30%">试穿次数</td>
+										<!-- <td class="td">删除</td> -->
+									</tr>
+								</thead>
+								<tbody class="tbody"  style="height: 270px">
+									<tr v-for="detail in countryWeekTry" class="tr">
+									<td>{{detail.tryRank}}<img :src="detail.img" class="img" /></td>
+								 	<td style="width: 38%;color:#FF4236" v-if="detail.shoeId==shoeId">{{detail.shoeId}}</td>
+								 	<td style="width: 38%;" v-else>{{detail.shoeId}}</td>
+								 	<td style="width: 30%"> {{detail.tryCount}}</td>
+								 	<!-- <td></td> -->
+									</tr>
+								</tbody>
+								
+								</table>
+						</div>
+						</form>
+				</div>
+				<div
+					style="width: 30%; height: 350px; background-color: #fff; margin-left: 20px; position: relative; top: 5px; display: inline-block; text-align: center;">
+					<div style="font-size: 16px; font-weight: bold; position: relative; top: 5px;">累计试穿次数前20</div>
+				<form class="form-horizontal"
+						style="width: 100%;">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">排名</td>
+										<td class="td" style="width: 38%">货号</td>
+										<td class="td" style="width: 30%">试穿次数</td>
+										<!-- <td class="td">删除</td> -->
+									</tr>
+								</thead>
+								<tbody class="tbody"  style="height: 270px">
+									<tr v-for="detail in countryTotalTry" class="tr">
+									<td>{{detail.tryRank}}<img :src="detail.img" class="img"/></td>
+								 	<td style="width: 38%;color:#FF4236" v-if="detail.shoeId==shoeId">{{detail.shoeId}}</td>
+								 	<td style="width: 38%;" v-else>{{detail.shoeId}}</td>
+								 	<td style="width: 30%">{{detail.tryCount}}</td>
+								 	<!-- <td></td> -->
+									</tr>
+								</tbody>
+								
+								</table>
+						</div>
+						</form>
+				</div>
+			</div>
+			 <div class="form-group col-sm-2"
+				style="height: 730px; background-color: #EFF4F7;margin-left: 10px;margin-top: -15px;">
+				<div
+					style="width: 100%; height: 700px;  position: relative; top: 5px; display: inline-block; text-align: center;">
+					<div style="font-size: 16px; font-weight: bold; position: relative; top: 5px;">分公司补单建议({{branchofficeReplenishmentSuggest.length}}个货号)</div>
+				<form class="form-horizontal"
+						style="width: 100%;">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">序号</td>
+										<td class="td" style="width: 38%">货号</td>
+										<td class="td" style="width: 30%">库存</td>
+										 <td class="td">删除</td> 
+									</tr>
+								</thead>
+								<tbody class="tbody" style="height: 560px">
+									<tr v-for="detail in branchofficeReplenishmentSuggest" class="tr">
+									<td>{{detail.rank}}<img :src="detail.img" class="img"/></td>
+								 	<td style="width: 38%">{{detail.shoeId}}</td>
+								 	<td style="width: 30%">{{detail.stock}}</td>
+								 	<td>删除</td> 
+									</tr>
+								</tbody>
+								
+								</table>
+						</div>
+						</form>
+						<div>
+						推荐强度 <div style="background-color: #001E51;width: 20px;height: 10px;display: inline-block;"></div>
+						<div style="background-color: #083C98;width: 20px;height: 10px;display: inline-block;"></div>
+						<div style="background-color: #666ED6;width: 20px;height: 10px;display: inline-block;"></div>
+						<div style="background-color: #BDDDF4;width: 20px;height: 10px;display: inline-block;"></div>
+						</div>
+						<div style="display: inline-block;margin-left: 55px">强</div><div style="display: inline-block;margin-left: 55px;">弱</div>
+				</div>
+				</div> 
+				<div class="form-group col-sm-2"
+				style="height: 730px; background-color: #EFF4F7;margin-left: 10px;margin-top: -15px;">
+				<div
+					style="width: 100%; height: 700px;  position: relative; top: 5px; display: inline-block; text-align: center;">
+					<div style="font-size: 16px; font-weight: bold; position: relative; top: 5px;">全国补单建议({{countryReplenishmentSuggest.length}}个货号)</div>
+				<form class="form-horizontal"
+						style="width: 100%;">
+						<div class="form-group">
+						<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">序号</td>
+										<td class="td" style="width: 38%">货号</td>
+										<td class="td" style="width: 30%">库存</td>
+										 <td class="td">选择</td>
+									</tr>
+								</thead>
+								<tbody class="tbody" style="height: 560px">
+									<tr v-for="detail in countryReplenishmentSuggest" class="tr" @mouseenter="enter(detail.shoeId)" @mouseleave="enter()">
+									<td>{{detail.rank}}<img :src="detail.img" class="img"/></td>
+								 	<td v-if="detail.topNum==6" style="color: #001E51;width: 38%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==5||detail.topNum==4" style="color: #083C98;width: 38%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==3||detail.topNum==2" style="color: #666ED6;width: 38%">{{detail.shoeId}}</td>
+								 	<td v-else-if="detail.topNum==1" style="color: #BDDDF4;width: 38%">{{detail.shoeId}}</td>
+								 	<td style="width: 30%">{{detail.stock}}</td>
+								 	 <td>选择</td>
+									</tr>
+								</tbody>
+								
+								</table>
+						</div>
+						</form>
+						<div>
+						推荐强度 <div style="background-color: #001E51;width: 20px;height: 10px;display: inline-block;"></div>
+						<div style="background-color: #083C98;width: 20px;height: 10px;display: inline-block;"></div>
+						<div style="background-color: #666ED6;width: 20px;height: 10px;display: inline-block;"></div>
+						<div style="background-color: #BDDDF4;width: 20px;height: 10px;display: inline-block;"></div>
+						</div>
+						<div style="display: inline-block;margin-left: 55px">强</div><div style="display: inline-block;margin-left: 55px;">弱</div>
+				</div>
+				</div>  
+				
+		</div>
+
+
+	</div>
+
+
+	<script
+		src="${request.contextPath}/statics/js/modules/order_platform/replenish.js"></script>
+</body>
+</html>

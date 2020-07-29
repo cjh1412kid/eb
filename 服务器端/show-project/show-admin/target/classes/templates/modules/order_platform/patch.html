@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>分公司补单表</title>
+<#include "/header.html">
+</head>
+<body>
+	<div id="rrapp" v-cloak>
+		<div v-show="showList">
+			<div class="grid-btn">
+				<a class="btn btn-primary" @click="add"><i class="fa fa-plus"></i>&nbsp;新增</a> <a
+					class="btn btn-primary" @click="update"><i class="fa fa-pencil-square-o"></i>&nbsp;修改</a> <a
+					class="btn btn-primary" @click="del"><i class="fa fa-trash-o"></i>&nbsp;删除</a>
+			</div>
+			<table id="jqGrid"></table>
+			<div id="jqGridPager"></div>
+		</div>
+
+		<div v-show="!showList" class="panel panel-default">
+			<div class="panel-heading">{{title}}</div>
+			<form class="form-horizontal">
+				<div class="form-group">
+					<div class="col-sm-2 control-label">年份</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="patch.year" placeholder="年份" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">周</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="patch.week" placeholder="周" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">开始日期</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="patch.startDate" placeholder="开始日期" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">结束日期</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="patch.endDate" placeholder="结束日期" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">大区seq</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="patch.areaSeq" placeholder="大区seq" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">分公司序号</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="patch.branchOfficeSeq" placeholder="分公司序号" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">入库时间</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="patch.inputTime" placeholder="入库时间" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">删除标识( 0 : 未删除、 1 : 删除 )</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="patch.del"
+							placeholder="删除标识( 0 : 未删除、  1 : 删除 )" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">季节</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="patch.periodSeq" placeholder="季节" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">品类</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="patch.sXValue" placeholder="品类" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">补单数量</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="patch.patchNum" placeholder="补单数量" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">鞋子seq</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="patch.shoeSeq" placeholder="鞋子seq" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">货号</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="patch.shoeID" placeholder="货号" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">状态：0待处理 1已确认 2已取消</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="patch.state" placeholder="状态：0待处理 1已确认 2已取消" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label"></div>
+					<input type="button" class="btn btn-primary" @click="saveOrUpdate" value="确定" /> &nbsp;&nbsp;<input
+						type="button" class="btn btn-warning" @click="reload" value="返回" />
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<script src="${request.contextPath}/statics/js/modules/order_platform/patch.js"></script>
+</body>
+</html>

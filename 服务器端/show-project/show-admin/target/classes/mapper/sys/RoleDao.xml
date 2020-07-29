@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.sys.dao.RoleDao">
+
+    <!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.modules.sys.entity.RoleEntity" id="roleMap">
+        <result property="seq" column="Seq"/>
+        <result property="roleName" column="RoleName"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+    <select id="queryAllPerms" resultType="java.lang.String">
+        select pp.PerTag from NWUser_RolePermission rp
+        left join NWUser_Permission pp on rp.PermissionSeq=pp.Seq
+        where RoleSeq=#{roleId}
+    </select>
+</mapper>

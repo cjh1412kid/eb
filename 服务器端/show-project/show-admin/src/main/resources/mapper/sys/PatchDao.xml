@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.sys.dao.PatchDao">
+	  <resultMap type="com.nuite.modules.sys.entity.PatchEntity" id="patchMap">
+        <result property="seq" column="Seq"/>
+        <result property="year" column="Year"/>
+        <result property="week" column="Week"/>
+        <result property="startDate" column="StartDate"/>
+        <result property="endDate" column="EndDate"/>
+        <result property="areaSeq" column="AreaSeq"/>
+        <result property="branchOfficeSeq" column="BranchOfficeSeq"/>
+        <result property="periodSeq" column="PeriodSeq"/>
+        <result property="sxValue" column="SXValue"/>
+        <result property="shoeSeq" column="ShoeSeq"/>
+        <result property="shoeID" column="ShoeID"/>
+        <result property="patchNum" column="PatchNum"/>
+        <result property="state" column="State"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+    <select id="allPatchNum" resultType="java.lang.Integer">
+    SELECT SUM(A.PatchNum) FROM [dbo].[NWReplenishment_Patch] A	WHERE A.ShoeSeq=#{shoesSeq} AND A.Del=0
+    <if test="branchOfficeSeq != null">
+    AND A.BranchOfficeSeq=#{branchOfficeSeq}
+    </if>
+    </select>
+</mapper>

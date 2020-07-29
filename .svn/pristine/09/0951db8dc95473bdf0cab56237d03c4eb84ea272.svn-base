@@ -1,0 +1,20 @@
+package com.nuite.modules.sys.service;
+
+import java.util.Map;
+
+import com.baomidou.mybatisplus.service.IService;
+import com.nuite.common.utils.PageUtils;
+import com.nuite.modules.sys.entity.DeadlineRaiseRateEntity;
+
+
+public interface DeadlineRaiseRateService extends IService<DeadlineRaiseRateEntity> {
+
+    PageUtils queryPage(Map<String, Object> params);
+
+	Integer getThisYearMinSalesDaysSetting();
+
+	Integer getThisYearRaiseRateSetting();
+
+	DeadlineRaiseRateEntity getThisYearSetting();
+}
+

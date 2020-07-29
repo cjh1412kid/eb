@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.dao.UserDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.entity.UserEntity" id="userMap">
+        <result property="seq" column="Seq"/>
+        <result property="userName" column="UserName"/>
+        <result property="password" column="Password"/>
+        <result property="roleSeq" column="RoleSeq"/>
+        <result property="userAreaSeq" column="UserAreaSeq"/>
+        <result property="createUserSeq" column="CreateUserSeq"/>
+        <result property="realName" column="RealName"/>
+        <result property="telephone" column="Telephone"/>
+        <result property="headImg" column="HeadImg"/>
+        <result property="isUseful" column="IsUseful"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+	
+	
+	<!-- 根据用户Seq查询用户详细信息 -->
+	<select id="getUserBySeq" resultType="com.nuite.entity.UserEntity">
+		SELECT
+			A.*, C.Seq AS brandSeq, C.Prefix AS brandPrefix, C.BrandName AS brandName, D.Seq AS companySeq, D.Name AS companyName
+		FROM
+			YHSmartDataRetail.dbo.NWUser_User A
+		LEFT JOIN YHSmartDataRetail.dbo.NWBase_UserBrand B ON A.Seq = B.UserSeq AND B.Del = 0
+		LEFT JOIN YHSmartDataRetail.dbo.NWBase_Brand C ON B.BrandSeq = C.Seq AND C.Del = 0
+		LEFT JOIN YHSmartDataRetail.dbo.NWBase_Company D ON C.CompanySeq = D.Seq AND D.Del = 0
+		WHERE
+			A.Del = 0 AND A.Seq = #{userSeq}
+	</select>
+	
+		
+	<!-- 根据用户名查询用户 -->
+	<select id="getUserByUserName" resultType="com.nuite.entity.UserEntity">
+		SELECT
+			A.*, C.Seq AS brandSeq, C.Prefix AS brandPrefix, C.BrandName AS brandName, D.Seq AS companySeq, D.Name AS companyName
+		FROM
+			YHSmartDataRetail.dbo.NWUser_User A
+		LEFT JOIN YHSmartDataRetail.dbo.NWBase_UserBrand B ON A.Seq = B.UserSeq AND B.Del = 0
+		LEFT JOIN YHSmartDataRetail.dbo.NWBase_Brand C ON B.BrandSeq = C.Seq AND C.Del = 0
+		LEFT JOIN YHSmartDataRetail.dbo.NWBase_Company D ON C.CompanySeq = D.Seq AND D.Del = 0
+		WHERE
+			A.Del = 0 AND A.UserName = #{userName}
+	</select>
+	
+	
+
+	<!-- 新增用户 -->
+	<insert id="insertUser" parameterType="com.nuite.entity.UserEntity">
+ 	    <selectKey keyProperty="user.seq" resultType="Integer" order="BEFORE">
+            SELECT MAX(Seq)+1 FROM YHSmartDataRetail.dbo.NWUser_User
+        </selectKey>
+        INSERT INTO YHSmartDataRetail.dbo.NWUser_User
+        (Seq, UserName, Password, RoleSeq, UserAreaSeq, CreateUserSeq, RealName, Telephone, IsUseful, InputTime, Del) 
+        values
+        (
+	        #{user.seq},
+	        #{user.userName},
+	        #{user.password},
+	        #{user.roleSeq},
+	        #{user.userAreaSeq},
+	        #{user.createUserSeq},
+	        #{user.realName},
+	        #{user.telephone},
+	        #{user.isUseful},
+	        #{user.inputTime},
+	        #{user.del}
+        )
+	</insert>
+	
+	
+	<!-- 获取所有下级账号 -->
+	<select id="getAllSubUserList" resultType="com.nuite.entity.UserEntity">
+		SELECT 
+			A.*
+		FROM 
+			YHSmartDataRetail.dbo.NWUser_User A
+		LEFT JOIN YHSmartDataRetail.dbo.NWBase_UserBrand B ON A.Seq = B.UserSeq
+
+		WHERE 
+			A.Del = 0 AND B.Del = 0 
+			AND B.BrandSeq = #{brandSeq}
+			AND A.RoleSeq = #{roleSeq} AND A.UserAreaSeq IN (${areaSeqs})
+	</select>
+	
+	
+
+</mapper>

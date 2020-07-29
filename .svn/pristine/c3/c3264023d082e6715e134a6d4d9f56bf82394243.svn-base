@@ -1,0 +1,280 @@
+package com.nuite.modules.erp.service.impl;
+
+import com.nuite.common.utils.DateUtils;
+import com.nuite.datasources.DataSourceNames;
+import com.nuite.datasources.annotation.DataSource;
+import com.nuite.modules.erp.dao.*;
+import com.nuite.modules.erp.entity.ErpStockEntity;
+import com.nuite.modules.erp.entity.ShoeDetail;
+import com.nuite.modules.erp.service.ErpService;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+@Service("EBlanErpService")
+public class EBlanErpService implements ErpService {
+    private Logger logger = LoggerFactory.getLogger(getClass());
+    
+    
+    @Resource
+    private W2SDao w2sDao;
+    @Resource
+    private S2SDao s2sDao;
+    @Resource
+    private S2WDao s2wDao;
+    @Resource
+    private SaleDao saleDao;
+    @Resource
+    private ShoesPropertyDao shoesPropertyDao;
+    @Resource
+    private ErpCopyDao erpCopyDao;
+
+    @Override
+    @DataSource(name = DataSourceNames.SECOND)
+    public List<ErpStockEntity> queryW2SData(Date startTime, Date endTime) {
+        return w2sDao.selectList(startTime, endTime);
+    }
+
+    @Override
+    @DataSource(name = DataSourceNames.SECOND)
+    public List<ErpStockEntity> queryS2SData(Date startTime, Date endTime) {
+        return s2sDao.selectList(startTime, endTime);
+    }
+
+    @Override
+    @DataSource(name = DataSourceNames.SECOND)
+    public List<ErpStockEntity> queryS2WData(Date startTime, Date endTime) {
+        return s2wDao.selectList(startTime, endTime);
+    }
+
+    @Override
+    @DataSource(name = DataSourceNames.SECOND)
+    public List<ErpStockEntity> querySaleData(Date startTime, Date endTime) {
+        return saleDao.selectList(startTime, endTime);
+    }
+
+    @Override
+    @DataSource(name = DataSourceNames.SECOND)
+    public List<ShoeDetail> queryShoes(Date startTime) {
+        return shoesPropertyDao.selectList(startTime);
+    }
+
+    @Override
+    @DataSource(name = DataSourceNames.SECOND)
+    public void copyDataFromErp(String endTime) {
+        try {
+			copyDb();
+			logger.info("copyDb结束");
+			copyColor();
+			logger.info("copyColor结束");
+			copyCltypeb();
+			logger.info("copyCltypeb结束");
+			copyColotht();
+			logger.info("copyColotht结束");
+			copyCltypep();
+			logger.info("copyCltypep结束");
+			copyTrun(endTime);
+			logger.info("copyTrun结束");
+			copyRt(endTime);
+			logger.info("copyRt结束");
+			copySa(endTime);
+			logger.info("copySa结束");
+			copyBuy(endTime);
+			logger.info("copyBuy结束");
+			copyZgckacc();
+			logger.info("copyZgckacc结束");
+			copyZgstainfo();
+			logger.info("copyZgstainfo结束");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("~~~~~~~~~~erp 复制数据出错！！！");
+			logger.error(e.getMessage(), e);
+		}
+    }
+
+    
+    private void copyDb() {
+        Date date = erpCopyDao.maxTimeOfDb();
+        List<Map<String, Object>> dbList = erpCopyDao.selectDbList(DateUtils.format(date, DateUtils.DATE_TIME_MILLIS_PATTERN));
+
+        for (Map<String, Object> db : dbList) {
+            Map<String, Object> oldDb = erpCopyDao.selectDbById((String) db.get("dbno"));
+            if (oldDb != null) {
+                erpCopyDao.updateDbById(db);
+            } else {
+                erpCopyDao.insertDb(db);
+            }
+        }
+    }
+
+    private void copyColor() {
+        List<Map<String, Object>> colorList = erpCopyDao.selectColorList();
+        for (Map<String, Object> db : colorList) {
+            Map<String, Object> oldDb = erpCopyDao.selectColorById((String) db.get("color_no"));
+            if (oldDb != null) {
+                erpCopyDao.updateColorById(db);
+            } else {
+                erpCopyDao.insertColor(db);
+            }
+        }
+    }
+
+    private void copyCltypeb() {
+        Date date = erpCopyDao.maxTimeOfCltypeb();
+
+        List<Map<String, Object>> cltypebList = erpCopyDao.selectCltypebList(DateUtils.format(date, DateUtils.DATE_TIME_MILLIS_PATTERN));
+
+        for (Map<String, Object> db : cltypebList) {
+            Map<String, Object> oldDb = erpCopyDao.selectCltypebById((String) db.get("classno"));
+            if (oldDb != null) {
+                erpCopyDao.updateCltypebById(db);
+            } else {
+                erpCopyDao.insertCltypeb(db);
+            }
+        }
+    }
+
+    private void copyCltypep() {
+        Date date = erpCopyDao.maxTimeOfCltypep();
+
+        List<Map<String, Object>> cltypepList = erpCopyDao.selectCltypepList(DateUtils.format(date, DateUtils.DATE_TIME_MILLIS_PATTERN));
+
+        for (Map<String, Object> db : cltypepList) {
+            Map<String, Object> oldDb = erpCopyDao.selectCltypepById((String) db.get("typeno"), (String) db.get("colthno"), (String) db.get("classno"));
+            if (oldDb != null) {
+                erpCopyDao.updateCltypepById(db);
+            } else {
+                erpCopyDao.insertCltypep(db);
+            }
+        }
+    }
+
+    private void copyColotht() {
+        Date date = erpCopyDao.maxTimeOfColoth();
+
+        List<Map<String, Object>> cltypepList = erpCopyDao.selectColoth(DateUtils.format(date, DateUtils.DATE_TIME_MILLIS_PATTERN));
+
+        for (Map<String, Object> db : cltypepList) {
+            Map<String, Object> oldDb = erpCopyDao.selectColothById((String) db.get("colthno"));
+            if (oldDb != null) {
+                erpCopyDao.updateColothById(db);
+            } else {
+                erpCopyDao.insertColoth(db);
+            }
+        }
+    }
+
+    private void copyTrun(String endTime) {
+        Date date = erpCopyDao.maxTimeOfTrun();
+
+        List<Map<String, Object>> trunList = erpCopyDao.selectTrun(DateUtils.format(date, DateUtils.DATE_TIME_MILLIS_PATTERN), endTime);
+
+        List<String> dataList = new ArrayList<>();
+        for (Map<String, Object> db : trunList) {
+            dataList.add((String) db.get("nos"));
+        }
+        updateBySub(dataList, subList -> erpCopyDao.deleteOldTrunData(subList));
+        updateBySub(trunList, subList -> erpCopyDao.insertTrunList(subList));
+        updateBySub(dataList, subList -> erpCopyDao.insertTrunbList(subList));
+    }
+
+
+    private void copyRt(String endTime) {
+        Date date = erpCopyDao.maxTimeOfRt();
+
+        List<Map<String, Object>> rtList = erpCopyDao.selectRt(DateUtils.format(date, DateUtils.DATE_TIME_MILLIS_PATTERN), endTime);
+
+        List<String> dataList = new ArrayList<>();
+        for (Map<String, Object> db : rtList) {
+            dataList.add((String) db.get("nos"));
+        }
+        updateBySub(dataList, subList -> erpCopyDao.deleteOldRtData(subList));
+        updateBySub(rtList, subList -> erpCopyDao.insertRtList(subList));
+        updateBySub(dataList, subList -> erpCopyDao.insertH2ortList(subList));
+    }
+
+
+    private void copySa(String endTime) {
+        Date date = erpCopyDao.maxTimeOfSa();
+
+        List<Map<String, Object>> rtList = erpCopyDao.selectSa(DateUtils.format(date, DateUtils.DATE_TIME_MILLIS_PATTERN), endTime);
+
+        List<String> dataList = new ArrayList<>();
+        for (Map<String, Object> db : rtList) {
+            dataList.add((String) db.get("nos"));
+        }
+        updateBySub(dataList, subList -> erpCopyDao.deleteOldSaData(subList));
+        updateBySub(rtList, subList -> erpCopyDao.insertSaList(subList));
+        updateBySub(dataList, subList -> erpCopyDao.insertH2osaList(subList));
+    }
+
+
+    private void copyBuy(String endTime) {
+        Date date = erpCopyDao.maxTimeOfBuy();
+
+        List<Map<String, Object>> rtList = erpCopyDao.selectBuy(DateUtils.format(date, DateUtils.DATE_TIME_MILLIS_PATTERN), endTime);
+
+        List<String> dataList = new ArrayList<>();
+        for (Map<String, Object> db : rtList) {
+            dataList.add((String) db.get("nos"));
+        }
+        updateBySub(dataList, subList -> erpCopyDao.deleteOldBuyData(subList));
+        updateBySub(rtList, subList -> erpCopyDao.insertBuyList(subList));
+        updateBySub(dataList, subList -> erpCopyDao.insertH2oinList(subList));
+    }
+    
+    
+    private void copyZgckacc() {
+        Date date = erpCopyDao.maxTimeOfZgckacc();
+        List<Map<String, Object>> zgckaccList = erpCopyDao.selectZgckaccList(DateUtils.format(date, DateUtils.DATE_TIME_MILLIS_PATTERN));
+
+        for (Map<String, Object> zgckacc : zgckaccList) {
+            Map<String, Object> oldZgckacc = erpCopyDao.selectZgckaccById((String) zgckacc.get("ckaccno"));
+            if (oldZgckacc != null) {
+                erpCopyDao.updateZgckaccById(zgckacc);
+            } else {
+                erpCopyDao.insertZgckacc(zgckacc);
+            }
+        }
+    }
+    
+    
+    
+    private void copyZgstainfo() {
+        List<Map<String, Object>> zgstainfoList = erpCopyDao.selectZgstainfoList();
+        for (Map<String, Object> zgstainfo : zgstainfoList) {
+            Map<String, Object> oldZgstainfo = erpCopyDao.selectZgstainfoById((String) zgstainfo.get("stanos"));
+            if (oldZgstainfo != null) {
+                erpCopyDao.updateZgstainfoById(zgstainfo);
+            } else {
+                erpCopyDao.insertZgstainfo(zgstainfo);  
+            }
+        }
+    }
+    
+    
+
+    private void updateBySub(List dataList, Execute execute) {
+        int size = dataList.size();
+        for (int i = 0; i < size; i = i + 10) {
+            List<String> subList;
+            if (i + 10 < size) {
+                subList = dataList.subList(i, i + 10);
+            } else {
+                subList = dataList.subList(i, size);
+            }
+            execute.updateMessage(subList);
+        }
+    }
+
+    private interface Execute {
+        void updateMessage(List subList);
+    }
+}

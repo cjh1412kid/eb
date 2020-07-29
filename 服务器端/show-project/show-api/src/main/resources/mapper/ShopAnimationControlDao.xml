@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.dao.ShopAnimationControlDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.entity.ShopAnimationControlEntity" id="shopAnimationControlMap">
+        <result property="seq" column="Seq"/>
+        <result property="animationSeq" column="AnimationSeq"/>
+        <result property="userSeq" column="UserSeq"/>
+        <result property="shopSeqs" column="ShopSeqs"/>
+        <result property="sValidDate" column="SValidDate"/>
+        <result property="eValidDate" column="EValidDate"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+
+
+	<!-- 新增门店动画控制 -->
+	<insert id="insertShopAnimationControl" parameterType="com.nuite.entity.ShopAnimationControlEntity">
+ 	    <selectKey keyProperty="shopAnimationControl.seq" resultType="Integer" order="BEFORE">
+            SELECT MAX(Seq)+1 FROM YHSmartDataRetail.dbo.NWBase_ShopAnimationControl
+        </selectKey>
+        INSERT INTO YHSmartDataRetail.dbo.NWBase_ShopAnimationControl
+        (Seq, ShopSeqs, AnimationSeq, SValidDate, EValidDate, UserSeq, InputTime, Del) 
+        VALUES
+        (
+	        #{shopAnimationControl.seq},
+	        #{shopAnimationControl.shopSeqs},
+	        #{shopAnimationControl.animationSeq},
+	        #{shopAnimationControl.sValidDate},
+	        #{shopAnimationControl.eValidDate},
+	        #{shopAnimationControl.userSeq},
+	        #{shopAnimationControl.inputTime},
+	        #{shopAnimationControl.del}
+        )
+	</insert>
+	
+	
+</mapper>

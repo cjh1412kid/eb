@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.dao.ShoeDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.entity.ShoeEntity" id="shoeMap">
+        <result property="seq" column="Seq"/>
+        <result property="periodSeq" column="PeriodSeq"/>
+        <result property="qRCode" column="QRCode"/>
+        <result property="name" column="Name"/>
+        <result property="shoeID" column="ShoeID"/>
+        <result property="categorySeq" column="CategorySeq"/>
+        <result property="sX1" column="SX1"/>
+        <result property="sX2" column="SX2"/>
+        <result property="sX3" column="SX3"/>
+        <result property="sX4" column="SX4"/>
+        <result property="sX5" column="SX5"/>
+        <result property="sX6" column="SX6"/>
+        <result property="sX7" column="SX7"/>
+        <result property="sX8" column="SX8"/>
+        <result property="sX9" column="SX9"/>
+        <result property="sX10" column="SX10"/>
+        <result property="sX11" column="SX11"/>
+        <result property="sX12" column="SX12"/>
+        <result property="sX13" column="SX13"/>
+        <result property="sX14" column="SX14"/>
+        <result property="sX15" column="SX15"/>
+        <result property="sX16" column="SX16"/>
+        <result property="sX17" column="SX17"/>
+        <result property="sX18" column="SX18"/>
+        <result property="sX19" column="SX19"/>
+        <result property="sX20" column="SX20"/>
+        <result property="seriesSeq" column="SeriesSeq"/>
+        <result property="thumbnail" column="Thumbnail"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+
+</mapper>

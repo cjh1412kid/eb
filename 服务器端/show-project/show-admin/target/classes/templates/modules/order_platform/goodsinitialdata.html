@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>首单、补单、预留数据管理</title>
+<#include "/header.html">
+</head>
+<body>
+	<div id="rrapp" v-cloak>
+		<div v-show="showList">
+			<div class="grid-btn">
+				<a class="btn btn-primary" @click="add"><i class="fa fa-plus"></i>&nbsp;新增</a> 
+				<a class="btn btn-primary" @click="update"><i class="fa fa-pencil-square-o"></i>&nbsp;修改</a> 
+				<a class="btn btn-primary" @click="del"><i class="fa fa-trash-o"></i>&nbsp;删除</a>
+			</div>
+			<table id="jqGrid"></table>
+			<div id="jqGridPager"></div>
+		</div>
+
+		<div v-show="!showList" class="panel panel-default">
+			<div class="panel-heading">{{title}}</div>
+			<form class="form-horizontal">
+				<div class="form-group">
+					<div class="col-sm-2 control-label">区域序号</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="goodsInitialData.areaSeq" placeholder="区域序号" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">办事处序号</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="goodsInitialData.branchOfficeSeq" placeholder="办事处序号" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">波次序号</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="goodsInitialData.periodSeq" placeholder="波次序号" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">品类</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="goodsInitialData.sxValue" placeholder="品类" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">鞋子序号</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="goodsInitialData.shoeSeq" placeholder="鞋子序号" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">鞋子货号</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="goodsInitialData.shoeID" placeholder="鞋子货号" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">首单量</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="goodsInitialData.firstOrderNum" placeholder="首单量" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">已经补单量</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="goodsInitialData.patchedNum" placeholder="已经补单量" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label">预留量</div>
+					<div class="col-sm-10">
+						<input type="text" class="form-control" v-model="goodsInitialData.reserveNum" placeholder="预留量" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-2 control-label"></div>
+					<input type="button" class="btn btn-primary" @click="saveOrUpdate" value="确定" /> &nbsp;&nbsp;
+					<input type="button" class="btn btn-warning" @click="reload" value="返回" />
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<script src="${request.contextPath}/statics/js/modules/order_platform/goodsinitialdata.js"></script>
+</body>
+</html>

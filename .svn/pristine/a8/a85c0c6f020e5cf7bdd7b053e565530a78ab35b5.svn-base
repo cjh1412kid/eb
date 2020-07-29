@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.sys.dao.UserDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.modules.sys.entity.UserEntity" id="userMap">
+        <result property="seq" column="Seq"/>
+        <result property="userName" column="UserName"/>
+        <result property="password" column="Password"/>
+        <result property="roleSeq" column="RoleSeq"/>
+        <result property="userAreaSeq" column="UserAreaSeq"/>
+        <result property="createUserSeq" column="CreateUserSeq"/>
+        <result property="realName" column="RealName"/>
+        <result property="telephone" column="Telephone"/>
+        <result property="headImg" column="HeadImg"/>
+        <result property="isUseful" column="IsUseful"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+    
+</mapper>

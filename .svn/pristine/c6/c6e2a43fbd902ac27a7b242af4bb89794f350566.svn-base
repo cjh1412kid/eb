@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>分公司补单表</title>
+<!-- <#include "/header.html"> -->
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/css/font-awesome.min.css">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/plugins/jqgrid/ui.jqgrid-bootstrap.css">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/plugins/ztree/css/metroStyle/metroStyle.css">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/css/main.css">
+<link rel="stylesheet"
+	href="${request.contextPath}/statics/css/bootstrap.min.css">
+<script src="${request.contextPath}/statics/libs/jquery.min.js"></script>
+<script src="${request.contextPath}/statics/plugins/layer/layer.js"></script>
+<script src="${request.contextPath}/statics/libs/bootstrap.min.js"></script>
+<script src="${request.contextPath}/statics/libs/vue.min.js"></script>
+<script src="${request.contextPath}/statics/libs/bootstrap-table.min.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/treegrid/jquery.treegrid.min.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/treegrid/jquery.treegrid.bootstrap3.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/treegrid/jquery.treegrid.extension.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/treegrid/tree.table.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/jqgrid/grid.locale-cn.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/jqgrid/jquery.jqGrid.min.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/ztree/jquery.ztree.all.min.js"></script>
+<script src="${request.contextPath}/statics/js/common.js"></script>
+<script src="${request.contextPath}/statics/libs/jquery.form.js"></script>
+<style type="text/css">
+.tbody {
+	display: block;
+	height: 260px;
+	overflow-y: scroll;
+	-webkit-overflow-scrolling: touch;
+	//
+	为了滚动顺畅
+}
+
+.tbody::-webkit-scrollbar {
+	display: none;
+	//
+	隐藏滚动条
+}
+
+.thead, .tbody .tr {
+	display: table;
+	width: 100%;
+	table-layout: fixed;
+	font-size: 10px
+}
+
+.panel-default {
+	border-color: #fff;
+}
+</style>
+</head>
+<body>
+	<div id="rrapp" v-cloak>
+	<input name="rootUrl" id="rootUrl" type="hidden" value="${request.contextPath}"/>
+		<!-- 	
+		
+		 -->
+		<div>
+			<div class="form-group col-sm-12"
+				style="width: 10%; height: 90px; border: 1px solid rgba(204, 204, 204, 1)">
+				<div class="col-xs-10 control-label"
+					style="float: none; text-align: center;">选择年份</div>
+				<div class="col-xs-10" style="margin-top: 15px">
+					<div class="dropdown">
+						<a role="button" data-toggle="dropdown" class="btn btn-default"
+							style="width: 100%;"> {{year || '选择年份'}} <span class="caret"></span>
+						</a>
+						<ul class="dropdown-menu multi-level" role="menu"
+							aria-labelledby="dropdownMenu">
+							<li v-for="item in years"><a tabindex="-1"
+								@click="yearSelect(item)">{{item}}</a></li>
+						</ul>
+					</div>
+				</div>
+			</div>
+			<div class="form-group col-sm-12"
+				style="width: 13%; height: 90px; border: 1px solid rgba(204, 204, 204, 1)">
+				<div class="col-xs-10 control-label"
+					style="float: none; text-align: center;">品类补单截止时间</div>
+				<div class="col-xs-10 control-label"
+					style="float: none; text-align: center; margin-top: 15px">
+					<input type="checkbox" disabled="disabled"
+						v-model="deadlineRaiseRateDate" />
+					{{deadlineRaiseRateDate?'已设置':'未设置'}}
+				</div>
+			</div>
+			<div class="form-group col-sm-12"
+				style="width: 13%; height: 90px; border: 1px solid rgba(204, 204, 204, 1)">
+				<div class="col-xs-10 control-label"
+					style="float: none; text-align: center;">售罄率考核值</div>
+				<div class="col-xs-10 control-label"
+					style="float: none; text-align: center; margin-top: 15px">
+					<input type="checkbox" disabled="disabled"
+						v-model="deadlineRaiseRateSaleOutRate" />
+					{{deadlineRaiseRateSaleOutRate?'已设置':'未设置'}}
+				</div>
+			</div>
+
+			<div class="form-group col-sm-12"
+				style="width: 13%; height: 90px; border: 1px solid rgba(204, 204, 204, 1)">
+				<div class="col-xs-10 control-label"
+					style="float: none; text-align: center;">累销同步计算参数</div>
+				<div class="col-xs-10 control-label"
+					style="float: none; text-align: center; margin-top: 15px">
+					<input type="checkbox" disabled="disabled"
+						v-model="deadlineRaiseRateSalesDays" />
+					{{deadlineRaiseRateSalesDays?'已设置':'未设置'}}
+				</div>
+			</div>
+			<div class="form-group col-sm-12"
+				style="width: 13%; height: 90px; border: 1px solid rgba(204, 204, 204, 1)">
+				<div class="col-xs-10 control-label"
+					style="float: none; text-align: center;">采购计划</div>
+				<div class="col-xs-10 control-label"
+					style="float: none; text-align: center; margin-top: 15px">
+					<input type="checkbox" disabled="disabled"
+						v-model="purchasePlansChoose" />
+					{{purchasePlansChoose?'已设置':'未设置'}}
+				</div>
+			</div>
+			<div class="form-group col-sm-12"
+				style="width: 13%; height: 90px; border: 1px solid rgba(204, 204, 204, 1)">
+				<div class="col-xs-10 control-label"
+					style="float: none; text-align: center;">首单数据</div>
+				<div class="col-xs-10 control-label"
+					style="float: none; text-align: center; margin-top: 15px">
+					<input type="checkbox" disabled="disabled"
+						v-model="firstOrdersChoose" /> {{firstOrdersChoose?'已设置':'未设置'}}
+				</div>
+			</div>
+			<div class="form-group col-sm-12"
+				style="width: 13%; height: 90px; border: 1px solid rgba(204, 204, 204, 1)">
+				<div class="col-xs-10 control-label"
+					style="float: none; text-align: center;">补单数据</div>
+				<div class="col-xs-10 control-label"
+					style="float: none; text-align: center; margin-top: 15px">
+					<input type="checkbox" disabled="disabled" v-model="patchedsChoose" />
+					{{patchedsChoose?'已设置':'未设置'}}
+				</div>
+			</div>
+			<div class="form-group col-sm-12"
+				style="width: 12%; height: 90px; border: 1px solid rgba(204, 204, 204, 1)">
+				<div class="col-xs-10 control-label"
+					style="float: none; text-align: center;">预留数据</div>
+				<div class="col-xs-10 control-label"
+					style="float: none; text-align: center; margin-top: 15px">
+					<input type="checkbox" disabled="disabled" v-model="reservesChoose" />
+					{{reservesChoose?'已设置':'未设置'}}
+				</div>
+			</div>
+		</div>
+
+		<div>
+			<div class="form-group col-sm-5"
+				style="border: 1px solid rgba(204, 204, 204, 1); height: 400px">
+				<div class="col-xs-4 control-label"
+					style="float: none; text-align: center; font-size: 15px; font-weight: bold; margin-top: 10px">参数设置
+					<a @click="goto()">重新设置</a>
+					</div>
+				<div class="col-xs-5 control-label"
+					style="text-align: center; margin-top: 10px">累销同比计算参数使用条件：销售
+					> {{minSalesDays}}天</div>
+				<div class="col-xs-5 control-label"
+					style="text-align: center; margin-top: 10px">考核截止日期提前：
+					{{patchAdvanceDays}}天</div>
+				<div class="panel panel-default"
+					style="width: 100%; display: inline-block; margin-top: 18px">
+					<form class="form-horizontal"
+						style="width: 100%; padding-top: 0px;">
+						<div class="form-group"
+							style="margin-left: 0px; margin-right: 0px;">
+							<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">品类</td>
+										<td class="td">考核截止日期</td>
+										<td class="td">售罄率考核值</td>
+									</tr>
+								</thead>
+								<tbody class="tbody">
+									<tr class="tr">
+										<td>春深</td>
+										<td>{{dateFormat2(springDeep)}}</td>
+										<td>{{springDeepSaleOutRate}}</td>
+									</tr>
+									<tr class="tr">
+										<td>春浅</td>
+										<td>{{dateFormat2(springShallow)}}</td>
+										<td>{{springShallowSaleOutRate}}</td>
+									</tr>
+									<tr class="tr">
+										<td>半凉</td>
+										<td>{{dateFormat2(halfCold)}}</td>
+										<td>{{halfColdSaleOutRate}}</td>
+									</tr>
+									<tr class="tr">
+										<td>全凉</td>
+										<td>{{dateFormat2(fullCold)}}</td>
+										<td>{{fullColdSaleOutRate}}</td>
+									</tr>
+									<tr class="tr">
+										<td>秋浅</td>
+										<td>{{dateFormat2(autumnShallow)}}</td>
+										<td>{{autumnShallowSaleOutRate}}</td>
+									</tr>
+									<tr class="tr">
+										<td>秋深</td>
+										<td>{{dateFormat2(autumnDeep)}}</td>
+										<td>{{autumnDeepSaleOutRate}}</td>
+									</tr>
+									<tr class="tr">
+										<td>单靴</td>
+										<td>{{dateFormat2(singleBoot)}}</td>
+										<td>{{singleBootSaleOutRate}}</td>
+									</tr>
+									<tr class="tr">
+										<td>二棉</td>
+										<td>{{dateFormat2(twoCotton)}}</td>
+										<td>{{twoCottonSaleOutRate}}</td>
+									</tr>
+									<tr class="tr">
+										<td>大棉</td>
+										<td>{{dateFormat2(bigCotton)}}</td>
+										<td>{{bigCottonSaleOutRate}}</td>
+									</tr>
+								</tbody>
+
+							</table>
+						</div>
+					</form>
+
+				</div>
+			</div>
+			<div class="form-group col-sm-7"
+				style="border: 1px solid rgba(204, 204, 204, 1); height: 400px">
+				<div class="col-xs-2 control-label"
+					style="float: none; text-align: center; font-size: 15px; font-weight: bold; margin-top: 10px">通用配码设置</div>
+				<div class="col-xs-12">
+					<div class="grid-btn">
+						<form method="POST" enctype="multipart/form-data"
+							id="goodsExcelForm" style="display: none">
+							<input id="goodsExcelFile" type="file" name="goodsExcelFile"
+								@change="uploadSizeAllotTemplate">
+						</form>
+						<a class="btn btn-default"
+							onclick="$('input[id=goodsExcelFile]').click(); ">配码导入</a> <a
+							style="margin-left: 10px;" href="${request.contextPath}/statics/media/最新配码表.xlsx">
+							下载配码导入模板 </a>
+					</div>
+				</div>
+				<div class="panel panel-default"
+					style="width: 100%; display: inline-block;">
+					<form class="form-horizontal"
+						style="width: 100%; padding-top: 0px;">
+						<div class="form-group"
+							style="margin-left: 0px; margin-right: 0px;">
+							<table class="table table-bordered">
+								<thead class="thead">
+									<tr>
+										<td class="td">南编码</td>
+										<td class="td">北编码</td>
+										<td class="td" v-for="item in allSizes">{{item}}</td>
+										<td class="td">合计</td>
+									</tr>
+								</thead>
+								<tbody class="tbody">
+									<tr class="tr" v-for="detail in sizeAllotTemplates">
+										<td class="td">{{detail.NName}}</td>
+										<td class="td">{{detail.BName}}</td>
+										<td class="td" v-for="num in detail.numList">{{num}}</td>
+										<td class="td">{{detail.totalNum}}</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+		<div>
+			<div class="form-group col-sm-8"
+				style="border: 1px solid rgba(204, 204, 204, 1); height: 300px">
+				<div class="col-xs-2 control-label"
+					style="float: none; text-align: center; font-size: 15px; font-weight: bold; margin-top: 10px">采购计划管理</div>
+				<div class="col-xs-12">
+					<div class="grid-btn">
+						<form method="POST" enctype="multipart/form-data"
+							id="purchasePlanFileExcelForm" style="display: none">
+							<input id="purchasePlanFile" type="file" name="purchasePlanFile"
+								@change="uploadpurchasePlan">
+						</form>
+						<a class="btn btn-default"
+							onclick="$('input[id=purchasePlanFile]').click(); ">采购计划导入</a> <a
+							style="margin-left: 10px;" href="${request.contextPath}/statics/media/采购计划导入格式..xlsx">
+							下载采购计划导入模板 </a>
+					</div>
+				</div>
+				<div class="panel panel-default"
+					style="width: 100%; display: inline-block;">
+					<form class="form-horizontal"
+						style="width: 100%; padding-top: 0px;">
+						<div class="form-group"
+							style="margin-left: 0px; margin-right: 0px;">
+							<table class="table table-bordered">
+								<tbody class="tbody" style="height: 200px">
+									<tr class="tr" v-for="detail in purchasePlans" style="display:table-row;;">
+										<td class="td" style="width: 10%">{{detail.SXValue}}</td>
+										<td class="td" style="width: 10%"
+											v-for="purchasePlan in detail.purchasePlanEntities">
+											<div style="color: rgba(153, 153, 153, 1)">{{dateFormat(purchasePlan.planDate)}}</div>
+											<div>{{purchasePlan.planNum}}</div>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</form>
+				</div>
+
+			</div>
+			<div class="form-group col-sm-4"
+				style=" height: 300px;border: 1px solid rgba(204, 204, 204, 1);">
+				<div class="col-xs-5 control-label"
+					style="text-align: center; font-size: 15px; font-weight: bold; margin-top: 10px;float: none;">首单/补单预留数据管理</div>
+				<div class="form-group col-sm-6"
+					style="height: 90px;margin-top: 10px">
+					<div class="col-xs-4 control-label"
+						style=" text-align: center;">季节</div>
+					<div class="col-xs-6" >
+						<div class="dropdown">
+							<a role="button" data-toggle="dropdown" class="btn btn-default"
+								style="width: 100%;"> {{period.substring(4) || '季节'}} <span class="caret"></span>
+							</a>
+							<ul class="dropdown-menu multi-level" role="menu"
+								aria-labelledby="dropdownMenu">
+								<li v-for="item in allPeriods"><a tabindex="-1"
+									@click="periodSelect(item)">{{item.name.substring(4)}}</a></li>
+							</ul>
+						</div>
+					</div>
+				</div>
+				<div class="form-group col-sm-6"
+					style="height: 90px;margin-top: 10px">
+					<div class="col-xs-4 control-label" style="text-align: center;">品类</div>
+					<div class="col-xs-6" >
+						<div class="dropdown">
+							<a role="button" data-toggle="dropdown" class="btn btn-default"
+								style="width: 100%;"> {{SXValue || '品类'}} <span
+								class="caret"></span>
+							</a>
+							<ul class="dropdown-menu multi-level" role="menu"
+								aria-labelledby="dropdownMenu">
+								<li v-for="item in allSXValues"><a tabindex="-1"
+									@click="SXValueSelect(item)">{{item}}</a></li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			<div class="col-xs-12" style="text-align: center;">
+			<div class="grid-btn">
+				<form method="POST" enctype="multipart/form-data"
+					id="goodsDataExcelForm" style="display: none">
+					<input id="goodsDataExcelFile" type="file" name="goodsDataExcelFile"
+						@change="uploadGoodsData">
+				</form>
+				<a class="btn btn-default"
+					onclick="$('input[id=goodsDataExcelFile]').click(); ">首单导入</a> <a
+					style="margin-left: 10px;" href="${request.contextPath}/statics/media/首单导入格式.xlsx">
+					下载首单导入模板 </a>
+			</div>
+		</div>
+		<div class="col-xs-12" style="text-align: center;">
+			<div class="grid-btn">
+				<form method="POST" enctype="multipart/form-data"
+					id="replenishmentExcelForm" style="display: none">
+					<input id="replenishmentFile" type="file" name="replenishmentFile"
+						@change="uploadReplenishment">
+				</form>
+				<a class="btn btn-default"
+					onclick="$('input[id=replenishmentFile]').click(); ">补单导入</a> <a
+					style="margin-left: 10px;" href="${request.contextPath}/statics/media/补单导入格式.xlsx">
+					下载补单导入模板 </a>
+			</div>
+		</div>
+				
+				
+			</div>
+		</div>
+	</div>
+
+
+	<script
+		src="${request.contextPath}/statics/js/modules/order_platform/importData.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Controls>
+<pnlMain>bg1.jpg</pnlMain>
+<btnClose>close.png</btnClose>
+<btnAdd>add.png</btnAdd>
+<btnRemove>remove.png</btnRemove>
+<btnLast>lastornextb.png</btnLast>
+<btnNext>lastornextb.png</btnNext>
+<btnCancel>cancelb.png</btnCancel>
+<btnOver>over.png</btnOver>
+</Controls>

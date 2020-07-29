@@ -1,0 +1,14 @@
+package com.nuite.modules.sys.dao;
+
+import org.apache.ibatis.annotations.Mapper;
+
+import com.baomidou.mybatisplus.mapper.BaseMapper;
+import com.nuite.modules.sys.entity.PatchDetailEntity;
+
+/**
+ * 补单配码详情
+ */
+@Mapper
+public interface PatchDetailDao extends BaseMapper<PatchDetailEntity> {
+	
+}

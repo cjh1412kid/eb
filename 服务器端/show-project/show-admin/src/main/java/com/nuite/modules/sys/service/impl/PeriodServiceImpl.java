@@ -1,0 +1,55 @@
+package com.nuite.modules.sys.service.impl;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.plugins.Page;
+import com.baomidou.mybatisplus.service.impl.ServiceImpl;
+import com.nuite.common.utils.PageUtils;
+import com.nuite.common.utils.Query;
+import com.nuite.modules.sys.dao.PeriodDao;
+import com.nuite.modules.sys.entity.PeriodEntity;
+import com.nuite.modules.sys.service.PeriodService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+
+
+@Service
+public class PeriodServiceImpl extends ServiceImpl<PeriodDao, PeriodEntity> implements PeriodService {
+
+	@Autowired
+	private PeriodDao periodDao;
+	
+    @Override
+    public PageUtils queryPage(Map<String, Object> params) {
+        Page<PeriodEntity> page = this.selectPage(
+                new Query<PeriodEntity>(params).getPage(),
+                new EntityWrapper<PeriodEntity>()
+        );
+
+        return new PageUtils(page);
+    }
+
+    
+	@Override
+	public void insertWithSeq(PeriodEntity periodEntity) {
+		periodDao.insertWithSeq(periodEntity);
+	}
+
+
+	@Override
+	public List<Map<String, Object>> getPeriodsByBrandSeq(Integer brandSeq,List<String> season) {
+		 return periodDao.getPeriodsByBrandSeq(brandSeq, season);
+	}
+
+
+	@Override
+	public PeriodEntity getPeriodEntityByName(String name) {
+		PeriodEntity periodEntity=new PeriodEntity();
+		periodEntity.setName(name);
+		return periodDao.selectOne(periodEntity);
+	}
+
+}

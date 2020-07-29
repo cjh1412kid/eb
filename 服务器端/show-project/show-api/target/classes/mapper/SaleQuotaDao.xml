@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.dao.SaleQuotaDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.entity.SaleQuotaEntity" id="saleQuotaMap">
+        <result property="seq" column="Seq"/>
+        <result property="brandSeq" column="BrandSeq"/>
+        <result property="year" column="Year"/>
+        <result property="month" column="Month"/>
+        <result property="areaSeq" column="AreaSeq"/>
+        <result property="quota" column="Quota"/>
+        <result property="areaType" column="AreaType"/>
+        <result property="userSeq" column="UserSeq"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+    <select id="selectListContainAreaName" resultType="com.nuite.entity.SaleQuotaEntity">
+        select QUOTA.*
+        <if test="areaType==1 or areaType==2">,AREA.AreaName as areaName</if>
+        <if test="areaType==3">,SHOP.Name as areaName</if>
+        from NWGoods_SaleQuota as QUOTA
+        <if test="areaType==1 or areaType==2">
+            left join NWBase_Area as AREA on AREA.Seq=QUOTA.AreaSeq
+        </if>
+        <if test="areaType==3">
+            left join NWBase_Shop as SHOP on SHOP.Seq=QUOTA.AreaSeq
+        </if>
+        where QUOTA.Year=#{year} and QUOTA.Month=#{month} and QUOTA.BrandSeq=#{brandSeq} and QUOTA.AreaType=#{areaType}
+        <if test="seqList != null">
+            and QUOTA.AreaSeq in
+            <foreach collection="seqList" index="index" item="item" open="(" separator="," close=")">#{item}</foreach>
+        </if>
+    </select>
+    
+    
+    
+    <!-- 新增销售指标 -->
+	<insert id="insertSaleQuota" parameterType="com.nuite.entity.SaleQuotaEntity">
+ 	    <selectKey keyProperty="saleQuota.seq" resultType="Integer" order="BEFORE">
+            SELECT MAX(Seq)+1 FROM YHSmartDataRetail.dbo.NWGoods_SaleQuota
+        </selectKey>
+        INSERT INTO YHSmartDataRetail.dbo.NWGoods_SaleQuota
+        (Seq, BrandSeq, Year, Month, AreaType, AreaSeq, Quota, UserSeq, InputTime, Del) 
+        values
+        (
+	        #{saleQuota.seq},
+	        #{saleQuota.brandSeq},
+	        #{saleQuota.year},
+	        #{saleQuota.month},
+	        #{saleQuota.areaType},
+	        #{saleQuota.areaSeq},
+	        #{saleQuota.quota},
+	        #{saleQuota.userSeq},
+	        #{saleQuota.inputTime},
+	        #{saleQuota.del}
+        )
+	</insert>
+	
+	
+</mapper>

@@ -1,0 +1,616 @@
+package com.nuite.modules.job.task;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.nuite.common.utils.DateUtils;
+import com.nuite.modules.erp.entity.ErpStockEntity;
+import com.nuite.modules.erp.entity.ShoeDetail;
+import com.nuite.modules.erp.entity.ShoeProperty;
+import com.nuite.modules.erp.service.ErpService;
+import com.nuite.modules.sys.entity.*;
+import com.nuite.modules.sys.service.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.Resource;
+import java.lang.reflect.Method;
+import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+@Component("EBlanErpTask")
+public class EBlanErpTask {
+    private Logger logger = LoggerFactory.getLogger(getClass());
+
+    private static Date defaultStartDate;
+
+    private static Lock lock = new ReentrantLock();
+
+    static {
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(2017, Calendar.JANUARY, 1, 0, 0, 0);
+        defaultStartDate = calendar.getTime();
+    }
+
+    @Resource(name = "EBlanErpService")
+    private ErpService erpService;
+
+    @Autowired
+    private ShopService shopService;
+
+    @Autowired
+    private ColorService colorService;
+
+    @Autowired
+    private SizeService sizeService;
+
+    @Autowired
+    private ShoesDataDailyDetailService shoesDataDailyDetailService;
+
+    @Autowired
+    private SaleShoesDetailFromErpService saleShoesDetailFromErpService;
+
+    @Autowired
+    private AreaService areaService;
+
+    @Autowired
+    private ShoeService shoeService;
+
+    @Autowired
+    private PeriodService periodService;
+
+    @Autowired
+    private CategoryService categoryService;
+
+    @Autowired
+    private SXOptionService sxOptionService;
+
+    @Autowired
+    private ShoesDataService shoesDataService;
+
+    @Scheduled(cron = "0 0 2 * * ?")
+    public void copyErpData() {
+        erpService.copyDataFromErp();
+    }
+
+    @Scheduled(cron = "0 0 3 * * ?")
+    public void erpData() {
+        if (lock.tryLock()) {
+            lock.lock();
+            try {
+                long startTime = System.currentTimeMillis();
+                logger.info("~~~~~~~~~~erp data start");
+                //同步货品信息
+                boolean syncShoeFlag = true;
+                while (syncShoeFlag) {
+                    syncShoeFlag = shoeSync();
+                }
+
+                //同步库存信息
+                boolean syncStockFlag = true;
+                while (syncStockFlag) {
+                    syncStockFlag = shopShoeStock();
+                }
+                long endTime = System.currentTimeMillis();
+                logger.info("~~~~~~~~~~erp data end. toke:" + (endTime - startTime));
+            } catch (Exception e) {
+                logger.error("~~~~~~~~~~erp data error", e);
+            } finally {
+                lock.unlock();
+            }
+        } else {
+            logger.error("~~~~~~~~~~erp data is running!");
+        }
+    }
+
+    public boolean shoeSync() {
+        Date updateTime = (Date) shoeService.selectObj(new EntityWrapper<ShoeEntity>()
+                .setSqlSelect("Max(InputTime)")
+                .eq("Del", 0));
+        List<ShoeDetail> shoeDetails = erpService.queryShoes(updateTime);
+        if (shoeDetails.isEmpty()) {
+            return false;
+        }
+
+        for (ShoeDetail shoeDetail : shoeDetails) {
+            ShoeEntity shoeEntity = getLocalShoeDetail(shoeDetail);
+
+            if (shoeEntity != null) {
+                shoeService.updateLocalShoe(shoeDetail.getShoeId().trim(), shoeEntity);
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 同步库存
+     *
+     * @return 是否继续同步
+     */
+    public boolean shopShoeStock() {
+        //仓出店+库存 buy->h2oin type:0
+        Date w2sMaxDate = (Date) shoesDataDailyDetailService.selectObj(new EntityWrapper<ShoesDataDailyDetailEntity>()
+                .setSqlSelect("Max(UpdateTime)")
+                .eq("Type", 0));
+        if (w2sMaxDate == null) w2sMaxDate = defaultStartDate;
+        Date w2sMaxNextDate = DateUtils.addDateDays(w2sMaxDate, 1);
+        List<ErpStockEntity> w2sData = erpService.queryW2SData(w2sMaxDate, w2sMaxNextDate);
+
+        //店退仓-库存 rt->h2ort type:1
+        Date s2wMaxDate = (Date) shoesDataDailyDetailService.selectObj(new EntityWrapper<ShoesDataDailyDetailEntity>()
+                .setSqlSelect("Max(UpdateTime)")
+                .eq("Type", 1));
+        if (s2wMaxDate == null) s2wMaxDate = defaultStartDate;
+        Date s2wMaxNextDate = DateUtils.addDateDays(s2wMaxDate, 1);
+        List<ErpStockEntity> s2wData = erpService.queryS2WData(s2wMaxDate, s2wMaxNextDate);
+
+        //店转店-库存+库存 trun->trunb type:2
+        Date s2sMaxDate = (Date) shoesDataDailyDetailService.selectObj(new EntityWrapper<ShoesDataDailyDetailEntity>()
+                .setSqlSelect("Max(UpdateTime)")
+                .eq("Type", 2));
+        if (s2sMaxDate == null) s2sMaxDate = defaultStartDate;
+        Date s2sMaxNextDate = DateUtils.addDateDays(s2sMaxDate, 1);
+        List<ErpStockEntity> s2sData = erpService.queryS2SData(s2sMaxDate, s2sMaxNextDate);
+
+        //销售-库存 sa->h2osa type:3
+        Date saleMaxDate = (Date) shoesDataDailyDetailService.selectObj(new EntityWrapper<ShoesDataDailyDetailEntity>()
+                .setSqlSelect("Max(UpdateTime)")
+                .eq("Type", 3));
+        if (saleMaxDate == null) saleMaxDate = defaultStartDate;
+        Date saleMaxNextDate = DateUtils.addDateDays(saleMaxDate, 1);
+        List<ErpStockEntity> saleData = erpService.querySaleData(saleMaxDate, saleMaxNextDate);
+
+        if (w2sData.isEmpty() && s2wData.isEmpty() && s2sData.isEmpty() && saleData.isEmpty()) {
+            return false;
+        }
+
+        List<ShoesDataDailyDetailEntity> shoesDataDailyDetailEntities = new ArrayList<>();
+        List<ShoesDataDailyDetailEntity> oldDataDetailEntities = new ArrayList<>();
+        Set<String> w2sStockNums = new HashSet<>();
+        for (ErpStockEntity entity : w2sData) {
+            String stockNum = entity.getStockNum().trim();
+            w2sStockNums.add(stockNum);
+            ShoesDataDailyDetailEntity detailEntity = getDetailFromErpEntity(entity, false);
+            if (detailEntity.getShoesSeq() != null) {
+                //如果门店为空，不参与库存计算
+                if (detailEntity.getShopSeq() == null) {
+                    detailEntity.setJoin(false);
+                }
+                shoesDataDailyDetailEntities.add(detailEntity);
+            }
+        }
+        //查询新数据中的订单号是否在旧数据里
+        List<ShoesDataDailyDetailEntity> oldW2sEntities = selectList(w2sStockNums, list ->
+                shoesDataDailyDetailService.selectList(new EntityWrapper<ShoesDataDailyDetailEntity>()
+                        .in("ErpOrderNum", list)
+                        .eq("Type", 0)));
+
+        oldDataDetailEntities.addAll(oldW2sEntities);
+
+
+        Set<String> s2wStockNums = new HashSet<>();
+        for (ErpStockEntity entity : s2wData) {
+            String stockNum = entity.getStockNum().trim();
+            s2wStockNums.add(stockNum);
+            ShoesDataDailyDetailEntity detailEntity = getDetailFromErpEntity(entity, false);
+            if (detailEntity.getShoesSeq() != null) {
+                //如果门店为空，不参与库存计算
+                if (detailEntity.getShopSeq() == null) {
+                    detailEntity.setJoin(false);
+                }
+                shoesDataDailyDetailEntities.add(detailEntity);
+            }
+        }
+
+        List<ShoesDataDailyDetailEntity> oldS2wEntities = selectList(s2wStockNums, list ->
+                shoesDataDailyDetailService.selectList(new EntityWrapper<ShoesDataDailyDetailEntity>()
+                        .in("ErpOrderNum", list)
+                        .eq("Type", 1)));
+        oldDataDetailEntities.addAll(oldS2wEntities);
+
+        Set<String> s2sStockNums = new HashSet<>();
+        for (ErpStockEntity entity : s2sData) {
+            String stockNum = entity.getStockNum().trim();
+            s2sStockNums.add(stockNum);
+            //门店到门店需要生成两条记录，一条+库存，一条-库存记录
+            ShoesDataDailyDetailEntity detailAddEntity = getDetailFromErpEntity(entity, false);
+            ShoesDataDailyDetailEntity detailDelEntity = getDetailFromErpEntity(entity, true);
+            if (detailAddEntity.getShoesSeq() != null) {
+                //如果门店为空，不参与库存计算
+                if (detailAddEntity.getShopSeq() == null || detailDelEntity.getShopSeq() == null) {
+                    detailAddEntity.setJoin(false);
+                    detailDelEntity.setJoin(false);
+                }
+                shoesDataDailyDetailEntities.add(detailAddEntity);
+                shoesDataDailyDetailEntities.add(detailDelEntity);
+            }
+        }
+
+        List<ShoesDataDailyDetailEntity> oldS2sEntities = selectList(s2wStockNums, list ->
+                shoesDataDailyDetailService.selectList(new EntityWrapper<ShoesDataDailyDetailEntity>()
+                        .in("ErpOrderNum", list)
+                        .eq("Type", 2)));
+        ;
+        oldDataDetailEntities.addAll(oldS2sEntities);
+
+        List<SaleShoesDetailFromErpEntity> newSaleShoesList = new ArrayList<>();
+        Set<String> saleStockNums = new HashSet<>();
+        for (ErpStockEntity entity : saleData) {
+            String stockNum = entity.getStockNum().trim();
+            saleStockNums.add(stockNum);
+            ShoesDataDailyDetailEntity detailEntity = getDetailFromErpEntity(entity, false);
+            if (detailEntity.getShoesSeq() != null) {
+                //如果门店为空，不参与库存计算
+                if (detailEntity.getShopSeq() == null) {
+                    detailEntity.setJoin(false);
+                }
+                shoesDataDailyDetailEntities.add(detailEntity);
+            }
+
+            //TODO 对于门店未查到的数据，需要定时去更改门店信息，并重新计算
+            if (detailEntity.getShopSeq() > 0 && detailEntity.getShoesSeq() != null) {
+                //从erp销售记录整理平台销售记录
+                SaleShoesDetailFromErpEntity saleShoes = getSaleDetailList(entity, detailEntity.getShopSeq());
+                newSaleShoesList.add(saleShoes);
+            }
+        }
+
+        List<ShoesDataDailyDetailEntity> oldSaleEntities = selectList(s2wStockNums, list ->
+                shoesDataDailyDetailService.selectList(new EntityWrapper<ShoesDataDailyDetailEntity>()
+                        .in("ErpOrderNum", list)
+                        .eq("Type", 3)));
+        oldDataDetailEntities.addAll(oldSaleEntities);
+
+        // 计算本次同步库存的变化量
+        executeCurrentData(oldDataDetailEntities, shoesDataDailyDetailEntities);
+
+        if (!newSaleShoesList.isEmpty()) {
+            //删除重复的订单号记录
+            selectList(saleStockNums, list ->
+                    saleShoesDetailFromErpService.delete(new EntityWrapper<SaleShoesDetailFromErpEntity>()
+                            .in("ErpOrderNum", list).eq("Del", 0)));
+
+            //插入新数据
+            int size = newSaleShoesList.size();
+            for (int i = 0; i < size; i = i + 10) {
+                List<SaleShoesDetailFromErpEntity> subList;
+                if (i + 10 < size) {
+                    subList = newSaleShoesList.subList(i, i + 10);
+                } else {
+                    subList = newSaleShoesList.subList(i, size);
+                }
+                saleShoesDetailFromErpService.insertList(subList);
+            }
+        }
+        return true;
+    }
+
+    private ShoesDataDailyDetailEntity getDetailFromErpEntity(ErpStockEntity entity, boolean from) {
+        String stockNum = entity.getStockNum();
+        String shoesId = entity.getShoesId();
+        String shopName = from ? entity.getFromShopName() : entity.getShopName();
+        String colorCode = entity.getColorCode();
+        String colorName = entity.getColorName();
+        String sizeCode = entity.getSizeCode();
+        int count = entity.getStockCount();
+        count = from ? count * (-1) : count;
+
+        //null代表erp未查到门店，-1代表本地未查到门店
+        Integer localShopSeq = shopService.getShopSeqByName(shopName);
+
+        ShoeEntity shoeEntity = shoeService.selectByGoodId(shoesId);
+
+        ColorEntity colorEntity = colorService.selectLocalColor(colorCode, colorName);
+        SizeEntity sizeEntity = sizeService.selectLocalSize(sizeCode, shoesId);
+
+        ShoesDataDailyDetailEntity detailEntity = new ShoesDataDailyDetailEntity();
+        if (shoeEntity != null) {
+            detailEntity.setShoesSeq(shoeEntity.getSeq());
+        }
+        detailEntity.setColor(colorEntity.getSeq());
+        detailEntity.setCount(count);
+        detailEntity.setErpOrderNum(stockNum);
+        detailEntity.setShoesId(shoesId);
+        detailEntity.setShopSeq(localShopSeq);
+        detailEntity.setShopName(shopName);
+        detailEntity.setSize(sizeEntity.getSeq());
+        detailEntity.setType(entity.getType());
+        detailEntity.setUpdateTime(entity.getUpdateTime());
+        return detailEntity;
+    }
+
+    private SaleShoesDetailFromErpEntity getSaleDetailList(ErpStockEntity entity, Integer shopSeq) {
+        ShopEntity shopEntity = shopService.selectById(shopSeq);
+        Integer officeSeq = shopEntity.getAreaSeq();
+        AreaEntity areaEntity = areaService.selectById(officeSeq);
+        Integer areaSeq = areaEntity.getParentSeq();
+
+        String shoesId = entity.getShoesId().trim();
+        ShoeEntity shoeEntity = shoeService.selectByGoodId(shoesId);
+        Integer periodSeq = shoeEntity.getPeriodSeq();
+
+        SaleShoesDetailFromErpEntity saleData = new SaleShoesDetailFromErpEntity();
+        saleData.setPeriodSeq(periodSeq);
+        saleData.setAreaSeq(areaSeq);
+        saleData.setBranchOfficeSeq(officeSeq);
+        saleData.setShopSeq(shopSeq);
+        saleData.setSaleDate(entity.getUpdateTime());
+        saleData.setSaleType(0);
+        saleData.setShoeID(shoesId);
+        saleData.setOrderCount(1);
+        saleData.setSaleCount(entity.getStockCount());
+        saleData.setCost(0F);
+        saleData.setTagPrice(entity.getTagPrice());
+        saleData.setRealPrice(entity.getRealPrice());
+        saleData.setInputTime(new Date());
+        saleData.setDel(0);
+        saleData.setErpOrderNum(entity.getStockNum());
+        return saleData;
+    }
+
+    /**
+     * @param oldList 被更新数据，需要删除库存
+     * @param newList 新数据，处理库存
+     */
+    private void executeCurrentData(List<ShoesDataDailyDetailEntity> oldList, List<ShoesDataDailyDetailEntity> newList) {
+        List<ShoesDataEntity> dataEntities = new ArrayList<>();
+
+        //对被更新数据删除后，去除库存计算
+        stockChange(oldList, dataEntities, -1);
+
+        //对新数据进行循环处理添加库存
+        stockChange(newList, dataEntities, 1);
+
+        for (ShoesDataEntity dataEntity : dataEntities) {
+            ShoesDataEntity oldData = shoesDataService.selectOne(new EntityWrapper<ShoesDataEntity>()
+                    .eq("ShopSeq", dataEntity.getShopSeq())
+                    .eq("ShoeSeq", dataEntity.getShoeSeq())
+                    .eq("ColorSeq", dataEntity.getSizeSeq())
+                    .eq("SizeSeq", dataEntity.getColorSeq())
+                    .eq("Del", 0));
+            if (oldData != null) {
+                oldData.setStockDate(new Date());
+                oldData.setNum(oldData.getNum() + dataEntity.getNum());
+                oldData.setStock(oldData.getStock() + dataEntity.getStock());
+            } else {
+                oldData = dataEntity;
+                oldData.setStockDate(new Date());
+                oldData.setInputTime(new Date());
+                oldData.setDel(0);
+            }
+            shoesDataService.insertOrUpdate(oldData);
+        }
+
+        Set<Integer> oldIds = new HashSet<>();
+        for (ShoesDataDailyDetailEntity oldData : oldList) {
+            oldIds.add(oldData.getSeq());
+        }
+        if (!oldIds.isEmpty()) {
+            selectList(oldIds, list -> shoesDataDailyDetailService.deleteBatchIds(list));
+        }
+
+        if (!newList.isEmpty()) {
+            selectList(newList, list -> shoesDataDailyDetailService.insertList(list));
+        }
+    }
+
+    private void stockChange(List<ShoesDataDailyDetailEntity> detailList, List<ShoesDataEntity> dataEntities, int add) {
+        for (ShoesDataDailyDetailEntity oldDaily : detailList) {
+            Integer shopSeq = oldDaily.getShopSeq();
+            if (shopSeq <= 0) continue;
+            Integer shoesSeq = oldDaily.getShoesSeq();
+            Integer colorSeq = oldDaily.getColor();
+            Integer sizeSeq = oldDaily.getSize();
+            int type = oldDaily.getType();
+            int count = oldDaily.getCount();
+
+            ShoesDataEntity curDataEntity = null;
+            for (ShoesDataEntity dataEntity : dataEntities) {
+                Integer curShopSeq = dataEntity.getShopSeq();
+                Integer curShoesSeq = dataEntity.getShoeSeq();
+                Integer curColorSeq = dataEntity.getColorSeq();
+                Integer curSizeSeq = dataEntity.getSizeSeq();
+                if (curShopSeq.equals(shopSeq) && curShoesSeq.equals(shoesSeq) && curColorSeq.equals(colorSeq)
+                        && curSizeSeq.equals(sizeSeq)) {
+                    curDataEntity = dataEntity;
+                    break;
+                }
+            }
+            int curNum, curStock;
+            if (curDataEntity != null) {
+                int oldNum = curDataEntity.getNum();
+                int oldStock = curDataEntity.getStock();
+                curNum = oldNum + add * getType(type) * count;
+                curStock = oldStock + add * getType(type) * count;
+            } else {
+                curDataEntity = new ShoesDataEntity();
+                curDataEntity.setShopSeq(shopSeq);
+                curDataEntity.setShoeSeq(shoesSeq);
+                curDataEntity.setColorSeq(colorSeq);
+                curDataEntity.setSizeSeq(sizeSeq);
+                dataEntities.add(curDataEntity);
+                curNum = add * getType(type) * count;
+                curStock = add * getType(type) * count;
+            }
+            curDataEntity.setNum(curNum);
+            curDataEntity.setStock(curStock);
+        }
+    }
+
+    /**
+     * 002 年份 2016
+     * 010 大季 春夏秋冬
+     * 011 品类  -》category
+     * 005 类别  -》sx1
+     * 012 小类  -》sx2
+     * 003 季节  -》sx3
+     * 004 产品线-》sx4
+     * 009 材质  -》sx5
+     * 019 鞋底  -》sx6
+     * 018 皮类  -》sx7
+     * 015 跟型  -》sx8
+     * 017 鞋头  -》sx9
+     * 016 跟高  -》sx10
+     */
+    private ShoeEntity getLocalShoeDetail(ShoeDetail shoeDetail) {
+        ShoeProperty yearProperty = null;
+        ShoeProperty seasonProperty = null;
+        ShoeProperty categoryProperty = null;
+        Map<Integer, ShoeProperty> sxMap = new HashMap<>();
+        if (shoeDetail.getProperties() != null) {
+            for (ShoeProperty shoeProperty : shoeDetail.getProperties()) {
+                String codeName = null;
+
+                //取type code
+                String typeCode = shoeProperty.getTypeCode();
+                if (typeCode == null) {
+                    String propertyCode = shoeProperty.getPropertyCode();
+                    if (propertyCode != null && propertyCode.trim().length() > 3) {
+                        codeName = propertyCode.trim().substring(0, 3);
+                    }
+                } else {
+                    codeName = typeCode.trim();
+                }
+                if (codeName != null) {
+                    switch (codeName) {
+                        case "002":
+                            yearProperty = shoeProperty;
+                            break;
+                        case "010":
+                            seasonProperty = shoeProperty;
+                            break;
+                        case "011":
+                            categoryProperty = shoeProperty;
+                            break;
+                        case "005":
+                            sxMap.put(1, shoeProperty);
+                            break;
+                        case "012":
+                            sxMap.put(2, shoeProperty);
+                            break;
+                        case "003":
+                            sxMap.put(3, shoeProperty);
+                            break;
+                        case "004":
+                            sxMap.put(4, shoeProperty);
+                            break;
+                        case "009":
+                            sxMap.put(5, shoeProperty);
+                            break;
+                        case "019":
+                            sxMap.put(6, shoeProperty);
+                            break;
+                        case "018":
+                            sxMap.put(7, shoeProperty);
+                            break;
+                        case "015":
+                            sxMap.put(8, shoeProperty);
+                            break;
+                        case "017":
+                            sxMap.put(9, shoeProperty);
+                            break;
+                        case "016":
+                            sxMap.put(10, shoeProperty);
+                            break;
+                    }
+                }
+            }
+        }
+        //获取鞋子年份
+        Integer year = null;
+        if (yearProperty != null && yearProperty.getPropertyName() != null) {
+            year = Integer.valueOf(yearProperty.getPropertyName().trim());
+        }
+        if (year == null) {
+            logger.error("shoe year is null:" + shoeDetail.getShoeId());
+            return null;
+        }
+        ShoeEntity shoeEntity = new ShoeEntity();
+        shoeEntity.setName(shoeDetail.getShoeId());
+        shoeEntity.setShoeID(shoeDetail.getShoeId());
+        shoeEntity.setInputTime(shoeDetail.getUpdateTime());
+        shoeEntity.setDel(0);
+        //获取大季名称
+        String season = null;
+        if (seasonProperty != null && seasonProperty.getPropertyName() != null) {
+            season = seasonProperty.getPropertyName().trim();
+        }
+        //获取波次信息
+        Integer periodSeq = null;
+        if (season != null) {
+            PeriodEntity periodEntity = periodService.selectOne(new EntityWrapper<PeriodEntity>()
+                    .eq("Name", year + season)
+                    .eq("BrandSeq", 1)
+                    .eq("Del", 0));
+            if (periodEntity != null) periodSeq = periodEntity.getSeq();
+        }
+        shoeEntity.setPeriodSeq(periodSeq);
+        //获取分类信息
+        Integer categorySeq = null;
+        if (categoryProperty != null && categoryProperty.getPropertyName() != null) {
+            CategoryEntity category = categoryService.selectLocalCategory(categoryProperty.getPropertyName().trim(), categoryProperty.getPropertyCode().trim());
+            categorySeq = category.getSeq();
+        }
+        shoeEntity.setCategorySeq(categorySeq);
+
+        //获取属性信息
+        for (int i = 1; i <= 10; i++) {
+            if (sxMap.containsKey(i)) {
+                ShoeProperty indexProperty = sxMap.get(i);
+                sxOptionService.selectLocalSXOption(indexProperty.getPropertyName(), indexProperty.getPropertyCode(), i);
+                try {
+                    Method setSXMethod = ShoeEntity.class.getMethod("setSX" + i, String.class);
+                    setSXMethod.invoke(shoeEntity, indexProperty.getPropertyCode().trim());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return shoeEntity;
+    }
+
+    private int getType(int type) {
+        //仓出店+库存 buy->h2oin type:0
+        //店退仓-库存 rt->h2ort type:1
+        //店转店-库存+库存 trun->trunb type:2
+        //销售-库存 sa->h2osa type:3
+        switch (type) {
+            case 0:
+                return 1;
+            case 1:
+                return -1;
+            case 2:
+                return 1;
+            case 3:
+                return -1;
+            default:
+                return 0;
+        }
+    }
+
+    private interface Execute {
+        Object selectList(List list);
+    }
+
+    private List selectList(Collection collection, Execute execute) {
+        List list = new ArrayList();
+        List setToList = new ArrayList<>(collection);
+        int size = setToList.size();
+        for (int i = 0; i < size; i = i + 10) {
+            List subList;
+            if (i + 10 < size) {
+                subList = setToList.subList(i, i + 10);
+            } else {
+                subList = setToList.subList(i, size);
+            }
+            Object oneResult = execute.selectList(subList);
+            if (oneResult instanceof List) {
+                list.addAll((List) oneResult);
+            }
+        }
+        return list;
+    }
+}

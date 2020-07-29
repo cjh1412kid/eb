@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.erp.dao.ShoesPropertyDao">
+    <select id="selectShoesProperties" resultType="com.nuite.modules.erp.entity.ShoeProperty">
+        select pep.classno as propertyCode,peb.classname as propertyName,peb.typeno as typeCode from [cltypep] pep
+        left join [cltypeb] peb on peb.classno=pep.classno
+        where colthno=#{shoesId}
+    </select>
+
+    <resultMap id="shoeDetailMap" type="com.nuite.modules.erp.entity.ShoeDetail">
+        <result property="shoeId" column="shoeId"/>
+        <result property="updateTime" column="updateTime"/>
+        <collection property="properties" ofType="com.nuite.modules.erp.entity.ShoeProperty"
+                    select="selectShoesProperties"
+                    column="shoeId"/>
+    </resultMap>
+    <select id="selectList" resultMap="shoeDetailMap">
+        select ct.[colthno] as shoeId,ct.[gxrq] as updateTime from [coloth_t] ct
+        left join [cltypep] pep on ct.colthno=pep.colthno
+        left join [cltypeb] peb on peb.classno=pep.classno
+        where substring(ct.colthno, LEN(ct.colthno)-2, 1) in ('A','B','C','X')
+        and peb.typeno='002' and peb.classname>='2016'
+        <if test="startTime != null">
+            and ct.gxrq<![CDATA[ >]]>#{startTime}
+        </if>
+        order by ct.gxrq
+    </select>
+</mapper>

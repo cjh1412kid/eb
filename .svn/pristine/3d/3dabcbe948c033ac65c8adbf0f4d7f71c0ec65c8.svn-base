@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>分公司补单表</title>
+<#include "/header.html"> <script
+	src="${request.contextPath}/statics/libs/jquery.min.js"></script> <script
+	src="${request.contextPath}/statics/plugins/layer/layer.js"></script> <script
+	src="${request.contextPath}/statics/libs/bootstrap.min.js"></script> <script
+	src="${request.contextPath}/statics/libs/vue.min.js"></script> <script
+	src="${request.contextPath}/statics/libs/bootstrap-table.min.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/treegrid/jquery.treegrid.min.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/treegrid/jquery.treegrid.bootstrap3.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/treegrid/jquery.treegrid.extension.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/treegrid/tree.table.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/jqgrid/grid.locale-cn.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/jqgrid/jquery.jqGrid.min.js"></script>
+<script
+	src="${request.contextPath}/statics/plugins/ztree/jquery.ztree.all.min.js"></script>
+<script src="${request.contextPath}/statics/js/common.js"></script> <script
+	src="${request.contextPath}/statics/libs/jquery.form.js"></script>
+</head>
+<body>
+	<div id="rrapp" v-cloak>
+		<div class="col-xs-12">
+			<div class="grid-btn">
+				<form method="POST" enctype="multipart/form-data"
+					id="goodsExcelForm" style="display: none">
+					<input id="goodsExcelFile" type="file" name="goodsExcelFile"
+						@change="uploadSizeAllotTemplate">
+				</form>
+				<a class="btn btn-default"
+					onclick="$('input[id=goodsExcelFile]').click(); ">配码导入</a> <a
+					style="margin-left: 10px;" href="../../../media/最新配码表.xlsx">
+					下载配码导入模板 </a>
+			</div>
+		</div>
+		<div class="col-xs-12">
+			<div class="grid-btn">
+				<form method="POST" enctype="multipart/form-data"
+					id="goodsDataExcelForm" style="display: none">
+					<input id="goodsDataExcelFile" type="file" name="goodsDataExcelFile"
+						@change="uploadGoodsData">
+				</form>
+				<a class="btn btn-default"
+					onclick="$('input[id=goodsDataExcelFile]').click(); ">首单导入</a> <a
+					style="margin-left: 10px;" href="../../../media/首单导入格式.xlsx">
+					下载首单导入模板 </a>
+			</div>
+		</div>
+		<div class="col-xs-12">
+			<div class="grid-btn">
+				<form method="POST" enctype="multipart/form-data"
+					id="replenishmentExcelForm" style="display: none">
+					<input id="replenishmentFile" type="file" name="replenishmentFile"
+						@change="uploadReplenishment">
+				</form>
+				<a class="btn btn-default"
+					onclick="$('input[id=replenishmentFile]').click(); ">补单导入</a> <a
+					style="margin-left: 10px;" href="../../../media/补单导入格式.xlsx">
+					下载补单导入模板 </a>
+			</div>
+		</div>
+		<div class="col-xs-12">
+			<div class="grid-btn">
+				<form method="POST" enctype="multipart/form-data"
+					id="purchasePlanFileExcelForm" style="display: none">
+					<input id="purchasePlanFile" type="file" name="purchasePlanFile"
+						@change="uploadpurchasePlan">
+				</form>
+				<a class="btn btn-default"
+					onclick="$('input[id=purchasePlanFile]').click(); ">采购计划导入</a> <a
+					style="margin-left: 10px;" href="../../../media/采购计划导入格式.xlsx">
+					下载采购计划导入模板 </a>
+			</div>
+		</div>
+	</div>
+	<script
+		src="${request.contextPath}/statics/js/modules/order_platform/importData.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.sys.dao.ShopAnimationControlDao">
+
+  <!-- 可根据自己的需求，是否要使用 -->
+  <resultMap type="com.nuite.modules.sys.entity.ShopAnimationControlEntity" id="shopAnimationControlMap">
+    <result property="seq" column="Seq"/>
+    <result property="animationSeq" column="AnimationSeq"/>
+    <result property="userSeq" column="UserSeq"/>
+    <result property="shopSeqs" column="ShopSeqs"/>
+    <result property="sValidDate" column="SValidDate"/>
+    <result property="eValidDate" column="EValidDate"/>
+    <result property="inputTime" column="InputTime"/>
+    <result property="del" column="Del"/>
+  </resultMap>
+
+  <select id="findMaxSeq" resultType="java.lang.Integer">
+      select MAX(Seq)  from NWBase_ShopAnimationControl
+  </select>
+
+
+</mapper>

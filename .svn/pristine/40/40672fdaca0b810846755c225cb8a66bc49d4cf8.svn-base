@@ -1,0 +1,260 @@
+package com.nuite.controller;
+
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.nuite.annotation.Login;
+import com.nuite.common.utils.R;
+import com.nuite.task.ConvertTask;
+import com.nuite.task.LargeScreenApiTask;
+import com.nuite.task.ProductSaleShoesTask;
+import com.nuite.task.ProductTopTask;
+import com.nuite.task.SaleShoesTask;
+import com.nuite.task.TopTask;
+import com.nuite.task.TryMapTask;
+import com.nuite.task.TryShoesTask;
+
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+
+/**
+ * task接口
+ * 
+ * @author yy
+ * @date 2018-12-03 15:03:16
+ */
+@RestController
+@RequestMapping("/api/task")
+@Api(tags = "task接口")
+public class TaskController extends BaseController {
+	private Logger logger = LoggerFactory.getLogger(getClass());
+
+	@Autowired
+	private ConvertTask convertTask;
+
+	@Autowired
+	private SaleShoesTask saleShoesTask;
+	
+	@Autowired
+	private ProductSaleShoesTask productSaleShoesTask;
+	
+	@Autowired
+	private TopTask topTask;
+	
+	@Autowired
+	private ProductTopTask productTopTask;
+
+	@Autowired
+	private TryMapTask tryMapTask;
+
+	@Autowired
+	private TryShoesTask tryShoesTask;
+	
+	@Autowired
+	private LargeScreenApiTask largeScreenApiTask;
+	
+	
+
+	@Login
+	@GetMapping("start")
+	@ApiOperation("start")
+	public R tryTop(@RequestParam("thread") List<Integer> thread) {
+		try {
+
+			if (thread.contains(1)) {
+				class myThread1 extends Thread {
+					public void run() {
+						convertTask.allConvert();
+					}
+				}
+				new myThread1().start();
+			}
+			
+			
+			if (thread.contains(2)) {
+				class myThread2 extends Thread {
+					public void run() {
+						convertTask.shoeIdConvert();
+					}
+				}
+				new myThread2().start();
+			}
+
+			
+			
+			if (thread.contains(3)) {
+				class myThread3 extends Thread {
+					public void run() {
+						saleShoesTask.statistics();
+					}
+				}
+				new myThread3().start();
+
+			}
+			
+			
+			if (thread.contains(31)) {
+				class myThread31 extends Thread {
+					public void run() {
+						productSaleShoesTask.statistics();
+					}
+				}
+				new myThread31().start();
+
+			}
+
+			
+			if (thread.contains(4)) {
+				class myThread4 extends Thread {
+					public void run() {
+						topTask.tryTop();
+					}
+				}
+				new myThread4().start();
+
+			}
+			
+			
+			if (thread.contains(41)) {
+				class myThread41 extends Thread {
+					public void run() {
+						productTopTask.tryTop();
+					}
+				}
+				new myThread41().start();
+
+			}
+
+			
+			if (thread.contains(5)) {
+				class myThread5 extends Thread {
+					public void run() {
+						topTask.saleTop();
+					}
+				}
+				new myThread5().start();
+			}
+			
+			if (thread.contains(51)) {
+				class myThread51 extends Thread {
+					public void run() {
+						productTopTask.saleTop();
+					}
+				}
+				new myThread51().start();
+			}
+
+			
+			if (thread.contains(6)) {
+				class myThread6 extends Thread {
+					public void run() {
+						tryMapTask.total();
+					}
+				}
+				new myThread6().start();
+			}
+
+			
+			if (thread.contains(7)) {
+				class myThread7 extends Thread {
+					public void run() {
+						tryMapTask.today();
+					}
+				}
+				new myThread7().start();
+			}
+
+			
+			if (thread.contains(8)) {
+				class myThread8 extends Thread {
+					public void run() {
+						tryMapTask.dataLine();
+					}
+				}
+				new myThread8().start();
+			}
+
+			
+			if (thread.contains(9)) {
+				class myThread9 extends Thread {
+					public void run() {
+						tryShoesTask.today();
+					}
+				}
+				new myThread9().start();
+			}
+
+			
+			if (thread.contains(10)) {
+				class myThread10 extends Thread {
+					public void run() {
+						tryShoesTask.lastTryTime();
+					}
+				}
+				new myThread10().start();
+			}
+
+			
+			if (thread.contains(11)) {
+				class myThread11 extends Thread {
+					public void run() {
+						tryShoesTask.statistics();
+					}
+				}
+				new myThread11().start();
+			}
+
+			if (thread.contains(12)) {
+				class myThread12 extends Thread {
+					public void run() {
+						largeScreenApiTask.total();
+					}
+				}
+				new myThread12().start();
+			}
+			
+			if (thread.contains(13)) {
+				class myThread13 extends Thread {
+					public void run() {
+						largeScreenApiTask.tryTop();
+					}
+				}
+				new myThread13().start();
+			}
+			
+			if (thread.contains(14)) {
+				class myThread14 extends Thread {
+					public void run() {
+						largeScreenApiTask.saleTop();
+					}
+				}
+				new myThread14().start();
+			}
+			
+			if (thread.contains(15)) {
+				class myThread15 extends Thread {
+					public void run() {
+						largeScreenApiTask.thirtyDaysSale();
+					}
+				}
+				new myThread15().start();
+			}
+			
+			return R.ok(thread + "开试了");
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器开小差了");
+		}
+
+	}
+
+}

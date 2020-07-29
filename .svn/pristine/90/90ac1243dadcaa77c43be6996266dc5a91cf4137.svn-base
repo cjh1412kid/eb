@@ -1,0 +1,147 @@
+$(function () {
+    $("#jqGrid").jqGrid({
+        url: baseURL + 'sys/deadlineRaiseRate/list',
+        datatype: "json",
+        colModel: [			
+			{ label: '年份', name: 'year', index: 'Year', width: 30 }, 			
+			{ label: '春深 考核截止日期', name: 'springDeep', index: 'SpringDeep', width: 60, formatter:"date", formatoptions: {newformat:'Y-m-d'} }, 			
+			{ label: '春浅 考核截止日期', name: 'springShallow', index: 'SpringShallow', width: 60, formatter:"date", formatoptions: {newformat:'Y-m-d'}}, 			
+			{ label: '半凉 考核截止日期', name: 'halfCold', index: 'HalfCold', width: 60, formatter:"date", formatoptions: {newformat:'Y-m-d'}}, 			
+			{ label: '全凉 考核截止日期', name: 'fullCold', index: 'FullCold', width: 60, formatter:"date", formatoptions: {newformat:'Y-m-d'} }, 			
+			{ label: '秋浅 考核截止日期', name: 'autumnShallow', index: 'AutumnShallow', width: 60, formatter:"date", formatoptions: {newformat:'Y-m-d'} }, 			
+			{ label: '秋深 考核截止日期', name: 'autumnDeep', index: 'AutumnDeep', width: 60, formatter:"date", formatoptions: {newformat:'Y-m-d'}}, 			
+			{ label: '单靴 考核截止日期', name: 'singleBoot', index: 'SingleBoot', width: 60, formatter:"date", formatoptions: {newformat:'Y-m-d'}}, 			
+			{ label: '二棉 考核截止日期', name: 'twoCotton', index: 'TwoCotton', width: 60, formatter:"date", formatoptions: {newformat:'Y-m-d'}}, 			
+			{ label: '大棉 考核截止日期', name: 'bigCotton', index: 'BigCotton', width: 60, formatter:"date", formatoptions: {newformat:'Y-m-d'}}, 	
+			{ label: '春深 售罄率考核值', name: 'springDeepSaleOutRate', index: 'SpringDeepSaleOutRate', width: 20 }, 			
+			{ label: '春浅 售罄率考核值', name: 'springShallowSaleOutRate', index: 'SpringShallowSaleOutRate', width: 20 }, 			
+			{ label: '半凉 售罄率考核值', name: 'halfColdSaleOutRate', index: 'HalfColdSaleOutRate', width: 20 }, 			
+			{ label: '全凉 售罄率考核值', name: 'fullColdSaleOutRate', index: 'FullColdSaleOutRate', width: 20 }, 			
+			{ label: '秋浅 售罄率考核值', name: 'autumnShallowSaleOutRate', index: 'AutumnShallowSaleOutRate', width: 20 }, 			
+			{ label: '秋深 售罄率考核值', name: 'autumnDeepSaleOutRate', index: 'AutumnDeepSaleOutRate', width: 20 }, 			
+			{ label: '单靴 售罄率考核值', name: 'singleBootSaleOutRate', index: 'SingleBootSaleOutRate', width: 20 }, 			
+			{ label: '二棉 售罄率考核值', name: 'twoCottonSaleOutRate', index: 'TwoCottonSaleOutRate', width: 20 }, 			
+			{ label: '大棉 售罄率考核值', name: 'bigCottonSaleOutRate', index: 'BigCottonSaleOutRate', width: 20 }, 			
+			{ label: '春深 默认同比增长率', name: 'springDeepYearRaise', index: 'SpringDeepYearRaise', width: 20 }, 			
+			{ label: '春浅 默认同比增长率', name: 'springShallowYearRaise', index: 'SpringShallowYearRaise', width: 20 }, 			
+			{ label: '半凉 默认同比增长率', name: 'halfColdYearRaise', index: 'HalfColdYearRaise', width: 20 }, 			
+			{ label: '全凉 默认同比增长率', name: 'fullColdYearRaise', index: 'FullColdYearRaise', width: 20 }, 			
+			{ label: '秋浅 默认同比增长率', name: 'autumnShallowYearRaise', index: 'AutumnShallowYearRaise', width: 20 }, 			
+			{ label: '秋深 默认同比增长率', name: 'autumnDeepYearRaise', index: 'AutumnDeepYearRaise', width: 20 }, 			
+			{ label: '单靴 默认同比增长率', name: 'singleBootYearRaise', index: 'SingleBootYearRaise', width: 20 }, 			
+			{ label: '二棉 默认同比增长率', name: 'twoCottonYearRaise', index: 'TwoCottonYearRaise', width: 20 }, 			
+			{ label: '大棉 默认同比增长率', name: 'bigCottonYearRaise', index: 'BigCottonYearRaise', width: 20 }, 	
+			{ label: '补单提前天数（补单截止日期距离考核截止日期提前的天数）', name: 'patchAdvanceDays', index: 'PatchAdvanceDays', width: 20 },	
+			{ label: '销售对比最少销售天数', name: 'minSalesDays', index: 'MinSalesDays', width: 20 }, 		
+			{ label: '黑马 允许最大上柜天数', name: 'darkHorseCabinetDays', index: 'DarkHorseCabinetDays', width: 20 }, 		
+        	{ label: '创建时间', name: 'inputTime', index: 'InputTime', width: 60 } 			
+        ],
+		viewrecords: true,
+        height: 385,
+        rowNum: 10,
+		rowList : [10,30,50],
+        rownumbers: true, 
+        rownumWidth: 25, 
+        autowidth:true,
+        multiselect: true,
+        pager: "#jqGridPager",
+        jsonReader : {
+            root: "page.list",
+            page: "page.currPage",
+            total: "page.totalPage",
+            records: "page.totalCount"
+        },
+        prmNames : {
+            page:"page", 
+            rows:"limit", 
+            order: "order"
+        },
+        gridComplete:function(){
+        	//隐藏grid底部滚动条
+        	$("#jqGrid").closest(".ui-jqgrid-bdiv").css({ "overflow-x" : "hidden" }); 
+        }
+    });
+});
+
+var vm = new Vue({
+	el:'#rrapp',
+	data:{
+		showList: true,
+		title: null,
+		deadlineRaiseRate: {}
+	},
+	methods: {
+		query: function () {
+			vm.reload();
+		},
+		add: function(){
+			vm.showList = false;
+			vm.title = "新增";
+			vm.deadlineRaiseRate = {};
+		},
+		update: function (event) {
+			var seq = getSelectedRow();
+			if(seq == null){
+				return ;
+			}
+			vm.showList = false;
+            vm.title = "修改";
+            
+            vm.getInfo(seq)
+		},
+		saveOrUpdate: function (event) {
+			var url = vm.deadlineRaiseRate.seq == null ? "sys/deadlineRaiseRate/save" : "sys/deadlineRaiseRate/update";
+			$.ajax({
+				type: "POST",
+			    url: baseURL + url,
+                contentType: "application/json",
+			    data: JSON.stringify(vm.deadlineRaiseRate),
+			    success: function(r){
+			    	if(r.code === 1){
+						alert('操作成功', function(index){
+							vm.reload();
+						});
+					}else{
+						alert(r.msg);
+					}
+				}
+			});
+		},
+		del: function (event) {
+			var seqs = getSelectedRows();
+			if(seqs == null){
+				return ;
+			}
+			
+			confirm('确定要删除选中的记录？', function(){
+				$.ajax({
+					type: "POST",
+				    url: baseURL + "sys/deadlineRaiseRate/delete",
+                    contentType: "application/json",
+				    data: JSON.stringify(seqs),
+				    success: function(r){
+						if(r.code == 1){
+							alert('操作成功', function(index){
+								$("#jqGrid").trigger("reloadGrid");
+							});
+						}else{
+							alert(r.msg);
+						}
+					}
+				});
+			});
+		},
+		getInfo: function(seq){
+			$.get(baseURL + "sys/deadlineRaiseRate/info/"+seq, function(r){
+                vm.deadlineRaiseRate = r.deadlineRaiseRate;
+            });
+		},
+		reload: function (event) {
+			vm.showList = true;
+			var page = $("#jqGrid").jqGrid('getGridParam','page');
+			$("#jqGrid").jqGrid('setGridParam',{ 
+                page:page
+            }).trigger("reloadGrid");
+		}
+	}
+});

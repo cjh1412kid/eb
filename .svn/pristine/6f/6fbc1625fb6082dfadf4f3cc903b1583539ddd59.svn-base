@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.dao.ShoesDataDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.entity.ShoesDataEntity" id="shoesDataMap">
+        <result property="seq" column="Seq"/>
+        <result property="shopSeq" column="ShopSeq"/>
+        <result property="shoeSeq" column="ShoeSeq"/>
+        <result property="colorSeq" column="ColorSeq"/>
+        <result property="sizeSeq" column="SizeSeq"/>
+        <result property="num" column="Num"/>
+        <result property="stockDate" column="StockDate"/>
+        <result property="stock" column="Stock"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+        <result property="periodSeq" column="PeriodSeq"/>
+        <result property="areaSeq" column="AreaSeq"/>
+        <result property="branchOfficeSeq" column="BranchOfficeSeq"/>
+    </resultMap>
+
+
+</mapper>

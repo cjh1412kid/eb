@@ -1,0 +1,242 @@
+package com.nuite.task;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import com.nuite.common.utils.DateUtils;
+import com.nuite.common.utils.RedisUtils;
+import com.nuite.dao.BrandDao;
+import com.nuite.entity.AreaEntity;
+import com.nuite.entity.BrandEntity;
+import com.nuite.entity.ShopEntity;
+import com.nuite.service.AreaService;
+import com.nuite.service.SaleShoesDetailService;
+import com.nuite.service.ShopService;
+import com.nuite.utils.RedisKeys;
+
+
+@Component("saleShoesTask")
+public class SaleShoesTask{
+	private Logger logger = LoggerFactory.getLogger(getClass());
+	
+    @Autowired
+    private BrandDao brandDao;
+    
+    @Autowired
+    private RedisUtils redisUtils;
+    
+    @Autowired
+    private ShopService shopService;
+    
+    @Autowired
+    private BaseTask baseTask;
+
+    @Autowired
+    private AreaService areaService;
+    
+    @Autowired
+    private SaleShoesDetailService saleShoesDetailService;
+
+	
+	/**
+     * 销售额统计接口 :按区域、起止时间统计
+     */
+	@Scheduled(cron = "0 40 2/8 * * ?" )
+	public void statistics() {
+		Date startTaskTime = new Date();
+		logger.info("###saleShoesTask statistics方法，开始执行: " + startTaskTime);
+		try {
+
+    		List<BrandEntity> brandList = brandDao.selectList(null);	//所有品牌
+    		int[] typeList = {1,2,3}; //所有类型  （目前门店不缓存）
+    		List<Date> startDateList = baseTask.getSaleStartDateList(); //所有开始时间
+			if(startDateList == null || startDateList.size() == 0) {
+				logger.info("###saleShoesTask statistics方法，return, 因为没有查到最近一日有销售数据的日期" );
+				return;
+			}
+    		Date endDate = startDateList.get(0); //结束时间（最近一日有销售数据的时间）
+    		
+    		
+    		//循环品牌
+    		for(BrandEntity brandEntity : brandList) {
+				
+    			//循环type
+    			for(int type : typeList) {
+    			
+    				List<Integer> areaSeqList = baseTask.getAreaSeqsByTypeAndBrandSeq(brandEntity.getSeq(), type);  //类型所有区域序号
+    				//循环areaSeqs
+    				for(Integer oneAreaSeq : areaSeqList) {
+    					List<Integer> areaSeqs = new ArrayList<Integer>();
+    					areaSeqs.add(oneAreaSeq);
+    					
+	    				//循环起止时间段
+				   		for(Date startDate : startDateList) {
+				    		
+							/** 销售额统计接口 controller方法 **/
+							
+				    		Date lastyearStartDate = DateUtils.addDateYears(startDate, -1); //去年同期开始时间
+				    		Date lastyearEndDate = DateUtils.addDateYears(endDate, -1); //去年同期结束时间
+				    		
+				    		
+				    		//计算区域内指定时间段的销售额
+				    		BigDecimal total = BigDecimal.ZERO;    //总销售额
+				    		BigDecimal lastyearTotal = BigDecimal.ZERO;   //去年同期总销售额
+				    		List<Map<String, Object>> detailList = new ArrayList<Map<String, Object>>();
+				    		
+				    		//全国
+				    		if(type == 1) {
+				    			//查询品牌所有大区
+				    			List<AreaEntity> firstAreaList = areaService.getFirstAreasByBrandSeq(brandEntity.getSeq());
+				    			Map<String, Object> map;
+				    			for(AreaEntity areaEntity : firstAreaList) {
+				    				map = new HashMap<String, Object>();
+				    				map.put("seq", areaEntity.getSeq());
+				    				map.put("areaName", areaEntity.getAreaName());
+				    				BigDecimal sales = saleShoesDetailService.getFirstAreaTotalSales(areaEntity.getSeq(), startDate, endDate); //获取大区时间段销售额
+				    				map.put("sales", sales);
+				    				total = total.add(sales);
+				    				BigDecimal lastyearSales = saleShoesDetailService.getFirstAreaTotalSales(areaEntity.getSeq(), lastyearStartDate, lastyearEndDate); //获取大区去年时间段销售额
+				    				map.put("lastyearSales", lastyearSales);
+				    				lastyearTotal = lastyearTotal.add(lastyearSales);
+				    				map.put("type", 2);
+				    				detailList.add(map);
+				    			}
+				    			
+				    		} else if(type == 2) { //大区
+				    			//获取大区内所有分公司
+				    			List<AreaEntity> secondAreaList = areaService.getSecondAreasByParentSeqList(areaSeqs);
+				    			Map<String, Object> map;
+				    			for(AreaEntity areaEntity : secondAreaList) {
+				    				map = new HashMap<String, Object>();
+				    				map.put("seq", areaEntity.getSeq());
+				    				map.put("areaName", areaEntity.getAreaName());
+				    				BigDecimal sales = saleShoesDetailService.getSecondAreaTotalSales(areaEntity.getSeq(), startDate, endDate); //获取分公司时间段销售额
+				    				map.put("sales", sales);
+				    				total = total.add(sales);
+				    				BigDecimal lastyearSales = saleShoesDetailService.getSecondAreaTotalSales(areaEntity.getSeq(), lastyearStartDate, lastyearEndDate); //获取分公司去年时间段销售额
+				    				map.put("lastyearSales", lastyearSales);
+				    				lastyearTotal = lastyearTotal.add(lastyearSales);
+				    				map.put("type", 3);
+				    				detailList.add(map);
+				    			}
+
+				    		} else if(type == 3) { //分公司
+				    			//根据分公司序号查询门店
+				    			List<ShopEntity> shopList = shopService.getShopsByAreaSeqList(areaSeqs);
+				    			Map<String, Object> map;
+				    			for(ShopEntity shopEntity : shopList) {
+				    				map = new HashMap<String, Object>();
+				    				map.put("seq", shopEntity.getSeq());
+				    				map.put("areaName", shopEntity.getName());
+				    				BigDecimal sales = saleShoesDetailService.getShopTotalSales(shopEntity.getSeq(),startDate, endDate); //获取门店时间段销售额
+				    				map.put("sales", sales);
+				    				total = total.add(sales);
+				    				BigDecimal lastyearSales = saleShoesDetailService.getShopTotalSales(shopEntity.getSeq(), lastyearStartDate, lastyearEndDate); //获取门店去年时间段销售额
+				    				map.put("lastyearSales", lastyearSales);
+				    				lastyearTotal = lastyearTotal.add(lastyearSales);
+				    				map.put("type", 4);
+				    				detailList.add(map);
+				    			}
+				    			
+				    		} else if(type == 4) { //门店
+				    			for(Integer shopSeq : areaSeqs) {
+					    			ShopEntity shopEntity = shopService.selectById(shopSeq);
+					    			
+					    			Map<String, Object> map = new HashMap<String, Object>();
+					    			map.put("seq", shopEntity.getSeq());
+					    			map.put("areaName", shopEntity.getName());
+					    			BigDecimal sales = saleShoesDetailService.getShopTotalSales(shopSeq, startDate, endDate); //获取门店时间段销售额
+					    			map.put("sales", sales);
+					    			total = total.add(sales);
+					    			BigDecimal lastyearSales = saleShoesDetailService.getShopTotalSales(shopSeq, lastyearStartDate, lastyearEndDate); //获取门店去年时间段销售额
+									map.put("lastyearSales", lastyearSales);
+									lastyearTotal = lastyearTotal.add(lastyearSales);
+					    			map.put("type", 4);
+					    			detailList.add(map);
+				    			}
+				    		}
+				    		
+				    		
+				    		Map<String, Object> resultMap = new HashMap<String, Object>();
+				    		resultMap.put("total", total);
+				    		resultMap.put("lastyearTotal", lastyearTotal);
+				    		resultMap.put("mostRecentDay", endDate);
+				    		//降序排序
+				    		Collections.sort(detailList, new CompareSales(false));
+
+				    		resultMap.put("detail", detailList);
+				    		
+							/** 销售额统计接口 controller方法 **/
+							
+							
+							/** 存入Redis **/
+							String redisKey = RedisKeys.getSaleShoesStatisticsRedisKey(brandEntity.getSeq(), type, oneAreaSeq, startDate, endDate);
+					    	redisUtils.set(redisKey, resultMap, 60 * 60 * 24);
+					    	/** 存入Redis **/
+				    		
+				   		}
+	    			}
+	    		}   
+    			
+    		}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+		}
+		Date endTaskTime = new Date();
+		logger.info("###saleShoesTask statistics方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+	}
+
+
+	
+	
+    //比较销售数据
+	private static final class CompareSales implements Comparator<Map<String, Object>> {
+	     boolean isAsc;
+
+	     public CompareSales(boolean isAsc) {
+	    	 this.isAsc = isAsc;
+	     }
+
+	     /*
+	      * int compare(Person p1, Person p2) 返回一个基本类型的整型，
+	      * 返回负数表示：p1 小于p2，
+	      * 返回0 表示：p1和p2相等，
+	      * 返回正数表示：p1大于p2
+	      */
+	     @Override
+	     public int compare(Map<String, Object> map1, Map<String, Object> map2) {
+	         //按照Sales进行排列
+	         if(((BigDecimal)map1.get("sales")).compareTo((BigDecimal)map2.get("sales")) == 1){
+	        	 if(isAsc) {
+		             return 1;
+	        	 } else {
+	        		 return -1;  //Comparator默认按照升序排列，通过返回相反的值，实现降序
+	        	 }
+	         } else if(((BigDecimal)map1.get("sales")).compareTo((BigDecimal)map2.get("sales")) == 0){
+	             return 0;
+	         } else {
+	        	 if(isAsc) {
+		             return -1;
+	        	 } else {
+	        		 return 1;
+	        	 }
+	         }
+	     }
+	}
+	
+	
+}

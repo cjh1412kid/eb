@@ -1,0 +1,29 @@
+package com.nuite.modules.sys.service.impl;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.plugins.Page;
+import com.baomidou.mybatisplus.service.impl.ServiceImpl;
+import com.nuite.common.utils.PageUtils;
+import com.nuite.common.utils.Query;
+import com.nuite.modules.sys.dao.PeriodDao;
+import com.nuite.modules.sys.entity.PeriodEntity;
+import com.nuite.modules.sys.service.PeriodService;
+import org.springframework.stereotype.Service;
+
+import java.util.Map;
+
+
+@Service
+public class PeriodServiceImpl extends ServiceImpl<PeriodDao, PeriodEntity> implements PeriodService {
+
+    @Override
+    public PageUtils queryPage(Map<String, Object> params) {
+        Page<PeriodEntity> page = this.selectPage(
+                new Query<PeriodEntity>(params).getPage(),
+                new EntityWrapper<PeriodEntity>()
+        );
+
+        return new PageUtils(page);
+    }
+
+}

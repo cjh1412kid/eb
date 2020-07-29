@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.dao.CategoryDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.entity.CategoryEntity" id="categoryMap">
+        <result property="seq" column="Seq"/>
+        <result property="parentSeq" column="ParentSeq"/>
+        <result property="brandSeq" column="BrandSeq"/>
+        <result property="name" column="Name"/>
+        <result property="categoryCode" column="CategoryCode"/>
+        <result property="visible" column="Visible"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+
+</mapper>

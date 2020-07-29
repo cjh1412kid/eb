@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.dao.LargeScreenApiDao">
+
+
+	<!-- 查询 NWGoods_TryShoesDetail_isValid_periodSeq表 某一个门店 某时间段 内试穿次数 -->
+	<select id="getCountryTryTimesAfterStartDate" resultType="java.lang.Integer">
+		SELECT 
+			Count(1) 
+		FROM 
+			YHSmartDataRetail.dbo.NWGoods_TryShoesDetail_${isValid}_${periodSeq} 
+		WHERE
+			Del = 0 
+			<if test="startDate != null and startDate !=''" > 
+				AND DataTime >= #{startDate}
+			</if>
+	</select>
+	
+	
+	
+	<!-- 查询时间段内、指定货号的全国销售双数 -->
+	<select id="getSaleNumByGoodsIdList" resultType="java.lang.Integer">
+		SELECT 
+			SUM (SaleCount) 
+		FROM 
+			YHSmartDataRetail.dbo.NWGoods_SaleShoesDetail 
+		WHERE
+			Del = 0 
+			AND SaleDate >= #{startDate} AND #{endDate} > SaleDate 
+			AND ShoeID IN (${goodsIds})
+	</select>
+	
+	
+	<!-- 查询时间段内、指定货号的全国进货双数 -->
+	<select id="getTotalNumByShoeSeqList" resultType="java.lang.Integer">
+		SELECT 
+			SUM (Count) 
+		FROM 
+			YHSmartDataRetail.dbo.NWGoods_ShoesData_Daily_Detail 
+		WHERE
+			Type = 0
+			AND UpdateTime >= #{startDate} AND #{endDate} > UpdateTime 
+			AND Shoes_Seq IN (${shoeSeqs})
+	</select>
+	
+	
+</mapper>

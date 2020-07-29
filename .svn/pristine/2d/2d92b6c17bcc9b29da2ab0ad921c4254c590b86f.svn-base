@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.sys.dao.PeriodDao">
+
+    <!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.modules.sys.entity.PeriodEntity" id="periodMap">
+        <result property="seq" column="Seq"/>
+        <result property="brandSeq" column="BrandSeq"/>
+        <result property="innerKey" column="InnerKey"/>
+        <result property="name" column="Name"/>
+        <result property="fileDownLoadDate" column="FileDownLoadDate"/>
+        <result property="saleDate" column="SaleDate"/>
+        <result property="isValid" column="isValid"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+
+</mapper>

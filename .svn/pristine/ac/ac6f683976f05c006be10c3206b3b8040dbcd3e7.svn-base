@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Controls>
+<btnclose>close.png</btnclose>
+<btnminsize>minsize.png</btnminsize>
+<pnltitle>topPic.png</pnltitle>
+<pnlMenu>mainPic.png</pnlMenu>
+</Controls>

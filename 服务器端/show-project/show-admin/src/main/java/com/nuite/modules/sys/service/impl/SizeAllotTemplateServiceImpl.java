@@ -1,0 +1,106 @@
+package com.nuite.modules.sys.service.impl;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.mapper.Wrapper;
+import com.baomidou.mybatisplus.plugins.Page;
+import com.baomidou.mybatisplus.service.impl.ServiceImpl;
+import com.nuite.common.utils.PageUtils;
+import com.nuite.common.utils.Query;
+import com.nuite.modules.sys.dao.SizeAllotTemplateDao;
+import com.nuite.modules.sys.dao.SizeAllotTemplateDetailDao;
+import com.nuite.modules.sys.entity.SizeAllotTemplateDetailEntity;
+import com.nuite.modules.sys.entity.SizeAllotTemplateEntity;
+import com.nuite.modules.sys.service.SizeAllotTemplateService;
+
+
+@Service
+public class SizeAllotTemplateServiceImpl extends ServiceImpl<SizeAllotTemplateDao, SizeAllotTemplateEntity> implements SizeAllotTemplateService {
+
+	@Autowired
+	private SizeAllotTemplateDao sizeAllotTemplateDao;
+	
+	@Autowired
+	private SizeAllotTemplateDetailDao sizeAllotTemplateDetailDao;
+	
+	
+    @Override
+    public PageUtils queryPage(Map<String, Object> params) {
+        Page<SizeAllotTemplateEntity> page = this.selectPage(
+                new Query<SizeAllotTemplateEntity>(params).getPage(),
+                new EntityWrapper<SizeAllotTemplateEntity>()
+        );
+
+        return new PageUtils(page);
+    }
+
+	@Override
+	public SizeAllotTemplateEntity insertOrUpdateOne(SizeAllotTemplateEntity sizeAllotTemplateEntity) {
+		SizeAllotTemplateEntity sizeAllotTemplateEntity2=new SizeAllotTemplateEntity();
+		sizeAllotTemplateEntity2.setName(sizeAllotTemplateEntity.getName());
+		sizeAllotTemplateEntity2.setNbFlag(sizeAllotTemplateEntity.getNbFlag());
+		sizeAllotTemplateEntity2=sizeAllotTemplateDao.selectOne(sizeAllotTemplateEntity2);
+		if(sizeAllotTemplateEntity2==null) {
+			sizeAllotTemplateDao.insert(sizeAllotTemplateEntity);
+			return sizeAllotTemplateEntity;
+		}else {
+			sizeAllotTemplateEntity2.setTotalNum(sizeAllotTemplateEntity.getTotalNum());
+			sizeAllotTemplateDao.updateById(sizeAllotTemplateEntity2);
+			return sizeAllotTemplateEntity2;
+		}
+	}
+
+
+	
+	/**
+	 * 查询指定南北总数量的模板List
+	 */
+	@Override
+	public List<SizeAllotTemplateEntity> getTemplates(Integer nbCode, Integer perNum) {
+		Wrapper<SizeAllotTemplateEntity> wrapper = new EntityWrapper<SizeAllotTemplateEntity>();
+		if(nbCode != null) {
+			wrapper.where("NBFlag = {0}", nbCode);
+		}
+		if(perNum != null) {
+			wrapper.where("TotalNum = {0}", perNum);
+		}
+		
+		wrapper.orderBy("NBFlag ASC, TotalNum ASC, Seq ASC");
+		return sizeAllotTemplateDao.selectList(wrapper);
+	}
+
+
+	/**
+	 * 获取某一模板的配码详情List
+	 */
+	@Override
+	public List<SizeAllotTemplateDetailEntity> getSizeAllotTemplateDetailList(Integer sizeAllotTemplateSeq) {
+		Wrapper<SizeAllotTemplateDetailEntity> wrapper = new EntityWrapper<SizeAllotTemplateDetailEntity>();
+		wrapper.where("SizeAllotTemplate_Seq = {0}", sizeAllotTemplateSeq);
+		wrapper.orderBy("Size ASC");
+		return sizeAllotTemplateDetailDao.selectList(wrapper);
+	}
+	
+	
+	@Override
+	public List<Map<String, Object>> getAllSizeAllotTemplate() {
+		
+		return sizeAllotTemplateDao.getAllSizeAllotTemplate();
+	}
+
+	/**
+	 * 查询全部模板
+	 */
+	@Override
+	public List<SizeAllotTemplateEntity> getAllTemplates() {
+		Wrapper<SizeAllotTemplateEntity> wrapper = new EntityWrapper<SizeAllotTemplateEntity>();
+		wrapper.orderBy("NBFlag ASC, TotalNum ASC, Seq ASC");
+		return sizeAllotTemplateDao.selectList(wrapper);
+	}
+
+}

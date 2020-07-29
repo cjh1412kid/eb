@@ -1,0 +1,61 @@
+package com.nuite.modules.sys.service.impl;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.plugins.Page;
+import com.baomidou.mybatisplus.service.impl.ServiceImpl;
+import com.nuite.common.utils.PageUtils;
+import com.nuite.common.utils.Query;
+import com.nuite.modules.sys.dao.ColorDao;
+import com.nuite.modules.sys.entity.ColorEntity;
+import com.nuite.modules.sys.service.ColorService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+import java.util.Map;
+
+
+@Service
+public class ColorServiceImpl extends ServiceImpl<ColorDao, ColorEntity> implements ColorService {
+
+    @Autowired
+    private ColorDao colorDao;
+
+    @Override
+    public PageUtils queryPage(Map<String, Object> params) {
+        Page<ColorEntity> page = this.selectPage(
+                new Query<ColorEntity>(params).getPage(),
+                new EntityWrapper<ColorEntity>()
+        );
+
+        return new PageUtils(page);
+    }
+
+    /**
+     * 伊伴erp同步专用
+     *
+     * @param colorCode 颜色编码
+     * @param colorName 颜色名称
+     * @return
+     */
+    @Override
+    public ColorEntity selectLocalColor(String colorCode, String colorName) {
+        ColorEntity colorEntity = selectOne(new EntityWrapper<ColorEntity>().eq("Code", colorCode));
+        if (colorEntity == null) {
+            colorEntity = new ColorEntity();
+            colorEntity.setBrandSeq(1);
+            colorEntity.setCode(colorCode);
+            colorEntity.setDel(0);
+            colorEntity.setInputTime(new Date());
+            colorEntity.setName(colorName);
+            colorDao.insertWithSeq(colorEntity);
+        } else {
+            if (!colorName.trim().equals(colorEntity.getName())) {
+                colorEntity.setName(colorName);
+                updateById(colorEntity);
+            }
+        }
+        return colorEntity;
+    }
+
+}

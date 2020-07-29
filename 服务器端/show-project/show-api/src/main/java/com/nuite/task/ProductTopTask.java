@@ -1,0 +1,896 @@
+package com.nuite.task;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import com.nuite.common.utils.DateUtils;
+import com.nuite.common.utils.RedisUtils;
+import com.nuite.entity.PeriodEntity;
+import com.nuite.service.PeriodService;
+import com.nuite.service.ProductTopService;
+import com.nuite.service.SaleShoesDetailService;
+import com.nuite.service.UserModuleSubscribedService;
+import com.nuite.utils.DateUtil;
+import com.nuite.utils.ProductModuleEnum;
+import com.nuite.utils.RedisKeys;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+
+@Component("productTopTask")
+public class ProductTopTask{
+	private Logger logger = LoggerFactory.getLogger(getClass());
+	
+    @Autowired
+    private ProductTopService productTopService;
+    
+    @Autowired
+    private RedisUtils redisUtils;
+    
+    @Autowired
+    private SaleShoesDetailService saleShoesDetailService;
+    
+    @Autowired
+    private UserModuleSubscribedService userModuleSubscribedService;
+    
+    @Autowired
+    private PeriodService periodService;
+    
+    
+    
+    
+	/**
+     * 2019产品版：试穿排行
+     */
+	@Scheduled(cron = "0 30 1 * * ?" )
+    public void tryTop() {
+		Date startTaskTime = new Date();
+		logger.info("###ProductTopTask tryTop方法，开始执行: " + startTaskTime);
+    	try {
+    		//所有开始时间 : 1:最近一日 7:上一周 9:累计
+    		Integer[] datediffArr = {1,7,9};
+    		//所有2018年之后的波次 + 一个序号为0的波次用来表示不传波次
+    		List<PeriodEntity> periodList = periodService.getPeriodsByBrandSeqAfterYear(1, 2018);
+    		PeriodEntity period0 = new PeriodEntity();
+    		period0.setSeq(0);
+    		periodList.add(period0);
+    		
+    		
+    		//获取所有订阅了试穿排行模块的所有区域（这里与用户无关，不同用户选择同一区域订阅同一模块，看到的数据是一样的）
+    		List<Map<String, Object>> areaList = userModuleSubscribedService.getModuleSubscribedAreaByModuleSeq(ProductModuleEnum.TRY_TRYTOP.getModuleSeq());
+	    	for(Map<String, Object> areaMap : areaList) {
+	    		Integer areaType = (Integer) areaMap.get("AreaType");
+	    		Integer areaSeq = (Integer) areaMap.get("AreaSeq");
+	    		
+		    	
+		    	//循环波次
+		    	for(PeriodEntity periodEntity : periodList) {
+			    	Integer periodSeq = periodEntity.getSeq();
+			    	
+	    			// ^库存数据^：本波次所有货品的 累计入库量、库存、库存排名、每个尺码对应的库存、尺码区域下一级的库存 List
+	        		//尝试从redis获取缓存的值
+	    	    	String inNumAndStockRankListRedisKey = RedisKeys.getTopInNumAndStockRankListRedisKey(areaType, areaSeq, periodSeq);
+	    	        @SuppressWarnings("unchecked")
+	    	        List<Map<String, Object>> inNumAndStockRankList = redisUtils.get(inNumAndStockRankListRedisKey, List.class);
+	            	//不为空,从redis中取值并返回
+	    	        if(inNumAndStockRankList == null) {
+	    	        	//没有获取到缓存时，手动查库
+	    	        	inNumAndStockRankList = productTopService.getInNumAndStockRankList(areaType, areaSeq, periodSeq);
+	    	        	redisUtils.set(inNumAndStockRankListRedisKey, JSONArray.fromObject(inNumAndStockRankList), 60 * 60 * 23);
+	    	        }
+	    			
+	    			
+			    	//循环时间段
+					for(Integer datediff : datediffArr) {
+						
+						// 试穿排名Top30
+						List<Map<String, Object>> tryTopGoodsList = productTopService.getTryTop(areaType, areaSeq, periodSeq, datediff, 30);
+						
+		    			// ^销量数据^： 本波次所有货品的 销量、排名、平均售价 List    TODO 不用存入redis，销量排行那边直接从列表中获取，应该用不到
+		    			List<Map<String, Object>> saleCountAndRankList = productTopService.getSaleCountAndRankList(areaType, areaSeq, periodSeq, datediff);
+		    			
+		    			
+						// 添加详情数据
+			    		for(Map<String, Object> map : tryTopGoodsList) {
+			    			Integer shoeSeq = (Integer)map.get("shoeSeq");
+			    			//试穿时间 转化为分钟
+			    			Integer tryTimes = (Integer)map.get("tryTimes");
+			    			if(tryTimes != null) {
+				    			map.put("tryTimes", tryTimes/60 + 1);
+			    			}
+			    			//试穿次数
+			    			Integer tryCount = (Integer)map.get("tryCount");
+			    			
+			    			//试穿趋势
+			    			Integer tryCountTrend = productTopService.getTryCountTrend(areaType, areaSeq, shoeSeq, datediff);
+			    			map.put("tryCountTrend", tryCountTrend);
+			    			
+			    			
+			    			//上柜日期 
+			    			Date cabinetDate = productTopService.getShoeCabinetDate(areaType, areaSeq, shoeSeq);
+			    			String cabinetDateStr = "";
+			    			if(cabinetDate != null) {
+			    				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+			    				cabinetDateStr = sdf.format(cabinetDate);
+			    			}
+			    			map.put("cabinetDate", cabinetDateStr);
+			    			
+			    			
+			    			
+			    			/* 1.销量与库存  （ ^销量数据^ (与时间、区域相关)销量排行可从列表中取，没做缓存; ^库存数据^ (只跟区域有关)，销量排行可能用到，做了Redis缓存）*/
+			    			//循环所有货号的^销量数据^List，获取本货号的销量数据
+			    			Integer saleCount = null;
+			    			Integer saleRank = null;
+			    			BigDecimal salePriceSum = null;
+			    			for(Map<String, Object> saleCountAndRankMap : saleCountAndRankList) {
+			    				if(saleCountAndRankMap.get("shoeSeq") != null && ((Integer)saleCountAndRankMap.get("shoeSeq")).equals(shoeSeq)) { //注意由于数据原因，销售数据中有shoe表不存在的货品
+			    					saleCount = (Integer)saleCountAndRankMap.get("saleCount");
+			    					saleRank = ((Long)saleCountAndRankMap.get("saleRank")).intValue();
+			    					salePriceSum = (BigDecimal)saleCountAndRankMap.get("salePriceSum");
+			    				}
+			    			}
+			    			//销量
+			    			map.put("saleCount", saleCount);
+			    			//试穿销量转化率
+			    			BigDecimal trySaleConvert = BigDecimal.ZERO;
+			    			if(saleCount != null && tryCount != null && tryCount > 0) {
+			    				trySaleConvert = BigDecimal.valueOf(saleCount).divide(BigDecimal.valueOf(tryCount), 2, RoundingMode.HALF_UP);
+			    			}
+			    			map.put("trySaleConvert", trySaleConvert);
+			    			
+			    			//日平均销量
+			    			Integer dayAvgSaleCount = null;
+			    			if(saleCount != null) {
+			    				if(datediff != 9) {
+			    					dayAvgSaleCount = saleCount/datediff;
+			    				}
+			    				if(datediff == 9 && cabinetDate != null) { //累计日平均,除以上柜日期以来的总天数
+			    					int cabinetDateDiff = DateUtils.daysBetween(cabinetDate, new Date());
+			    					dayAvgSaleCount = saleCount/cabinetDateDiff;
+			    				}
+			    			}
+			    			map.put("dayAvgSaleCount", dayAvgSaleCount);
+			    			//销量排名
+			    			map.put("saleRank", saleRank);
+			    			//总售价（销售额）
+			    			map.put("salePriceSum", salePriceSum);
+			    			//平均售价
+			    			BigDecimal avgSalePrice = null;
+			    			if(salePriceSum != null && saleCount != null && saleCount != 0) {
+			    				avgSalePrice = salePriceSum.divide(BigDecimal.valueOf(saleCount), 2, RoundingMode.HALF_UP);
+			    			}
+			    			map.put("avgSalePrice", avgSalePrice);
+			    			
+			    			//销售量、销售额趋势
+			    			Map<String, Object> saleTrendMap = productTopService.getSaleTrendMap(areaType, areaSeq, shoeSeq, datediff);
+			    			map.putAll(saleTrendMap);
+			    			
+			    			
+			    			//循环所有货号的^库存数据^List，获取本货号的库存数据
+			    			Integer totalInNum = null;
+			    			Integer stock = null;
+			    			Integer stockRank = null;
+			    			List<Map<String, Object>> everySizeStock = null;
+			    			for(Map<String, Object> inNumAndStockRankMap : inNumAndStockRankList) {
+			    				if(((Integer)inNumAndStockRankMap.get("shoeSeq")).equals(shoeSeq)) {
+			    					totalInNum = (Integer)inNumAndStockRankMap.get("totalInNum");
+			    					stock = (Integer)inNumAndStockRankMap.get("stock");
+			    					if(inNumAndStockRankMap.get("stockRank") instanceof Long) {  // sql查出来是Long, 从缓存中取时是Integer
+			    						stockRank = ((Long)inNumAndStockRankMap.get("stockRank")).intValue();
+			    					} else {
+			    						stockRank = (Integer)inNumAndStockRankMap.get("stockRank");
+			    					}
+			    					everySizeStock = (List<Map<String, Object>>)inNumAndStockRankMap.get("everySizeStock");
+			    				}
+			    			}
+			    			
+			    			//累计入库量
+			    			map.put("totalInNum", totalInNum);
+			    			//库存
+			    			map.put("stock", stock);
+			    			//库存排名
+			    			map.put("stockRank", stockRank);
+			    			//每个尺码对应的库存
+			    			map.put("everySizeStock", everySizeStock);
+			    			
+			    			
+			    			
+			    			//累计销量
+			    			Integer totalSaleNum = null;
+			    			if(totalInNum != null && stock != null) {
+			    				totalSaleNum = totalInNum - stock;
+			    			}
+			    			map.put("totalSaleNum", totalSaleNum);
+			    			//售罄率
+			    			BigDecimal totalSaleOutRate = BigDecimal.ZERO;
+			    			if(totalInNum != null && totalSaleNum != null && totalInNum != 0) {
+			    				totalSaleOutRate = BigDecimal.valueOf(totalSaleNum).divide(BigDecimal.valueOf(totalInNum), 2, RoundingMode.HALF_UP);
+			    			}
+			    			map.put("totalSaleOutRate", totalSaleOutRate);
+			    			
+			    			
+			    			/* 2.图表数据 */
+			    			//1.近30天销量与试穿：
+			    			//以双向Y轴的方式展示试穿和销售的柱状图；同时在柱状图上连接起曲线并显示出日平均售价；
+			    			//可存入redis，循环时间应该有重复货号、销量排行那边应该有重复区域 都会用到 ，这个只与区域有关
+			    			
+			        		//尝试从redis获取缓存的值
+			    	    	String day30saleAndTryRedisKey = RedisKeys.getTopDay30saleAndTryMapRedisKey(areaType, areaSeq, shoeSeq);
+			    	        @SuppressWarnings("unchecked")
+			    	        Map<String, Object> day30saleAndTryMap = redisUtils.get(day30saleAndTryRedisKey, Map.class);
+			            	//不为空,从redis中取值并返回
+			    	        if(day30saleAndTryMap == null) {
+			    	        	//没有获取到缓存时，手动查库
+			    	        	day30saleAndTryMap = queryDay30saleAndTryMapFromDatabase(areaType, areaSeq, shoeSeq);
+			    	        	redisUtils.set(day30saleAndTryRedisKey, JSONObject.fromObject(day30saleAndTryMap), 60 * 60 * 23);
+			    	        }
+			        		map.put("day30saleAndTryGraph", day30saleAndTryMap);
+			        		
+			        		
+			        		
+			        		// 2.销售强度曲线，
+			        		// 具体公式为自然周销售双数/7天/上货网点（门店）；以门店的、分公司、大区、全国同样的公式去计算当前货品的销售强度，销售强度以一周计算一次；
+			    	        Map<String, Object> saleStrengthAndAvgLineMap = getSaleStrengthAndAvgLineMap(areaType, areaSeq, shoeSeq);
+			        		map.put("saleStrengthGraph", saleStrengthAndAvgLineMap);
+			        		
+			    		}
+						
+						
+						/** 存入Redis **/
+						String redisKey = RedisKeys.getProductModuleRedisKey(ProductModuleEnum.TRY_TRYTOP.getModuleSeq(), areaType, areaSeq, datediff, periodSeq);
+						redisUtils.setNotExpire(redisKey, JSONArray.fromObject(tryTopGoodsList));
+						/** 存入Redis **/
+					}
+				}
+	    		
+	    	}
+    		
+    		
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+		}
+		Date endTaskTime = new Date();
+		logger.info("###ProductTopTask tryTop方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+    }
+
+
+	//从数据库查询 近30天销量与试穿 数据
+	private Map<String, Object> queryDay30saleAndTryMapFromDatabase(Integer areaType, Integer areaSeq, Integer shoeSeq) throws ParseException {
+		//最近一日有销售额的时间
+		Date mostRecentDay = saleShoesDetailService.getSaleDataMostRecentDay();
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+		Date mostRecentDate = sdf.parse(sdf.format(mostRecentDay));
+		
+		//1.30天销量、试穿、平均售价
+		//{salesData:[{date:1,value:112},{date:1,value:112},...],trysData:[{date:1,value:112},{date:1,value:112},...]}
+		Map<String, Object> day30saleAndTryMap = new HashMap<String, Object>();
+		List<Map<String, Object>> saleDataList = new ArrayList<Map<String, Object>>();  //每天销售数
+		List<Map<String, Object>> tryDataList = new ArrayList<Map<String, Object>>();	//每天试穿数
+		List<Map<String, Object>> avgPriceDataList = new ArrayList<Map<String, Object>>();   //每天平均售价
+		
+		for (int i = 30; i >= 1; i--) {
+    		Date date = DateUtils.addDateDays(mostRecentDate, -i);
+    		String dataStr = sdf.format(date);
+    		
+    		Map<String, Object> saleDataMap = new HashMap<String, Object>();
+    		saleDataMap.put("date", dataStr);
+    		Map<String, Object> daySaleCountAndAvgPriceMap = productTopService.getDaySaleCountAndAvgPrice(areaType, areaSeq, shoeSeq, date);
+    		if(daySaleCountAndAvgPriceMap.get("saleCount") == null) {
+    			saleDataMap.put("value", 0);
+    		} else {
+    			saleDataMap.put("value", daySaleCountAndAvgPriceMap.get("saleCount"));
+    		}
+    		saleDataList.add(saleDataMap);
+    		
+    		Map<String, Object> tryDataMap = new HashMap<String, Object>();
+    		tryDataMap.put("date", dataStr);
+    		Integer dayTryCount = productTopService.getDayTryCount(areaType, areaSeq, shoeSeq, date);
+    		tryDataMap.put("value", dayTryCount);
+    		tryDataList.add(tryDataMap);
+    		
+    		Map<String, Object> avgPriceDataMap = new HashMap<String, Object>();
+    		avgPriceDataMap.put("date", dataStr);
+    		if(daySaleCountAndAvgPriceMap.get("avgSalePrice") == null) {
+    			avgPriceDataMap.put("value", 0);
+    		} else {
+        		avgPriceDataMap.put("value", daySaleCountAndAvgPriceMap.get("avgSalePrice"));
+    		}
+    		avgPriceDataList.add(avgPriceDataMap);
+		}
+		day30saleAndTryMap.put("saleData", saleDataList);
+		day30saleAndTryMap.put("tryData", tryDataList);
+		day30saleAndTryMap.put("avgPriceData", avgPriceDataList);
+		
+		
+		//2.历史日平均销量三根参考线
+		//{countryDayAvgLine:100, areaDayAvgLine:80, branchOfficeDayAvgLine:60]}
+		//Map<String, Object> historyDayAvgLineMap = productTopService.getHistoryDayAvgLineMap(areaType, areaSeq, shoeSeq);
+		//day30saleAndTryMap.putAll(historyDayAvgLineMap);
+		return day30saleAndTryMap;
+	}
+	
+	
+	
+	//获取销售强度图表数据
+	private Map<String, Object> getSaleStrengthAndAvgLineMap(Integer areaType, Integer areaSeq, Integer shoeSeq) throws ParseException {
+		//{saleStrength:[{week:2019.16,value:3},{date:2019.17,value:4},...], countrySaleStrengthAvgLine: 3.6, areaSaleStrengthAvgLine:4.2, branchOfficeSaleStrengthAvgLine: 3.9 }
+		Map<String, Object> saleStrengthAndAvgLineMap = new HashMap<String, Object>();
+		//1.销售强度List
+		List<Map<String, Object>> saleStrengthList = getSaleStrengthList(areaType, areaSeq, shoeSeq);
+		saleStrengthAndAvgLineMap.put("saleStrength", saleStrengthList);
+
+		//2.全国、大区、分公司 平均每周销售强度 三根参考线
+		//{countrySaleStrengthAvgLine: 3.6, areaSaleStrengthAvgLine:4.2, branchOfficeSaleStrengthAvgLine: 3.9}
+		BigDecimal countrySaleStrengthAvgLine = null;
+		BigDecimal areaSaleStrengthAvgLine = null;
+		BigDecimal branchOfficeSaleStrengthAvgLine = null;
+		BigDecimal shopSaleStrengthAvgLine = null;
+		
+		if(areaType == 1) {  //全国, 计算全国平均销售强度（即自身平均值）
+			countrySaleStrengthAvgLine = calculateSaleStrengthAvg(saleStrengthList);
+		} else if (areaType == 2) {  //大区，计算全国平均销售强度  + 大区平均销售强度（即自身平均值）
+			//大区平均销售强度（即自身平均值）
+			areaSaleStrengthAvgLine = calculateSaleStrengthAvg(saleStrengthList);
+			
+			//全国销售强度List
+			List<Map<String, Object>> countrySaleStrengthList = getSaleStrengthList(1, 0, shoeSeq);
+			countrySaleStrengthAvgLine = calculateSaleStrengthAvg(countrySaleStrengthList);
+		} else if (areaType == 3) {  //分公司，计算全国平均销售强度  + 分公司所属大区销售强度 + 分公司平均销售强度（即自身平均值）
+			//分公司平均销售强度（即自身平均值）
+			branchOfficeSaleStrengthAvgLine = calculateSaleStrengthAvg(saleStrengthList);
+			
+			//分公司所属大区平均销售强度
+			Integer branchOfficeBelongAreaSeq = productTopService.getAreaSeqByBranchOfficeSeq(areaSeq);	//获取分公司所属大区
+			List<Map<String, Object>> areaSaleStrengthList = getSaleStrengthList(2, branchOfficeBelongAreaSeq, shoeSeq);
+			areaSaleStrengthAvgLine = calculateSaleStrengthAvg(areaSaleStrengthList);
+			
+			//全国平均销售强度
+			List<Map<String, Object>> countrySaleStrengthList = getSaleStrengthList(1, 0, shoeSeq);
+			countrySaleStrengthAvgLine = calculateSaleStrengthAvg(countrySaleStrengthList);
+		} else if (areaType == 4) {  //门店，计算全国平均销售强度  + 门店所属分公司所属大区销售强度 + 门店所属分公司平均销售强度 + 门店平均销售强度
+			//门店平均销售强度（即自身平均值）
+			shopSaleStrengthAvgLine = calculateSaleStrengthAvg(saleStrengthList);
+			
+			//门店所属分公司平均销售强度
+			Integer branchOfficeSeq = productTopService.getBranchOfficeSeqByShopSeq(areaSeq);
+			List<Map<String, Object>> branchOfficeSaleStrengthList = getSaleStrengthList(3, branchOfficeSeq, shoeSeq);
+			branchOfficeSaleStrengthAvgLine = calculateSaleStrengthAvg(branchOfficeSaleStrengthList);
+			
+			//分公司所属大区平均销售强度
+			Integer branchOfficeBelongAreaSeq = productTopService.getAreaSeqByBranchOfficeSeq(branchOfficeSeq);	//获取分公司所属大区
+			List<Map<String, Object>> areaSaleStrengthList = getSaleStrengthList(2, branchOfficeBelongAreaSeq, shoeSeq);
+			areaSaleStrengthAvgLine = calculateSaleStrengthAvg(areaSaleStrengthList);
+			
+			//全国销售强度List
+			List<Map<String, Object>> countrySaleStrengthList = getSaleStrengthList(1, 0, shoeSeq);
+			countrySaleStrengthAvgLine = calculateSaleStrengthAvg(countrySaleStrengthList);
+		}
+		
+		saleStrengthAndAvgLineMap.put("countrySaleStrengthAvgLine", countrySaleStrengthAvgLine);
+		saleStrengthAndAvgLineMap.put("areaSaleStrengthAvgLine", areaSaleStrengthAvgLine);
+		saleStrengthAndAvgLineMap.put("branchOfficeSaleStrengthAvgLine", branchOfficeSaleStrengthAvgLine);
+		saleStrengthAndAvgLineMap.put("shopSaleStrengthAvgLine", shopSaleStrengthAvgLine);
+		return saleStrengthAndAvgLineMap;
+	}
+	
+
+	// 获取缓存好的区域某货号的销售强度List
+	private List<Map<String, Object>> getSaleStrengthList(Integer areaType, Integer areaSeq, Integer shoeSeq) throws ParseException {
+		//尝试从redis获取缓存的值
+    	String saleStrengthRedisKey = RedisKeys.getTopSaleStrengthListRedisKey(areaType, areaSeq, shoeSeq);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> saleStrengthList = redisUtils.get(saleStrengthRedisKey, List.class);
+        if(saleStrengthList == null) {
+        	//没有获取到缓存时，手动查库
+        	saleStrengthList = querySaleStrengthListFromDatabase(areaType, areaSeq, shoeSeq);
+        	redisUtils.set(saleStrengthRedisKey, saleStrengthList, 60 * 60 * 23);
+        }
+		return saleStrengthList;
+	}
+	
+	
+	
+	// 计算销售强度平均值
+	private BigDecimal calculateSaleStrengthAvg(List<Map<String, Object>> saleStrengthList) {
+		if(saleStrengthList != null && saleStrengthList.size() > 0) {
+			BigDecimal saleStrengthSum = BigDecimal.ZERO;
+			for(Map<String, Object> map : saleStrengthList) {
+				if (map.get("value") instanceof Integer) {  //如果从缓存中取数据，取出来的0成了Integer类型
+					saleStrengthSum = saleStrengthSum.add(BigDecimal.valueOf((Integer)map.get("value")));
+				} else if (map.get("value") instanceof BigDecimal) {
+					saleStrengthSum = saleStrengthSum.add((BigDecimal) map.get("value"));
+				}
+			}
+			return saleStrengthSum.divide(BigDecimal.valueOf(saleStrengthList.size()), 2, RoundingMode.HALF_UP);
+		} else {
+			return BigDecimal.ZERO;
+		}
+		
+	}
+	
+	
+	
+	//从数据库查询 销售强度List 数据
+	private List<Map<String, Object>> querySaleStrengthListFromDatabase(Integer areaType, Integer areaSeq, Integer shoeSeq) throws ParseException {
+		List<Map<String, Object>> saleStrengthList = new ArrayList<Map<String, Object>>();
+		//最近一日有销售额的时间
+		Date mostRecentDay = saleShoesDetailService.getSaleDataMostRecentDay();
+		//鞋子上柜日期
+		Date cabinetDate = productTopService.getShoeCabinetDate(areaType, areaSeq, shoeSeq);
+		if(cabinetDate == null) {
+			return saleStrengthList;
+		}
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+		String weekBeginDate = DateUtil.getWeekDiffMonDateFromDate(0, cabinetDate);  //上柜日那周开始时间（周一0点）
+		String weekEndDate = DateUtil.getWeekDiffMonDateFromDate(1, cabinetDate);   //上柜日那周结束时间（周日24点即下周一0点）
+		
+
+		while (!sdf.parse(weekBeginDate).after(mostRecentDay)) {
+    		Map<String, Object> saleStrengthMap = new HashMap<String, Object>();
+			//日期的年份、周数
+			String week = DateUtil.getDateYearAndWeek(sdf.parse(weekBeginDate));
+    		saleStrengthMap.put("date", week);
+    		//这一周的销售双数
+    		Integer weekSaleCount = productTopService.getSaleCountBetweenDate(areaType, areaSeq, shoeSeq, weekBeginDate, weekEndDate);
+    		//这一周上柜的门店数量
+    		Integer cabinetShopNum = productTopService.getCabinetShopNumBetweenDate(areaType, areaSeq, shoeSeq, weekBeginDate, weekEndDate);
+    		
+    		BigDecimal saleStrength = BigDecimal.ZERO;
+    		if(weekSaleCount != null && cabinetShopNum != null && cabinetShopNum != 0) {
+    			saleStrength = BigDecimal.valueOf(weekSaleCount).divide(BigDecimal.valueOf(cabinetShopNum * 7), 2, RoundingMode.HALF_UP);
+    		}
+    		saleStrengthMap.put("value", saleStrength);
+    		saleStrengthList.add(saleStrengthMap);
+    		
+    		weekBeginDate = DateUtil.getWeekDiffMonDateFromDate(1, sdf.parse(weekBeginDate));  //下一周开始时间
+    		weekEndDate = DateUtil.getWeekDiffMonDateFromDate(2, sdf.parse(weekBeginDate));   //下一周结束时间
+		}
+		
+		return saleStrengthList;
+	}
+	
+	
+	
+	
+	
+	
+	/**
+     * 2019产品版：销售排行 （包括了畅销、销售额两种排行）
+     */
+	@Scheduled(cron = "0 30 5 * * ?" )
+    public void saleTop() {
+		Date startTaskTime = new Date();
+		logger.info("###ProductTopTask saleTop方法，开始执行: " + startTaskTime);
+    	try {
+    		//所有开始时间 : 1:最近一日 7:上一周 9:累计
+    		Integer[] datediffArr = {1,7,9};
+    		//所有2018年之后的波次 + 一个序号为0的波次用来表示不传波次
+    		List<PeriodEntity> periodList = periodService.getPeriodsByBrandSeqAfterYear(1, 2018);
+    		PeriodEntity period0 = new PeriodEntity();
+    		period0.setSeq(0);
+    		periodList.add(period0);
+    		
+    		//排名类型:  销量排名、  销售额排名
+    		Integer[] rankTypeArr = {ProductModuleEnum.SALE_SALETOP.getModuleSeq(), ProductModuleEnum.SALE_SALEPRICETOP.getModuleSeq()};
+			//循环排名类型
+			for(int rankType : rankTypeArr) {
+				
+	    		//获取所有订阅了该排行模块的所有区域（这里与用户无关，不同用户选择同一区域订阅同一模块，看到的数据是一样的）
+	    		List<Map<String, Object>> areaList = userModuleSubscribedService.getModuleSubscribedAreaByModuleSeq(rankType);
+	    		for(Map<String, Object> areaMap : areaList) {
+		    		Integer areaType = (Integer) areaMap.get("AreaType");
+		    		Integer areaSeq = (Integer) areaMap.get("AreaSeq");
+		    		
+			    	//循环波次
+			    	for(PeriodEntity periodEntity : periodList) {
+				    	Integer periodSeq = periodEntity.getSeq();
+				    	
+		    			// ^库存数据^：本波次所有货品的 累计入库量、库存、库存排名、每个尺码对应的库存、尺码区域下一级的库存 List
+		        		//尝试从redis获取缓存的值
+		    	    	String inNumAndStockRankListRedisKey = RedisKeys.getTopInNumAndStockRankListRedisKey(areaType, areaSeq, periodSeq);
+		    	        @SuppressWarnings("unchecked")
+		    	        List<Map<String, Object>> inNumAndStockRankList = redisUtils.get(inNumAndStockRankListRedisKey, List.class);
+		            	//不为空,从redis中取值并返回
+		    	        if(inNumAndStockRankList == null) {
+		    	        	//没有获取到缓存时，手动查库
+		    	        	inNumAndStockRankList = productTopService.getInNumAndStockRankList(areaType, areaSeq, periodSeq);
+		    	        	redisUtils.set(inNumAndStockRankListRedisKey, JSONArray.fromObject(inNumAndStockRankList), 60 * 60 * 23);
+		    	        }
+		    	        
+		    			
+			    		//循环时间段
+						for(Integer datediff : datediffArr) {
+							
+							// 销售、销售额排名Top30
+							List<Map<String, Object>> saleTopGoodsList = productTopService.getSaleTop(rankType, areaType, areaSeq, periodSeq, datediff, 30);
+
+			    			// ^试穿数据^： 本波次所有货品的 试穿量、排名、总试穿时间 List    已存入redis，试穿排行那边直接从列表中获取，但销售额排行可能会用到
+			    			List<Map<String, Object>> tryCountAndRankList = productTopService.getTryCountAndRankList(areaType, areaSeq, periodSeq, datediff);
+			    			
+							// 添加详情数据
+							for(Map<String, Object> map : saleTopGoodsList) {
+				    			Integer shoeSeq = (Integer)map.get("shoeSeq");
+				    			
+				    			//循环所有货号的^试穿数据^List，获取本货号的试穿数据
+				    			Integer tryCount = null;
+				    			Integer tryRank = null;
+				    			Integer tryTimesSum = null;
+				    			for(Map<String, Object> tryCountAndRankMap : tryCountAndRankList) {
+				    				if(((Integer)tryCountAndRankMap.get("shoeSeq")).equals(shoeSeq)) {
+				    					tryCount = (Integer)tryCountAndRankMap.get("tryCount");
+				    					if(tryCountAndRankMap.get("tryRank") instanceof Long) {  // sql查出来是Long, 从缓存中取时是Integer
+					    					tryRank = ((Long)tryCountAndRankMap.get("tryRank")).intValue();
+				    					} else {
+					    					tryRank = (Integer)tryCountAndRankMap.get("tryRank");
+				    					}
+				    					tryTimesSum = (Integer)tryCountAndRankMap.get("tryTimesSum");
+				    				}
+				    			}
+				    			//试穿排名
+				    			map.put("tryRank", tryRank);
+				    			//试穿时间 转化为分钟
+				    			Integer tryTimes = null;
+				    			if(tryTimesSum != null) {
+				    				tryTimes = tryTimesSum/60 + 1;
+				    			}
+				    			map.put("tryTimes", tryTimes);
+				    			//试穿次数
+				    			map.put("tryCount", tryCount);
+								
+				    			//试穿趋势
+				    			Integer tryCountTrend = productTopService.getTryCountTrend(areaType, areaSeq, shoeSeq, datediff);
+				    			map.put("tryCountTrend", tryCountTrend);
+				    			
+				    			//上柜日期 
+				    			Date cabinetDate = productTopService.getShoeCabinetDate(areaType, areaSeq, shoeSeq);
+				    			String cabinetDateStr = "";
+				    			if(cabinetDate != null) {
+				    				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+				    				cabinetDateStr = sdf.format(cabinetDate);
+				    			}
+				    			map.put("cabinetDate", cabinetDateStr);
+				    			
+								
+				    			/* 1.销量与库存  （ ^试穿数据^ (与时间、区域相关)试穿排行那边可从列表中取，没做缓存，^库存数据^ (只跟区域有关)，试穿排行可能用到，做了Redis缓存）*/
+				    			//销量
+				    			Integer saleCount = (Integer) map.get("saleCount");
+				    			//试穿销量转化率
+				    			BigDecimal trySaleConvert = BigDecimal.ZERO;
+				    			if(saleCount != null && tryCount != null && tryCount > 0) {
+				    				trySaleConvert = BigDecimal.valueOf(saleCount).divide(BigDecimal.valueOf(tryCount), 2, RoundingMode.HALF_UP);
+				    			}
+				    			map.put("trySaleConvert", trySaleConvert);
+				    			
+				    			//日平均销量
+				    			Integer dayAvgSaleCount = null;
+				    			if(saleCount != null) {
+				    				dayAvgSaleCount = saleCount/datediff;
+				    			}
+				    			map.put("dayAvgSaleCount", dayAvgSaleCount);
+				    			//总售价（销售额）
+				    			BigDecimal salePriceSum = (BigDecimal) map.get("salePriceSum");
+				    			//平均售价
+				    			BigDecimal avgSalePrice = null;
+				    			if(salePriceSum != null && saleCount != null && saleCount != 0) {
+				    				avgSalePrice = salePriceSum.divide(BigDecimal.valueOf(saleCount), 2, RoundingMode.HALF_UP);
+				    			}
+				    			map.put("avgSalePrice", avgSalePrice);
+				    			
+				    			
+				    			//销售量、销售额趋势
+				    			Map<String, Object> saleTrendMap = productTopService.getSaleTrendMap(areaType, areaSeq, shoeSeq, datediff);
+				    			map.putAll(saleTrendMap);
+				    			
+				    			
+				    			//循环所有货号的^库存数据^List，获取本货号的库存数据
+				    			Integer totalInNum = null;
+				    			Integer stock = null;
+				    			Integer stockRank = null;
+				    			List<Map<String, Object>> everySizeStock = null;
+				    			for(Map<String, Object> inNumAndStockRankMap : inNumAndStockRankList) {
+				    				if(((Integer)inNumAndStockRankMap.get("shoeSeq")).equals(shoeSeq)) {
+				    					totalInNum = (Integer)inNumAndStockRankMap.get("totalInNum");
+				    					stock = (Integer)inNumAndStockRankMap.get("stock");
+				    					if(inNumAndStockRankMap.get("stockRank") instanceof Long) {  // sql查出来是Long, 从缓存中取时是Integer
+				    						stockRank = ((Long)inNumAndStockRankMap.get("stockRank")).intValue();
+				    					} else {
+				    						stockRank = (Integer)inNumAndStockRankMap.get("stockRank");
+				    					}
+				    					everySizeStock = (List<Map<String, Object>>)inNumAndStockRankMap.get("everySizeStock");
+				    				}
+				    			}
+				    			
+				    			//累计入库量
+				    			map.put("totalInNum", totalInNum);
+				    			//库存
+				    			map.put("stock", stock);
+				    			//库存排名
+				    			map.put("stockRank", stockRank);
+				    			//每个尺码对应的库存
+				    			map.put("everySizeStock", everySizeStock);
+				    			
+				    			
+				    			
+				    			//累计销量
+				    			Integer totalSaleNum = null;
+				    			if(totalInNum != null && stock != null) {
+				    				totalSaleNum = totalInNum - stock;
+				    			}
+				    			map.put("totalSaleNum", totalSaleNum);
+				    			//售罄率
+				    			BigDecimal totalSaleOutRate = BigDecimal.ZERO;
+				    			if(totalInNum != null && totalSaleNum != null && totalInNum != 0) {
+				    				totalSaleOutRate = BigDecimal.valueOf(totalSaleNum).divide(BigDecimal.valueOf(totalInNum), 2, RoundingMode.HALF_UP);
+				    			}
+				    			map.put("totalSaleOutRate", totalSaleOutRate);
+				    			
+				    			
+				    			/* 2.图表数据 */
+				    			//1.近30天销量与试穿：
+				    			//以双向Y轴的方式展示试穿和销售的柱状图；同时在柱状图上连接起曲线并显示出日平均售价；
+				    			//可存入redis，循环时间应该有重复货号、销量排行那边应该有重复区域 都会用到 ，这个只与区域有关
+				    			
+				        		//尝试从redis获取缓存的值
+				    	    	String day30saleAndTryRedisKey = RedisKeys.getTopDay30saleAndTryMapRedisKey(areaType, areaSeq, shoeSeq);
+				    	        @SuppressWarnings("unchecked")
+				    	        Map<String, Object> day30saleAndTryMap = redisUtils.get(day30saleAndTryRedisKey, Map.class);
+				            	//不为空,从redis中取值并返回
+				    	        if(day30saleAndTryMap == null) {
+				    	        	//没有获取到缓存时，手动查库
+				    	        	day30saleAndTryMap = queryDay30saleAndTryMapFromDatabase(areaType, areaSeq, shoeSeq);
+				    	        	redisUtils.set(day30saleAndTryRedisKey, JSONObject.fromObject(day30saleAndTryMap), 60 * 60 * 23);
+				    	        }
+				        		map.put("day30saleAndTryGraph", day30saleAndTryMap);
+				        		
+				        		
+				        		// 2.销售强度曲线，
+				        		// 具体公式为自然周销售双数/7天/上货网点（门店）；以门店的、分公司、大区、全国同样的公式去计算当前货品的销售强度，销售强度以一周计算一次；
+				    	        Map<String, Object> saleStrengthAndAvgLineMap = getSaleStrengthAndAvgLineMap(areaType, areaSeq, shoeSeq);
+				        		map.put("saleStrengthGraph", saleStrengthAndAvgLineMap);
+				        		
+							}
+							
+							/** 存入Redis **/
+							String redisKey = RedisKeys.getProductModuleRedisKey(rankType, areaType, areaSeq, datediff, periodSeq);
+							redisUtils.setNotExpire(redisKey, JSONArray.fromObject(saleTopGoodsList));
+							/** 存入Redis **/
+						}
+					}
+		    	}
+	    	}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+		}
+		Date endTaskTime = new Date();
+		logger.info("###ProductTopTask saleTop方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+    }
+    
+    
+	
+	
+	/**
+     * 2019产品版：滞销排行
+     */
+	@Scheduled(cron = "0 30 8 * * ?" )
+    public void saleLast() {
+		Date startTaskTime = new Date();
+		logger.info("###ProductTopTask saleLast方法，开始执行: " + startTaskTime);
+    	try {
+    		//所有开始时间 : 1:最近一日 7:上一周 9:累计
+    		Integer[] datediffArr = {1,7,9};
+    		//所有2018年之后的波次 + 一个序号为0的波次用来表示不传波次
+    		List<PeriodEntity> periodList = periodService.getPeriodsByBrandSeqAfterYear(1, 2018);
+    		PeriodEntity period0 = new PeriodEntity();
+    		period0.setSeq(0);
+    		periodList.add(period0);
+    		
+	    	//获取所有订阅了该排行模块的所有区域（这里与用户无关，不同用户选择同一区域订阅同一模块，看到的数据是一样的）
+	    	List<Map<String, Object>> areaList = userModuleSubscribedService.getModuleSubscribedAreaByModuleSeq(ProductModuleEnum.SALE_SALELAST.getModuleSeq());
+	    	for(Map<String, Object> areaMap : areaList) {
+		    	Integer areaType = (Integer) areaMap.get("AreaType");
+		    	Integer areaSeq = (Integer) areaMap.get("AreaSeq");
+		    	
+			    //循环波次
+			    for(PeriodEntity periodEntity : periodList) {
+				    Integer periodSeq = periodEntity.getSeq();
+				    
+		    		// ^库存数据^：本波次所有货品的 累计入库量、库存、库存排名、每个尺码对应的库存、尺码区域下一级的库存 List
+		        	//尝试从redis获取缓存的值
+		    	    String inNumAndStockRankListRedisKey = RedisKeys.getTopInNumAndStockRankListRedisKey(areaType, areaSeq, periodSeq);
+		    	    @SuppressWarnings("unchecked")
+		    	    List<Map<String, Object>> inNumAndStockRankList = redisUtils.get(inNumAndStockRankListRedisKey, List.class);
+		            //不为空,从redis中取值并返回
+		    	    if(inNumAndStockRankList == null) {
+		    	        //没有获取到缓存时，手动查库
+		    	        inNumAndStockRankList = productTopService.getInNumAndStockRankList(areaType, areaSeq, periodSeq);
+		    	        redisUtils.set(inNumAndStockRankListRedisKey, JSONArray.fromObject(inNumAndStockRankList), 60 * 60 * 23);
+		    	    }
+		    	    
+		    	    
+			    	//循环时间段
+					for(Integer datediff : datediffArr) {
+						
+						// 滞销排名Top30
+						List<Map<String, Object>> saleLastGoodsList = productTopService.getSaleLast(areaType, areaSeq, periodSeq, datediff, 30);
+						
+			    		// ^试穿数据^： 本波次所有货品的 试穿量、排名、总试穿时间 List    已存入redis，试穿排行那边直接从列表中获取，但销售额排行可能会用到
+			    		List<Map<String, Object>> tryCountAndRankList = productTopService.getTryCountAndRankList(areaType, areaSeq, periodSeq, datediff);
+			    		
+						// 添加详情数据
+						for(Map<String, Object> map : saleLastGoodsList) {
+				    		Integer shoeSeq = (Integer)map.get("shoeSeq");
+				    		
+				    		//循环所有货号的^试穿数据^List，获取本货号的试穿数据
+				    		Integer tryCount = null;
+				    		Integer tryRank = null;
+				    		Integer tryTimesSum = null;
+				    		for(Map<String, Object> tryCountAndRankMap : tryCountAndRankList) {
+				    			if(((Integer)tryCountAndRankMap.get("shoeSeq")).equals(shoeSeq)) {
+				    				tryCount = (Integer)tryCountAndRankMap.get("tryCount");
+				    				if(tryCountAndRankMap.get("tryRank") instanceof Long) {  // sql查出来是Long, 从缓存中取时是Integer
+					    				tryRank = ((Long)tryCountAndRankMap.get("tryRank")).intValue();
+				    				} else {
+					    				tryRank = (Integer)tryCountAndRankMap.get("tryRank");
+				    				}
+				    				tryTimesSum = (Integer)tryCountAndRankMap.get("tryTimesSum");
+				    			}
+				    		}
+				    		//试穿排名
+				    		map.put("tryRank", tryRank);
+				    		//试穿时间 转化为分钟
+				    		Integer tryTimes = null;
+				    		if(tryTimesSum != null) {
+				    			tryTimes = tryTimesSum/60 + 1;
+				    		}
+				    		map.put("tryTimes", tryTimes);
+				    		//试穿次数
+				    		map.put("tryCount", tryCount);
+							
+				    		//试穿趋势
+				    		Integer tryCountTrend = productTopService.getTryCountTrend(areaType, areaSeq, shoeSeq, datediff);
+				    		map.put("tryCountTrend", tryCountTrend);
+				    		
+				    		//上柜日期 
+				    		Date cabinetDate = productTopService.getShoeCabinetDate(areaType, areaSeq, shoeSeq);
+				    		String cabinetDateStr = "";
+				    		if(cabinetDate != null) {
+				    			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+				    			cabinetDateStr = sdf.format(cabinetDate);
+				    		}
+				    		map.put("cabinetDate", cabinetDateStr);
+				    		
+							
+				    		/* 1.销量与库存  （ ^试穿数据^ (与时间、区域相关)试穿排行那边可从列表中取，没做缓存，^库存数据^ (只跟区域有关)，试穿排行可能用到，做了Redis缓存）*/
+				    		//销量
+				    		Integer saleCount = (Integer) map.get("saleCount");
+				    		//试穿销量转化率
+				    		BigDecimal trySaleConvert = BigDecimal.ZERO;
+				    		if(saleCount != null && tryCount != null && tryCount > 0) {
+				    			trySaleConvert = BigDecimal.valueOf(saleCount).divide(BigDecimal.valueOf(tryCount), 2, RoundingMode.HALF_UP);
+				    		}
+				    		map.put("trySaleConvert", trySaleConvert);
+				    		
+				    		//日平均销量
+				    		Integer dayAvgSaleCount = null;
+				    		if(saleCount != null) {
+				    			dayAvgSaleCount = saleCount/datediff;
+				    		}
+				    		map.put("dayAvgSaleCount", dayAvgSaleCount);
+				    		//总售价（销售额）
+				    		BigDecimal salePriceSum = (BigDecimal) map.get("salePriceSum");
+				    		//平均售价
+				    		BigDecimal avgSalePrice = null;
+				    		if(salePriceSum != null && saleCount != null && saleCount != 0) {
+				    			avgSalePrice = salePriceSum.divide(BigDecimal.valueOf(saleCount), 2, RoundingMode.HALF_UP);
+				    		}
+				    		map.put("avgSalePrice", avgSalePrice);
+				    		
+				    		
+				    		//销售量、销售额趋势
+				    		Map<String, Object> saleTrendMap = productTopService.getSaleTrendMap(areaType, areaSeq, shoeSeq, datediff);
+				    		map.putAll(saleTrendMap);
+				    		
+				    		
+				    		//循环所有货号的^库存数据^List，获取本货号的库存数据
+				    		Integer totalInNum = null;
+				    		Integer stock = null;
+				    		Integer stockRank = null;
+				    		List<Map<String, Object>> everySizeStock = null;
+				    		for(Map<String, Object> inNumAndStockRankMap : inNumAndStockRankList) {
+				    			if(((Integer)inNumAndStockRankMap.get("shoeSeq")).equals(shoeSeq)) {
+				    				totalInNum = (Integer)inNumAndStockRankMap.get("totalInNum");
+				    				stock = (Integer)inNumAndStockRankMap.get("stock");
+				    				if(inNumAndStockRankMap.get("stockRank") instanceof Long) {  // sql查出来是Long, 从缓存中取时是Integer
+				    					stockRank = ((Long)inNumAndStockRankMap.get("stockRank")).intValue();
+				    				} else {
+				    					stockRank = (Integer)inNumAndStockRankMap.get("stockRank");
+				    				}
+				    				everySizeStock = (List<Map<String, Object>>)inNumAndStockRankMap.get("everySizeStock");
+				    			}
+				    		}
+				    		
+				    		//累计入库量
+				    		map.put("totalInNum", totalInNum);
+				    		//库存
+				    		map.put("stock", stock);
+				    		//库存排名
+				    		map.put("stockRank", stockRank);
+				    		//每个尺码对应的库存
+				    		map.put("everySizeStock", everySizeStock);
+				    		
+				    		
+				    		
+				    		//累计销量
+				    		Integer totalSaleNum = null;
+				    		if(totalInNum != null && stock != null) {
+				    			totalSaleNum = totalInNum - stock;
+				    		}
+				    		map.put("totalSaleNum", totalSaleNum);
+				    		//售罄率
+				    		BigDecimal totalSaleOutRate = BigDecimal.ZERO;
+				    		if(totalInNum != null && totalSaleNum != null && totalInNum != 0) {
+				    			totalSaleOutRate = BigDecimal.valueOf(totalSaleNum).divide(BigDecimal.valueOf(totalInNum), 2, RoundingMode.HALF_UP);
+				    		}
+				    		map.put("totalSaleOutRate", totalSaleOutRate);
+				    		
+				    		
+				    		/* 2.图表数据 */
+				    		//1.近30天销量与试穿：
+				    		//以双向Y轴的方式展示试穿和销售的柱状图；同时在柱状图上连接起曲线并显示出日平均售价；
+				    		//可存入redis，循环时间应该有重复货号、销量排行那边应该有重复区域 都会用到 ，这个只与区域有关
+				    		
+				        	//尝试从redis获取缓存的值
+				    	    String day30saleAndTryRedisKey = RedisKeys.getTopDay30saleAndTryMapRedisKey(areaType, areaSeq, shoeSeq);
+				    	    @SuppressWarnings("unchecked")
+				    	    Map<String, Object> day30saleAndTryMap = redisUtils.get(day30saleAndTryRedisKey, Map.class);
+				            //不为空,从redis中取值并返回
+				    	    if(day30saleAndTryMap == null) {
+				    	        //没有获取到缓存时，手动查库
+				    	        day30saleAndTryMap = queryDay30saleAndTryMapFromDatabase(areaType, areaSeq, shoeSeq);
+				    	        redisUtils.set(day30saleAndTryRedisKey, JSONObject.fromObject(day30saleAndTryMap), 60 * 60 * 23);
+				    	    }
+				        	map.put("day30saleAndTryGraph", day30saleAndTryMap);
+				        	
+				        	
+				        	// 2.销售强度曲线，
+				        	// 具体公式为自然周销售双数/7天/上货网点（门店）；以门店的、分公司、大区、全国同样的公式去计算当前货品的销售强度，销售强度以一周计算一次；
+				    	    Map<String, Object> saleStrengthAndAvgLineMap = getSaleStrengthAndAvgLineMap(areaType, areaSeq, shoeSeq);
+				    	    map.put("saleStrengthGraph", saleStrengthAndAvgLineMap);
+				        	
+						}
+						
+						/** 存入Redis **/
+						String redisKey = RedisKeys.getProductModuleRedisKey(ProductModuleEnum.SALE_SALELAST.getModuleSeq(), areaType, areaSeq, datediff, periodSeq);
+						redisUtils.setNotExpire(redisKey, JSONArray.fromObject(saleLastGoodsList));
+						/** 存入Redis **/
+					}
+				}
+		    }
+	    	
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+		}
+		Date endTaskTime = new Date();
+		logger.info("###ProductTopTask saleLast方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+    }
+	
+
+}

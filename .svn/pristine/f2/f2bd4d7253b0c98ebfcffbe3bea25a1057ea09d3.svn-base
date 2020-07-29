@@ -1,0 +1,543 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nuite.modules.erp.dao.ErpCopyDao">
+
+    <!-- 店铺 -->
+    <select id="maxTimeOfDb" resultType="date">
+        select max(gxrq) from [cb_new_eb].[dbo].[db]
+    </select>
+
+    <select id="selectDbList" resultType="map">
+        select * from [EBLAN_ERP].[cb_new_eb].[dbo].[db]
+        <if test="startTime != null">
+            where gxrq<![CDATA[ >]]>#{startTime}
+        </if>
+    </select>
+
+    <select id="selectDbById" resultType="map">
+        select * from [cb_new_eb].[dbo].[db] where dbno=#{id}
+    </select>
+
+    <update id="updateDbById" parameterType="map">
+        update [cb_new_eb].[dbo].[db] set [names]=#{names},[tela]=#{tela},[adda]=#{adda},[stanos]=#{stanos},
+        [staname]=#{staname},[ckaccno]=#{ckaccno},[closeif]=#{closeif},[gxrq]=#{gxrq} where [dbno]=#{dbno}
+    </update>
+
+    <insert id="insertDb" parameterType="map">
+        insert into [cb_new_eb].[dbo].[db] ([dbno],[names],[tela],[adda],[stanos],[staname],[ckaccno],[closeif],[gxrq])
+        values(#{dbno},#{names},#{tela},#{adda},#{stanos},#{staname},#{ckaccno},#{closeif},#{gxrq});
+    </insert>
+
+    <!-- 颜色 -->
+    <select id="selectColorList" resultType="map">
+        select * from [EBLAN_ERP].[cb_new_eb].[dbo].[gg_color]
+    </select>
+
+    <select id="selectColorById" resultType="map">
+        select * from [cb_new_eb].[dbo].[gg_color] where color_no=#{id}
+    </select>
+
+    <update id="updateColorById" parameterType="map">
+        update [cb_new_eb].[dbo].[gg_color] set color_name=#{color_name} where color_no=#{color_no}
+    </update>
+
+    <insert id="insertColor" parameterType="map">
+        insert into [cb_new_eb].[dbo].[gg_color] ([color_no],[color_name])
+        values(#{color_no},#{color_name})
+    </insert>
+
+    <!-- 属性 -->
+    <select id="maxTimeOfCltypeb" resultType="date">
+        select max(gxrq) from [cb_new_eb].[dbo].[cltypeb]
+    </select>
+
+    <select id="selectCltypebList" resultType="map">
+        select * from [EBLAN_ERP].[cb_new_eb].[dbo].[cltypeb]
+        <if test="startTime != null">
+            where gxrq<![CDATA[ >]]>#{startTime}
+        </if>
+    </select>
+
+    <select id="selectCltypebById" resultType="map">
+        select * from [cb_new_eb].[dbo].[cltypeb] where [classno]=#{id}
+    </select>
+
+    <update id="updateCltypebById" parameterType="map">
+        update [cb_new_eb].[dbo].[cltypeb] set [typeno]=#{typeno},[nos_rec]=#{nos_rec},[classname]=#{classname},[bz]=#{bz},[gxrq]=#{gxrq}
+        where [classno]=#{classno}
+    </update>
+
+    <insert id="insertCltypeb" parameterType="map">
+        insert into [cb_new_eb].[dbo].[cltypeb] ([typeno],[nos_rec],[classno],[classname],[bz],[gxrq])
+        values (#{typeno},#{nos_rec},#{classno},#{classname},#{bz},#{gxrq})
+    </insert>
+
+    <!-- 货品 -->
+    <select id="maxTimeOfColoth" resultType="date">
+        select max(gxrq) from [cb_new_eb].[dbo].[coloth_t]
+    </select>
+
+    <select id="selectColoth" resultType="map">
+        select * from [EBLAN_ERP].[cb_new_eb].[dbo].[coloth_t]
+        <if test="startTime != null">
+            where gxrq<![CDATA[ >]]>#{startTime}
+        </if>
+    </select>
+
+    <select id="selectColothById" resultType="map">
+        select * from [cb_new_eb].[dbo].[coloth_t] where [colthno]=#{colthno}
+    </select>
+
+    <update id="updateColothById" parameterType="map">
+        update [cb_new_eb].[dbo].[coloth_t] set [colthno]=#{colthno},[colthname]=#{colthname},
+        [sizekind]=#{sizekind},[sprice]=#{sprice},[price]=#{price},[gxrq]=#{gxrq},[tyclassno1]=#{tyclassno1},
+        [tyclassno2]=#{tyclassno2},[tyclassno3]=#{tyclassno3},[tyclassno4]=#{tyclassno4},[tyclassno5]=#{tyclassno5},
+        [tyclassno6]=#{tyclassno6},[tyclassno7]=#{tyclassno7},[tyclassno8]=#{tyclassno8},[tyclassno9]=#{tyclassno9},
+        [tyclassno10]=#{tyclassno10}
+        where [colthno]=#{colthno}
+    </update>
+
+    <insert id="insertColoth" parameterType="map">
+        insert into [cb_new_eb].[dbo].[coloth_t] ([colthno],[colthname],[sizekind],[sprice],[price],[gxrq],[tyclassno1],[tyclassno2],
+        [tyclassno3],[tyclassno4],[tyclassno5],[tyclassno6],[tyclassno7],[tyclassno8],[tyclassno9],[tyclassno10])
+        values (#{colthno},#{colthname},#{sizekind},#{sprice},#{price},#{gxrq},#{tyclassno1},#{tyclassno2},
+        #{tyclassno3},#{tyclassno4},#{tyclassno5},#{tyclassno6},#{tyclassno7},#{tyclassno8},#{tyclassno9},#{tyclassno10})
+    </insert>
+
+    <!-- 货品属性关系 -->
+    <select id="maxTimeOfCltypep" resultType="date">
+        select max(gxrq) from [cb_new_eb].[dbo].[cltypep]
+    </select>
+
+    <select id="selectCltypepList" resultType="map">
+        select * from [EBLAN_ERP].[cb_new_eb].[dbo].[cltypep]
+        <if test="startTime != null">
+            where gxrq<![CDATA[ >]]>#{startTime}
+        </if>
+    </select>
+
+    <select id="selectCltypepById" resultType="map">
+        select * from [cb_new_eb].[dbo].[cltypep] where [typeno]=#{typeno} and [colthno]=#{colthno} and [classno]=#{classno}
+    </select>
+
+    <update id="updateCltypepById" parameterType="map">
+        update [cb_new_eb].[dbo].[cltypep] set [classname]=#{classname},[bz]=#{bz},[gxrq]=#{gxrq}
+        where [typeno]=#{typeno} and [colthno]=#{colthno} and [classno]=#{classno}
+    </update>
+
+    <insert id="insertCltypep" parameterType="map">
+        insert into [cb_new_eb].[dbo].[cltypep] ([typeno],[colthno],[classno],[classname],[bz],[gxrq])
+        values (#{typeno},#{colthno},#{classno},#{classname},#{bz},#{gxrq})
+    </insert>
+
+
+    <!-- trun -->
+    <select id="maxTimeOfTrun" resultType="date">
+        select max(gxrq) from [cb_new_eb].[dbo].[trun]
+    </select>
+
+    <select id="selectTrun" resultType="map">
+        select * from [EBLAN_ERP].[cb_new_eb].[dbo].[trun]
+        <if test="startTime != null">
+            where gxrq<![CDATA[ >]]>#{startTime}
+        </if>
+    </select>
+
+    <delete id="deleteOldTrunData">
+        delete from [cb_new_eb].[dbo].[trun] where [nos] in
+        <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        ;
+        delete from [cb_new_eb].[dbo].[trunb] where [nos] in
+        <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        ;
+    </delete>
+
+    <insert id="insertTrunList" parameterType="arraylist">
+        insert into [cb_new_eb].[dbo].[trun] ([nos]
+        ,[cusno]
+        ,[incusno]
+        ,[cusname]
+        ,[rtnos]
+        ,[incusname]
+        ,[innos]
+        ,[nos3]
+        ,[outdate]
+        ,[per]
+        ,[nb]
+        ,[now]
+        ,[now_real]
+        ,[now_cost]
+        ,[rmark]
+        ,[gxrq]
+        ,[zdr]
+        ,[bz]
+        ,[flags]
+        ,[stanos]
+        ,[recno]
+        ,[chflags]
+        ,[olddate]
+        ,[outnb]
+        ,[out_now_real]
+        ,[sendman]
+        ,[recvman]
+        ,[classes]
+        ,[bulkflags])
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.nos}
+            ,#{item.cusno}
+            ,#{item.incusno}
+            ,#{item.cusname}
+            ,#{item.rtnos}
+            ,#{item.incusname}
+            ,#{item.innos}
+            ,#{item.nos3}
+            ,#{item.outdate}
+            ,#{item.per}
+            ,#{item.nb}
+            ,#{item.now}
+            ,#{item.now_real}
+            ,#{item.now_cost}
+            ,#{item.rmark}
+            ,#{item.gxrq}
+            ,#{item.zdr}
+            ,#{item.bz}
+            ,#{item.flags}
+            ,#{item.stanos}
+            ,#{item.recno}
+            ,#{item.chflags}
+            ,#{item.olddate}
+            ,#{item.outnb}
+            ,#{item.out_now_real}
+            ,#{item.sendman}
+            ,#{item.recvman}
+            ,#{item.classes}
+            ,#{item.bulkflags})
+        </foreach>
+    </insert>
+
+    <insert id="insertTrunbList">
+        insert into [cb_new_eb].[dbo].[trunb]
+        select * from [EBLAN_ERP].[cb_new_eb].[dbo].[trunb]
+        where [nos] in
+        <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </insert>
+
+    <!-- rt -->
+    <select id="maxTimeOfRt" resultType="date">
+        select max(gxrq) from [cb_new_eb].[dbo].[rt]
+    </select>
+
+    <select id="selectRt" resultType="map">
+        select * from [EBLAN_ERP].[cb_new_eb].[dbo].[rt]
+        <if test="startTime != null">
+            where gxrq<![CDATA[ >]]>#{startTime}
+        </if>
+    </select>
+
+    <delete id="deleteOldRtData">
+        delete from [cb_new_eb].[dbo].[rt] where [nos] in
+        <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        ;
+        delete from [cb_new_eb].[dbo].[h2ort] where [nos] in
+        <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        ;
+    </delete>
+
+    <insert id="insertRtList" parameterType="arraylist">
+        insert into [cb_new_eb].[dbo].[rt] ([nos]
+        ,[nos2]
+        ,[nos3]
+        ,[cusno]
+        ,[ckaccno]
+        ,[outdate]
+        ,[per]
+        ,[price_kind]
+        ,[kinds1]
+        ,[kinds2]
+        ,[now]
+        ,[now_real]
+        ,[now_cost]
+        ,[nb]
+        ,[disc]
+        ,[ins]
+        ,[bal]
+        ,[salescode]
+        ,[gxrq]
+        ,[zdr]
+        ,[bz]
+        ,[rmark]
+        ,[flags]
+        ,[stanos]
+        ,[nowpay]
+        ,[sanos]
+        ,[chflags]
+        ,[olddate]
+        ,[kinds3]
+        ,[outnb]
+        ,[out_now_real]
+        ,[sendman]
+        ,[recvman]
+        ,[days1]
+        ,[days2]
+        ,[indbno]
+        ,[bulkflags])
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.nos}
+            ,#{item.nos2}
+            ,#{item.nos3}
+            ,#{item.cusno}
+            ,#{item.ckaccno}
+            ,#{item.outdate}
+            ,#{item.per}
+            ,#{item.price_kind}
+            ,#{item.kinds1}
+            ,#{item.kinds2}
+            ,#{item.now}
+            ,#{item.now_real}
+            ,#{item.now_cost}
+            ,#{item.nb}
+            ,#{item.disc}
+            ,#{item.ins}
+            ,#{item.bal}
+            ,#{item.salescode}
+            ,#{item.gxrq}
+            ,#{item.zdr}
+            ,#{item.bz}
+            ,#{item.rmark}
+            ,#{item.flags}
+            ,#{item.stanos}
+            ,#{item.nowpay}
+            ,#{item.sanos}
+            ,#{item.chflags}
+            ,#{item.olddate}
+            ,#{item.kinds3}
+            ,#{item.outnb}
+            ,#{item.out_now_real}
+            ,#{item.sendman}
+            ,#{item.recvman}
+            ,#{item.days1}
+            ,#{item.days2}
+            ,#{item.indbno}
+            ,#{item.bulkflags})
+        </foreach>
+    </insert>
+
+    <insert id="insertH2ortList">
+        insert into [cb_new_eb].[dbo].[h2ort]
+        select * from [EBLAN_ERP].[cb_new_eb].[dbo].[h2ort]
+        where [nos] in
+        <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </insert>
+
+    <!-- sa -->
+    <select id="maxTimeOfSa" resultType="date">
+        select max(gxrq) from [cb_new_eb].[dbo].[sa]
+    </select>
+
+    <select id="selectSa" resultType="map">
+        select * from [EBLAN_ERP].[cb_new_eb].[dbo].[sa]
+        <if test="startTime != null">
+            where gxrq<![CDATA[ >]]>#{startTime}
+        </if>
+    </select>
+
+    <delete id="deleteOldSaData">
+        delete from [cb_new_eb].[dbo].[sa] where [nos] in
+        <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        ;
+        delete from [cb_new_eb].[dbo].[h2osa] where [nos] in
+        <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        ;
+    </delete>
+
+    <insert id="insertSaList" parameterType="arraylist">
+        insert into [cb_new_eb].[dbo].[sa] ([nos]
+        ,[nos2]
+        ,[cusno]
+        ,[kinds1]
+        ,[kinds2]
+        ,[outdate]
+        ,[per]
+        ,[now]
+        ,[now_real]
+        ,[now_cost]
+        ,[nb]
+        ,[ins]
+        ,[disc]
+        ,[bal]
+        ,[nowpay]
+        ,[zdr]
+        ,[gxrq]
+        ,[rmark]
+        ,[bz]
+        ,[flags]
+        ,[stanos]
+        ,[chflags]
+        ,[now_real4])
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.nos}
+            ,#{item.nos2}
+            ,#{item.cusno}
+            ,#{item.kinds1}
+            ,#{item.kinds2}
+            ,#{item.outdate}
+            ,#{item.per}
+            ,#{item.now}
+            ,#{item.now_real}
+            ,#{item.now_cost}
+            ,#{item.nb}
+            ,#{item.ins}
+            ,#{item.disc}
+            ,#{item.bal}
+            ,#{item.nowpay}
+            ,#{item.zdr}
+            ,#{item.gxrq}
+            ,#{item.rmark}
+            ,#{item.bz}
+            ,#{item.flags}
+            ,#{item.stanos}
+            ,#{item.chflags}
+            ,#{item.now_real4})
+        </foreach>
+    </insert>
+
+    <insert id="insertH2osaList">
+        insert into [cb_new_eb].[dbo].[h2osa]
+        select * from [EBLAN_ERP].[cb_new_eb].[dbo].[h2osa]
+        where [nos] in
+        <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </insert>
+
+    <!-- buy -->
+    <select id="maxTimeOfBuy" resultType="date">
+        select max(gxrq) from [cb_new_eb].[dbo].[buy]
+    </select>
+
+    <select id="selectBuy" resultType="map">
+        select * from [EBLAN_ERP].[cb_new_eb].[dbo].[buy]
+        <if test="startTime != null">
+            where gxrq<![CDATA[ >]]>#{startTime}
+        </if>
+    </select>
+
+    <delete id="deleteOldBuyData">
+        delete from [cb_new_eb].[dbo].[buy] where [nos] in
+        <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        ;
+        delete from [cb_new_eb].[dbo].[h2oin] where [nos] in
+        <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        ;
+    </delete>
+
+    <insert id="insertBuyList" parameterType="arraylist">
+        insert into [cb_new_eb].[dbo].[buy] ([nos]
+        ,[nos2]
+        ,[nos3]
+        ,[cusno]
+        ,[ckaccno]
+        ,[outdate]
+        ,[stanos]
+        ,[per]
+        ,[price_kind]
+        ,[kinds1]
+        ,[kinds2]
+        ,[sanos]
+        ,[now]
+        ,[now_real]
+        ,[now_cost]
+        ,[nb]
+        ,[ins]
+        ,[disc]
+        ,[nowpay]
+        ,[bal]
+        ,[salescode]
+        ,[zdr]
+        ,[gxrq]
+        ,[rmark]
+        ,[bz]
+        ,[flags]
+        ,[chflags]
+        ,[buypnos]
+        ,[kinds3]
+        ,[outnb]
+        ,[out_now_real]
+        ,[olddate]
+        ,[days1]
+        ,[days2]
+        ,[bulkflags]
+        ,[addr])
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.nos}
+            ,#{item.nos2}
+            ,#{item.nos3}
+            ,#{item.cusno}
+            ,#{item.ckaccno}
+            ,#{item.outdate}
+            ,#{item.stanos}
+            ,#{item.per}
+            ,#{item.price_kind}
+            ,#{item.kinds1}
+            ,#{item.kinds2}
+            ,#{item.sanos}
+            ,#{item.now}
+            ,#{item.now_real}
+            ,#{item.now_cost}
+            ,#{item.nb}
+            ,#{item.ins}
+            ,#{item.disc}
+            ,#{item.nowpay}
+            ,#{item.bal}
+            ,#{item.salescode}
+            ,#{item.zdr}
+            ,#{item.gxrq}
+            ,#{item.rmark}
+            ,#{item.bz}
+            ,#{item.flags}
+            ,#{item.chflags}
+            ,#{item.buypnos}
+            ,#{item.kinds3}
+            ,#{item.outnb}
+            ,#{item.out_now_real}
+            ,#{item.olddate}
+            ,#{item.days1}
+            ,#{item.days2}
+            ,#{item.bulkflags}
+            ,#{item.addr})
+        </foreach>
+    </insert>
+
+    <insert id="insertH2oinList">
+        insert into [cb_new_eb].[dbo].[h2oin]
+        select * from [EBLAN_ERP].[cb_new_eb].[dbo].[h2oin]
+        where [nos] in
+        <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </insert>
+</mapper>

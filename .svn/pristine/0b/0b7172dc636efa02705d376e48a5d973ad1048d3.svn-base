@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.sys.dao.SizeAllotTemplateDetailDao">
+
+<select id="getAllSizes" resultType="java.lang.String">
+SELECT [Size]  FROM [dbo].[NWReplenishment_SizeAllotTemplateDetail] A GROUP BY [Size] ORDER BY [Size]
+</select>
+<select id="getSizeAllotTemplateDetailBySeqAndSize" resultType="com.nuite.modules.sys.entity.SizeAllotTemplateDetailEntity">
+	select * from [dbo].[NWReplenishment_SizeAllotTemplateDetail] where SizeAllotTemplate_Seq=#{sizeAllotTemplateSeq} AND Size=#{size}
+</select>
+</mapper>

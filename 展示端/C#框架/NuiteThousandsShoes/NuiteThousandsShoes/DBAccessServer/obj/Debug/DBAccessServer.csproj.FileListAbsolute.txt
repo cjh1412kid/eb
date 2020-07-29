@@ -1,0 +1,12 @@
+D:\2016项目\伊伴网点数据采集及行为分析互动系统（云版）\代码\前台代码\ServerTest\ServerTest\bin\Debug\DBAccessServer.dll
+D:\2016项目\伊伴网点数据采集及行为分析互动系统（云版）\代码\前台代码\ServerTest\ServerTest\bin\Debug\DBAccessServer.pdb
+D:\2016项目\伊伴网点数据采集及行为分析互动系统（云版）\代码\前台代码\ServerTest\DBAccessServer\obj\Debug\DBAccessServer.dll
+D:\2016项目\伊伴网点数据采集及行为分析互动系统（云版）\代码\前台代码\ServerTest\DBAccessServer\obj\Debug\DBAccessServer.pdb
+D:\2016项目\伊伴网点数据采集及行为分析互动系统（云版）\代码\前台代码\ServerTest\DBAccessServer\obj\Debug\DBAccessServer.csprojResolveAssemblyReference.cache
+D:\2018项目\伊伴网点数据采集及行为分析互动系统（数据服务）\代码\展示端\C#框架二\NuiteThousandsShoes\NuiteThousandsShoes\DBAccessServer\obj\Debug\DBAccessServer.csprojResolveAssemblyReference.cache
+D:\2018项目\伊伴网点数据采集及行为分析互动系统（数据服务）\代码\展示端\C#框架二\NuiteThousandsShoes\NuiteThousandsShoes\DBAccessServer\obj\Debug\DBAccessServer.dll
+D:\2018项目\伊伴网点数据采集及行为分析互动系统（数据服务）\代码\展示端\C#框架二\NuiteThousandsShoes\NuiteThousandsShoes\DBAccessServer\obj\Debug\DBAccessServer.pdb
+D:\2018项目\伊伴网点数据采集及行为分析互动系统（数据服务）\代码\展示端\C#框架二\NuiteThousandsShoes\NuiteThousandsShoes\DBAccessServer\bin\Debug\DBAccessServer.dll
+D:\2018项目\伊伴网点数据采集及行为分析互动系统（数据服务）\代码\展示端\C#框架二\NuiteThousandsShoes\NuiteThousandsShoes\DBAccessServer\bin\Debug\DBAccessServer.pdb
+D:\2018项目\伊伴网点数据采集及行为分析互动系统（数据服务）\代码\展示端\C#框架二\NuiteThousandsShoes\NuiteThousandsShoes\DBAccessServer\bin\Debug\Pacia.Configuration.EnDe.dll
+D:\2018项目\伊伴网点数据采集及行为分析互动系统（数据服务）\代码\展示端\C#框架二\NuiteThousandsShoes\NuiteThousandsShoes\DBAccessServer\bin\Debug\MemoryShare.pdb

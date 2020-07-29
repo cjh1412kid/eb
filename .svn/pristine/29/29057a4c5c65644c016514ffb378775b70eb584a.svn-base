@@ -1,0 +1,197 @@
+package com.nuite.task;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.mapper.Wrapper;
+import com.nuite.dao.BrandDao;
+import com.nuite.dao.SXDao;
+import com.nuite.dao.SXOptionDao;
+import com.nuite.entity.BrandEntity;
+import com.nuite.entity.SXEntity;
+import com.nuite.entity.SXOptionEntity;
+import com.nuite.entity.SaleAndStockEntity;
+import com.nuite.entity.ShopEntity;
+import com.nuite.service.SaleAndStockService;
+import com.nuite.service.ShopService;
+
+
+@Component("saleAndStockTask")
+public class SaleAndStockTask{
+	private Logger logger = LoggerFactory.getLogger(getClass());
+	
+    @Autowired
+    private BrandDao brandDao;
+    
+    @Autowired
+    private ShopService shopService;
+    
+    @Autowired
+    private SaleAndStockService saleAndStockService;
+    
+    @Autowired
+    private SXDao sxDao;
+    
+    @Autowired
+    private SXOptionDao sxOptionDao;
+    
+    
+    
+	/**
+     * 计算周销售和库存，存入表
+     */
+	@Scheduled(cron = "0 0 5 * * ?" )
+	public void weekSaleAndStock() {
+		Date startTaskTime = new Date();
+		logger.info("###saleAndStockTask weekSaleAndStock方法，开始执行: " + startTaskTime);
+		try {
+
+			/** 计算当前时间，获取年、周、本周开始、结束时间  **/
+	        Calendar calendar = Calendar.getInstance();
+	        calendar.setFirstDayOfWeek(Calendar.MONDAY);//设置星期一为一周开始的第一天
+	        
+	        int year = calendar.get(Calendar.YEAR);//获得当前的年
+	        int weekNoOfYear = calendar.get(Calendar.WEEK_OF_YEAR);//获得当前日期属于今年的第几周
+	        int dayOfweek = calendar.get(Calendar.DAY_OF_WEEK); //当前是星期几
+	        
+	        logger.info("年：" + year);
+	        logger.info("周：" + weekNoOfYear);
+	        logger.info("星期几：" + dayOfweek);
+	        
+	        
+	        calendar.setWeekDate(year, weekNoOfYear, 2);//获得指定年的第几周的开始日期
+	        Date startTime = calendar.getTime();
+	        calendar.setWeekDate(year, weekNoOfYear, 1);//获得指定年的第几周的结束日期
+	        Date endTime = calendar.getTime();
+	        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+	    	String startTimeStr = df.format(startTime) + " 00:00:00";
+	    	String endTimeStr = df.format(endTime) + " 23:59:59";
+	        logger.info("本周开始：" + startTimeStr);
+	        logger.info("本周结束：" + endTimeStr);
+	        /** 计算当前时间，获取年、周、本周开始、结束时间  **/
+	        
+	        
+	        
+	        /** 计算每个品牌、每个门店、每种品类，本周销售和库存，存入表中**/
+    		List<BrandEntity> brandList = brandDao.selectList(null);	//所有品牌
+    		//循环品牌
+    		for(BrandEntity brandEntity : brandList) {
+    			
+        		//品牌所有门店
+        		List<ShopEntity> shopEntityList = shopService.getShopsByBrandSeq(brandEntity.getSeq());
+		        //品牌所有品类
+        		SXEntity sxEntity = new SXEntity();
+        		sxEntity.setBrandSeq(brandEntity.getSeq());
+        		sxEntity.setSXID("SX3");
+        		sxEntity = sxDao.selectOne(sxEntity);
+        		
+        		Wrapper<SXOptionEntity> wrapper = new EntityWrapper<SXOptionEntity>();
+        		wrapper.setSqlSelect("Code").where("SXSeq = {0}", sxEntity.getSeq());
+        		List<Object> sx3CodeList = sxOptionDao.selectObjs(wrapper);
+		        
+		        
+		        //循环门店
+        		for(ShopEntity shopEntity : shopEntityList) {
+		        	
+        	        List<SaleAndStockEntity> batchList = new ArrayList<SaleAndStockEntity>();
+		        	//循环品类
+		        	for(Object sx3Code : sx3CodeList) {
+		        		//根据年、周、开始时间、结束时间，获取门店某品类销售、库存数据
+		        		SaleAndStockEntity saleAndStockEntity = saleAndStockService.getInsertOrUpdateWeekSaleAndStockEntity(shopEntity.getSeq(), year, weekNoOfYear, sx3Code.toString(), startTimeStr, endTimeStr);
+		        		
+		        		batchList.add(saleAndStockEntity);
+		        	}
+		    		saleAndStockService.insertOrUpdateBatch(batchList);
+		        }
+    		}
+
+    		
+    		/** 计算每个品牌、每个门店、每种品类，本周销售和库存，存入表中**/
+    		
+    		
+    		
+    		
+    		// 如果今天是周一或者周二，需要计算一次上周的数据
+    		if(dayOfweek == 2 || dayOfweek == 3) {
+    			
+    			//获取上周是几几年的第几周
+    			if(weekNoOfYear == 1) {
+    				year = year - 1;
+    				weekNoOfYear = 53;
+    			} else {
+//    				year = year;
+    				weekNoOfYear = weekNoOfYear - 1;
+    			}
+    			
+    			/** 计算上周时间，获取上周的年、周、上周开始、结束时间  **/
+    	        calendar.setWeekDate(year, weekNoOfYear, 2);//获得指定年的第几周的开始日期
+    	        Date lastWeekStartTime = calendar.getTime();
+    	        calendar.setWeekDate(year, weekNoOfYear, 1);//获得指定年的第几周的结束日期
+    	        Date lastWeekEndTime = calendar.getTime();
+    	    	String lastWeekStartTimeStr = df.format(lastWeekStartTime) + " 00:00:00";
+    	    	String lastWeekEndTimeStr = df.format(lastWeekEndTime) + " 23:59:59";
+    	        logger.info("上周开始：" + lastWeekStartTimeStr);
+    	        logger.info("上周结束：" + lastWeekEndTimeStr);
+    	        /** 计算上周时间，获取上周的年、周、上周开始、结束时间  **/
+    	        
+    	        /** 计算每个品牌、每个门店、每种品类，本周销售和库存，存入表中**/
+        		//循环品牌
+        		for(BrandEntity brandEntity : brandList) {
+        			
+            		//品牌所有门店
+            		List<ShopEntity> shopEntityList = shopService.getShopsByBrandSeq(brandEntity.getSeq());
+    		        //品牌所有品类
+            		SXEntity sxEntity = new SXEntity();
+            		sxEntity.setBrandSeq(brandEntity.getSeq());
+            		sxEntity.setSXID("SX3");
+            		sxEntity = sxDao.selectOne(sxEntity);
+            		
+            		Wrapper<SXOptionEntity> wrapper = new EntityWrapper<SXOptionEntity>();
+            		wrapper.setSqlSelect("Code").where("SXSeq = {0}", sxEntity.getSeq());
+            		List<Object> sx3CodeList = sxOptionDao.selectObjs(wrapper);
+    		        
+    		        
+    		        //循环门店
+            		for(ShopEntity shopEntity : shopEntityList) {
+    		        	
+            	        List<SaleAndStockEntity> batchList = new ArrayList<SaleAndStockEntity>();
+    		        	//循环品类
+    		        	for(Object sx3Code : sx3CodeList) {
+    		        		//根据年、周、开始时间、结束时间，获取门店某品类销售、库存数据
+    		        		SaleAndStockEntity saleAndStockEntity = saleAndStockService.getInsertOrUpdateWeekSaleAndStockEntity(shopEntity.getSeq(), year, weekNoOfYear, sx3Code.toString(), lastWeekStartTimeStr, lastWeekEndTimeStr);
+    		        		
+    		        		batchList.add(saleAndStockEntity);
+    		        	}
+    	        		saleAndStockService.insertOrUpdateBatch(batchList);
+    		        }
+        		}
+
+        		/** 计算每个品牌、每个门店、每种品类，本周销售和库存，存入表中**/
+        		
+    		}
+    		
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+		}
+		Date endTaskTime = new Date();
+		logger.info("###saleAndStockTask weekSaleAndStock方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+	}
+    
+    
+    
+    
+    
+	
+	
+}

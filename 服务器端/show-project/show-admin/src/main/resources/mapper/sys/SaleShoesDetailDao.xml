@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.sys.dao.SaleShoesDetailDao">
+
+    <select id="selectShopTop10" resultType="java.util.Map">
+        select TopWeekSales.ShopSeq,TopWeekSales.ShoeID,SERIES.Remark,SHOE.PeriodSeq from
+        (SELECT ShopSeq,ShoeID,SaleCounts FROM
+            (SELECT rid=ROW_NUMBER() OVER(PARTITION BY ShopSeq order by SaleCounts desc),* FROM
+                (select ShopSeq,ShoeID,sum(SaleCount) as SaleCounts from NWGoods_SaleShoesDetail as SALEDETAIL
+                    where SALEDETAIL.SaleDate<![CDATA[ >=]]>#{time} and Del=0 group by ShopSeq,ShoeID
+                ) as T
+            ) AS WeekSales
+        WHERE rid<![CDATA[ <= ]]>10
+        ) as TopWeekSales
+        left join NWGoods_Shoe as SHOE on TopWeekSales.ShoeID=SHOE.ShoeID
+        left join NWGoods_Series as SERIES on SHOE.SeriesSeq=SERIES.Seq
+    </select>
+
+</mapper>

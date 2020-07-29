@@ -1,0 +1,14 @@
+package com.nuite.modules.sys.service;
+
+import java.util.Map;
+
+import com.baomidou.mybatisplus.service.IService;
+import com.nuite.common.utils.PageUtils;
+import com.nuite.modules.sys.entity.SizeAllotTemplateEntity;
+
+
+public interface SizeAllotTemplateService extends IService<SizeAllotTemplateEntity> {
+
+    PageUtils queryPage(Map<String, Object> params);
+}
+

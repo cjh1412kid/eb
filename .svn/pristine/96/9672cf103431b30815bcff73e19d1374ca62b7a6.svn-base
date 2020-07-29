@@ -1,0 +1,14 @@
+package com.nuite.modules.sys.dao;
+
+import org.apache.ibatis.annotations.Mapper;
+
+import com.baomidou.mybatisplus.mapper.BaseMapper;
+import com.nuite.modules.sys.entity.PurchasePlanEntity;
+
+/**
+ * 采购计划管理
+ */
+@Mapper
+public interface PurchasePlanDao extends BaseMapper<PurchasePlanEntity> {
+	
+}

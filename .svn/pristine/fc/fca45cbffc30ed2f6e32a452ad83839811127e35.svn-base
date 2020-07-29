@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.sys.dao.ShopDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.modules.sys.entity.ShopEntity" id="shopMap">
+        <result property="seq" column="Seq"/>
+        <result property="areaSeq" column="AreaSeq"/>
+        <result property="shopID" column="ShopID"/>
+        <result property="name" column="Name"/>
+        <result property="address" column="Address"/>
+        <result property="lat" column="Lat"/>
+        <result property="lng" column="Lng"/>
+        <result property="installDate" column="InstallDate"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+
+</mapper>

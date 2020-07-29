@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.sys.dao.CategoryDao">
+    <insert id="insertWithSeq" parameterType="com.nuite.modules.sys.entity.CategoryEntity">
+        <selectKey keyProperty="seq" order="BEFORE" resultType="Integer">
+              select case when max(Seq) is null then 1 else max(Seq)+1 end from [NWGoods_Category]
+        </selectKey>
+        insert into [NWGoods_Category] (Seq,ParentSeq,BrandSeq,Name,CategoryCode,Visible,InputTime,Del)
+        values (#{seq},#{parentSeq},#{brandSeq},#{name},#{categoryCode},#{visible},#{inputTime},#{del})
+    </insert>
+</mapper>

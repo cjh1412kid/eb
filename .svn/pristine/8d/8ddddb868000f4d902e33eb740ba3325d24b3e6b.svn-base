@@ -1,0 +1,19 @@
+package com.nuite.modules.sys.dao;
+
+import com.baomidou.mybatisplus.mapper.BaseMapper;
+import com.nuite.modules.sys.entity.PeriodEntity;
+import org.apache.ibatis.annotations.Mapper;
+
+/**
+ * ${comments}
+ *
+ * @author wanghao
+ * @email barryhippo@163.com
+ * @date 2019-01-12 13:46:50
+ */
+@Mapper
+public interface PeriodDao extends BaseMapper<PeriodEntity> {
+
+	void insertWithSeq(PeriodEntity periodEntity);
+
+}

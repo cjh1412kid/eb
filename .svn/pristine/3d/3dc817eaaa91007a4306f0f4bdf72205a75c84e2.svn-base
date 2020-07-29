@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.dao.SaleShoesDetailDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.nuite.entity.SaleShoesDetailEntity" id="saleShoesDetailMap">
+        <result property="seq" column="Seq"/>
+        <result property="periodSeq" column="PeriodSeq"/>
+        <result property="areaSeq" column="AreaSeq"/>
+        <result property="branchOfficeSeq" column="BranchOfficeSeq"/>
+        <result property="shopSeq" column="ShopSeq"/>
+        <result property="saleDate" column="SaleDate"/>
+        <result property="saleType" column="SaleType"/>
+        <result property="shoeSeq" column="ShoeSeq"/>
+        <result property="shoeID" column="ShoeID"/>
+        <result property="orderCount" column="OrderCount"/>
+        <result property="saleCount" column="SaleCount"/>
+        <result property="cost" column="Cost"/>
+        <result property="tagPrice" column="TagPrice"/>
+        <result property="realPrice" column="RealPrice"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+	
+	
+	
+	<select id="getDetailSales" resultType="java.util.Map">
+        select Detail.AreaSeq as Area,AREA.AreaName as AreaName,Detail.BranchOfficeSeq as Office,AREA1.AreaName as OfficeName,Detail.ShopSeq as Shop,SHOP.Name as ShopName,Detail.SaleDate,Detail.SalePrices from
+            (SELECT AreaSeq,BranchOfficeSeq,ShopSeq,SaleDate,SUM(SaleCount*RealPrice) as SalePrices FROM NWGoods_SaleShoesDetail
+                where SaleDate<![CDATA[ >=]]>#{start} and SaleDate<![CDATA[ <]]>#{end}
+                group by AreaSeq,BranchOfficeSeq,ShopSeq,SaleDate)
+            as Detail
+        left join NWBase_Area AREA on AREA.Seq=Detail.AreaSeq
+        left join NWBase_Area AREA1 on AREA1.Seq=Detail.BranchOfficeSeq
+        left join NWBase_Shop SHOP on SHOP.Seq =Detail.ShopSeq
+    </select>
+
+</mapper>

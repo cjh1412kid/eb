@@ -1,0 +1,25 @@
+package com.nuite.modules.sys.service.impl;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.baomidou.mybatisplus.service.impl.ServiceImpl;
+import com.nuite.modules.sys.dao.UserDao;
+import com.nuite.modules.sys.entity.UserEntity;
+import com.nuite.modules.sys.service.UserService;
+
+@Service
+public class UserServiceImpl extends ServiceImpl<UserDao, UserEntity> implements UserService {
+
+    @Autowired
+    private UserDao userDao;
+
+   
+    @Override
+    public List<Integer> queryAllMenuId(Integer userSeq) {
+        return baseMapper.queryAllMenuId(userSeq);
+    }
+
+}

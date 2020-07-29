@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.sys.dao.PatchDetailDao">
+
+
+	<select id="getAllSizeAllotTemplate" resultType="java.util.Map">
+	SELECT C.Seq as seq,C.Name as name FROM [dbo].[NWReplenishment_Patch] A LEFT JOIN [dbo].[NWReplenishment_PatchDetail] B
+	ON A.Seq=B.Patch_Seq LEFT JOIN [dbo].[NWReplenishment_SizeAllotTemplate] C
+	ON B.SizeAllotTemplate_Seq=C.Seq
+	WHERE  A.Week=#{week} AND A.PeriodSeq=#{periodSeq} AND SXValue=#{sxValue} 
+	<if test="branchOfficeSeq != null">
+	AND A.BranchOfficeSeq=#{branchOfficeSeq}
+	</if>
+	 AND A.Del=0 AND B.Del=0 AND C.Del=0
+	GROUP BY C.Seq,C.Name
+	</select>
+	<select id="getAllBoxCount" resultType="java.lang.Integer">
+		SELECT SUM(B.BoxCount) FROM [dbo].[NWReplenishment_Patch] A LEFT JOIN [dbo].[NWReplenishment_PatchDetail] B
+		ON A.Seq=B.Patch_Seq 
+		WHERE A.ShoeSeq=#{shoesSeq} AND A.Del=0 AND B.Del=0
+	</select>
+	<select id="getAllData" resultType="java.lang.Integer">
+		SELECT SUM(B.BoxCount) FROM [dbo].[NWReplenishment_Patch] A LEFT JOIN [dbo].[NWReplenishment_PatchDetail] B
+		ON A.Seq=B.Patch_Seq 
+		WHERE A.ShoeSeq=#{shoesSeq} AND B.SizeAllotTemplate_Seq=#{sizeAllotTemplateSeq} AND A.Del=0 AND B.Del=0
+		<if test="branchOfficeSeq != null ">
+		 AND A.BranchOfficeSeq=#{branchOfficeSeq}
+		</if>
+	</select>
+	<select id="getSizeAllotTemplates" resultType="java.util.Map">
+	SELECT A.Seq as seq,A.AreaSeq as areaSeq,A.BranchOfficeSeq as branchOfficeSeq,A.SXValue as sXValue,A.ShoeSeq as shoeSeq,A.PatchNum as patchNum,B.BoxCount as boxCount,C.Name as name FROM [dbo].[NWReplenishment_Patch] A LEFT JOIN [dbo].[NWReplenishment_PatchDetail] B
+	ON A.Seq=B.Patch_Seq LEFT JOIN [dbo].[NWReplenishment_SizeAllotTemplate] C
+	ON B.SizeAllotTemplate_Seq=C.Seq
+	WHERE  A.Week=#{week} AND A.PeriodSeq=#{periodSeq} AND SXValue=#{sxValue} 
+	 AND A.Del=0 AND B.Del=0 AND C.Del=0
+	</select>
+	<select id="getAreasByWeek" resultType="java.util.Map">
+	Select A.AreaSeq AS areaSeq,B.AreaName AS areaName FROM [dbo].[NWReplenishment_Patch] A LEFT JOIN [dbo].[NWBase_Area] B 
+	ON A.AreaSeq=B.Seq WHERE A.Week=#{week} AND A.PeriodSeq=#{periodSeq} AND A.Del=0 AND B.Del=0 
+	GROUP BY  A.AreaSeq,B.AreaName
+	</select>
+	<select id="getAreasByWeekAndArea" resultType="java.util.Map">
+	Select A.BranchOfficeSeq AS branchOfficeSeq,B.AreaName AS areaName FROM [dbo].[NWReplenishment_Patch] A LEFT JOIN [dbo].[NWBase_Area] B 
+	ON A.BranchOfficeSeq=B.Seq WHERE A.Week=#{week} AND A.PeriodSeq=#{periodSeq} AND AreaSeq=#{areaSeq} AND A.Del=0 AND B.Del=0 
+	GROUP BY  A.BranchOfficeSeq,B.AreaName
+	</select>
+	<select id="getsXvalueByWeek" resultType="java.util.Map">
+	Select A.SXValue AS sXValue FROM [dbo].[NWReplenishment_Patch] A  WHERE A.Week=#{week} AND A.PeriodSeq=#{periodSeq} AND A.Del=0 
+	GROUP BY  A.SXValue
+	</select>
+	<select id="getAllShoeSeq" resultType="java.util.Map">
+	Select  A.ShoeSeq AS shoeSeq,A.ShoeID AS shoeID FROM [dbo].[NWReplenishment_Patch] A  
+	WHERE A.Week=#{week} AND A.PeriodSeq=#{periodSeq} AND SXValue=#{sxValue}  AND A.Del=0 
+	GROUP BY A.ShoeSeq,A.ShoeID
+	</select>
+</mapper>

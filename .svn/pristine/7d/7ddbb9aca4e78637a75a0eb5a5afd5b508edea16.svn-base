@@ -1,0 +1,144 @@
+package com.nuite.modules.sys.service.impl;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.mapper.Wrapper;
+import com.baomidou.mybatisplus.plugins.Page;
+import com.baomidou.mybatisplus.service.impl.ServiceImpl;
+import com.nuite.common.utils.PageUtils;
+import com.nuite.common.utils.Query;
+import com.nuite.modules.sys.dao.PurchasePlanDao;
+import com.nuite.modules.sys.entity.PurchasePlanEntity;
+import com.nuite.modules.sys.service.PurchasePlanService;
+
+
+@Service
+public class PurchasePlanServiceImpl extends ServiceImpl<PurchasePlanDao, PurchasePlanEntity> implements PurchasePlanService {
+
+    @Autowired
+    private PurchasePlanDao purchasePlanDao;
+    
+    
+    @Override
+    public PageUtils queryPage(Map<String, Object> params) {
+        Page<PurchasePlanEntity> page = this.selectPage(
+                new Query<PurchasePlanEntity>(params).getPage(),
+                new EntityWrapper<PurchasePlanEntity>()
+        );
+
+        return new PageUtils(page);
+    }
+
+    
+    
+	/**
+	 * 获取区域某一品类的采购计划总量（0代表全国）
+	 */
+	@Override
+	public Integer getTotalPlanPurchaseNum(Integer areaSeq, Integer periodSeq, String sxValue) {
+		Wrapper<PurchasePlanEntity> wrapper = new EntityWrapper<PurchasePlanEntity>();
+		wrapper.setSqlSelect("SUM(PlanNum)");
+		wrapper.where("BranchOfficeSeq = {0} AND PeriodSeq = {1} AND SXValue = {2} ", areaSeq, periodSeq, sxValue);
+		List<Object> list = purchasePlanDao.selectObjs(wrapper);
+		if(list != null && list.size() > 0 && list.get(0) != null) {
+			return (Integer) list.get(0);
+		} else {
+			return null;
+		}
+	}
+	
+	
+	
+	/**
+	 * 判断区域波次品类有没有上传过采购计划
+	 */
+	@Override
+	public Boolean hasUploadPurchasePlan(Integer areaSeq, Integer periodSeq, String sxValue) {
+		Wrapper<PurchasePlanEntity> wrapper = new EntityWrapper<PurchasePlanEntity>();
+		wrapper.where("BranchOfficeSeq = {0} AND PeriodSeq = {1} AND SXValue = {2}", areaSeq, periodSeq, sxValue);
+		List<PurchasePlanEntity> list = purchasePlanDao.selectList(wrapper);
+		if(list != null && list.size() > 0) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+    
+    /**
+     * 获取date所在的补单计划数量在今后所有计划总量的占比
+     */
+	@Override
+	public BigDecimal getThisTimePurchasePlanPercent(Date date, Integer areaSeq, Integer periodSeq, String sxValue) {
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+		String dateStr = sdf.format(date);
+		
+		//获取波次品类 date日期之后的所有采购计划
+		Wrapper<PurchasePlanEntity> wrapper = new EntityWrapper<PurchasePlanEntity>();
+		wrapper.where("BranchOfficeSeq = {0} AND PeriodSeq = {1} AND SXValue = {2} AND PlanDate >= {3}", areaSeq, periodSeq, sxValue, dateStr);
+		wrapper.orderBy("PlanDate ASC");
+		List<PurchasePlanEntity> list = purchasePlanDao.selectList(wrapper);
+		if(list != null && list.size() > 0) {
+			Integer thisTimePlanNum = list.get(0).getPlanNum(); //这次补单计划数量
+			Integer totalPlanNum = 0; //今后计划总数量
+			for(PurchasePlanEntity purchasePlanEntity : list) {
+				totalPlanNum += purchasePlanEntity.getPlanNum();
+			}
+			if(thisTimePlanNum != null && totalPlanNum != 0) {
+				BigDecimal purchasePlanPercent = BigDecimal.valueOf(thisTimePlanNum).divide(BigDecimal.valueOf(totalPlanNum), 2, RoundingMode.HALF_UP);
+				return purchasePlanPercent;
+				
+			} else {
+				return null;
+			}
+		} else {
+			return null;
+		}
+	}
+
+	
+	
+
+	@Override
+	public void insertOrUpdateOne(PurchasePlanEntity purchasePlanEntity) {
+		PurchasePlanEntity purchasePlanEntity2=new PurchasePlanEntity();
+		purchasePlanEntity2.setPeriodSeq(purchasePlanEntity.getPeriodSeq());
+		purchasePlanEntity2.setPlanDate(purchasePlanEntity.getPlanDate());
+		purchasePlanEntity2.setSxValue(purchasePlanEntity.getSxValue());
+		purchasePlanEntity2.setBranchOfficeSeq(purchasePlanEntity.getBranchOfficeSeq());
+		purchasePlanEntity2.setYear(purchasePlanEntity.getYear());
+		purchasePlanEntity2=purchasePlanDao.selectOne(purchasePlanEntity2);
+		if(purchasePlanEntity2==null) {
+			purchasePlanDao.insert(purchasePlanEntity);
+		}else {
+			purchasePlanEntity2.setPlanNum(purchasePlanEntity.getPlanNum());
+			purchasePlanDao.updateById(purchasePlanEntity2);
+		}
+		
+	}
+
+
+	@Override
+	public List<Map<String, Object>> getAllSXValueByYear(Integer year) {
+		return purchasePlanDao.getAllSXValueByYear(year);
+	}
+
+
+	@Override
+	public List<PurchasePlanEntity> getALLPurchasePlansByYearAndSXValue(Integer year, Integer periodSeq,String SXValue) {
+		
+		
+		return purchasePlanDao.getALLPurchasePlansByYearAndSXValue(year,periodSeq, SXValue);
+	}
+
+
+}

@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<contents>
+  <Key>875CAFA7-8E17-4E8F-AEC3-BC7912325F60-QBD</Key>
+  <!--秘钥，用于前后台交互验证-->
+  <LogFileDir>\Log\</LogFileDir>
+  <!--日志文件所在目录-->
+  <DBFile>\dbback\database.mdb</DBFile>
+  <!--操作数据库文件-->
+   <DataUrl>http://221.224.10.65/shoesmanage/</DataUrl>
+   <!--数据同步，服务器文件地址-->
+
+  <Upload>
+  <HttpUrl>http://221.224.10.65/Testing/UpLoadFile/UploaadFileHandler.ashx</HttpUrl>
+   <!--上传文件，服务器接口-->
+   <LocalPath>\SQLFILE\</LocalPath>
+    <!--上传文件，本地相对路径-->
+  </Upload>
+
+  <DataSync>
+     <HttpUrl>http://221.224.10.65/Testing/DataSync/DataSyncHandler.ashx</HttpUrl>
+     <!--数据同步，服务器接口-->
+	  <MD5CheckFormat>AVI</MD5CheckFormat>
+	 <!--检查那些格式,如果为空表示不检查-->	
+  </DataSync>
+
+
+  <UpdataSystem>
+	<Url>http://221.224.10.65/Testing/UpdateSystem/UpdateSystemHandler.ashx</Url>
+	<!--远程数据地址-->
+	<TempFileDir>\TempFileDir\</TempFileDir>
+    <!--临时文件目录（相对路径）-->
+	<UpdateDir>\UpdateDir\</UpdateDir>
+	<!--解压完成后的文件在此文件目录下（相对路径）-->
+  </UpdataSystem>
+
+
+  <InitSystem>
+     <Url>http://221.224.10.65/Testing/InitProcedure/InitProcedureHandler.ashx</Url>
+     <!--远程数据地址-->
+  </InitSystem>
+  
+  <DrawSpliter>
+     <BDraw>0</BDraw> <!--是否绘制1绘制 0不绘制-->
+	<Width>10</Width><!--宽度-->
+  </DrawSpliter>
+
+
+  <ShoesSystem>
+     <DBFile>\db\database.mdb</DBFile>
+     <!--操作数据库文件-->
+     <BFirstSet>1</BFirstSet>
+	<TestRFID>000049800000000000000000</TestRFID>
+     <!--每隔一双鞋子的提示音和动画
+     <TestRFID>000049800000000000000000,000049900000000000000000,000036700000000000000000,000036800000000000000000</TestRFID>-->
+     <!--测试用的鞋子RFID编码-->
+  </ShoesSystem>
+
+ <StartSystem>
+  <!--任务计划列表-->
+  <TaskList>
+	<task folder="YHWL" name="UpdateSystem" describe="系统更新" repeatInterval="5" duration="1440" exeDir="UpdateSystem.exe" startAt=""></task>
+	<task folder="YHWL" name="DataSync" describe="数据同步"  repeatInterval="5" duration="1440" exeDir="DataSync.exe" startAt=""></task>
+       <task folder="YHWL" name="DataSync" describe="数据上传"  repeatInterval="5" duration="1440" exeDir="UpLoadFile.exe" startAt=""></task>
+  </TaskList>
+  <!--临时文件目录列表-->
+  <CopyDirList>
+    <copyDir name="dataBase" sourcePath="dbBack" targetPath="db" isRewrite="true"></copyDir>
+    <copyDir name="dataBase" sourcePath="UpdateDir" targetPath="" isRewrite="true"></copyDir>
+
+  </CopyDirList>
+    <!--exe程序列表-->
+  <ExeList>
+    <exe name="InitProcedure.exe"></exe>
+    <exe name="NuiteThousandsShoes.exe"></exe>
+  </ExeList>
+</StartSystem>
+
+
+
+
+ <StartSystem>
+  <!--任务计划列表-->
+  <TaskList>
+	<!--<task folder="YHWL" name="UpdateSystem" describe="系统更新" repeatInterval="5" duration="1440" exeDir="UpdateSystem.exe" startAt="" endBoundary="20"></task>
+	<task folder="YHWL" name="DataSync" describe="数据同步"  repeatInterval="5" duration="1440" exeDir="DataSync.exe" startAt="" endBoundary="20"></task>
+    <task folder="YHWL" name="UpLoadFile" describe="数据上传"  repeatInterval="5" duration="1440" exeDir="UpLoadFile.exe" startAt="" endBoundary="20"></task>-->
+  </TaskList>
+  <!--临时文件目录列表-->
+  <CopyDirList>
+   <!-- <copyDir name="dataBase" sourcePath="dbBack" targetPath="db" isRewrite="true" isCut="fasle"></copyDir>
+    <copyDir name="UpdateDir" sourcePath="UpdateDir" targetPath="" isRewrite="true" isCut="true"></copyDir>
+	<copyDir name="resource" sourcePath="Temp\Resource" targetPath="Resource" isRewrite="true" isCut="true"></copyDir>-->
+  </CopyDirList>
+    <!--exe程序列表-->
+  <ExeList>
+    <exe name="InitProcedure.exe"></exe>
+    <exe name="NuiteThousandsShoes.exe"></exe>
+  </ExeList>
+</StartSystem>
+
+</contents>

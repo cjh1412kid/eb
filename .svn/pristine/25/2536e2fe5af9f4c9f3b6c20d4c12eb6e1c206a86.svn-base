@@ -1,0 +1,129 @@
+$(function () {
+    $("#jqGrid").jqGrid({
+        url: baseURL + 'sys/deadlineRaiseRate/list',
+        datatype: "json",
+        colModel: [			
+			{ label: '序号', name: 'seq', index: 'Seq', width: 50, key: true },
+			{ label: '年份', name: 'year', index: 'Year', width: 80 }, 			
+			{ label: '春深', name: 'springDeep', index: 'SpringDeep', width: 80 }, 			
+			{ label: '春浅', name: 'springShallow', index: 'SpringShallow', width: 80 }, 			
+			{ label: '半凉', name: 'halfCold', index: 'HalfCold', width: 80 }, 			
+			{ label: '全凉', name: 'fullCold', index: 'FullCold', width: 80 }, 			
+			{ label: '秋浅', name: 'autumnShallow', index: 'AutumnShallow', width: 80 }, 			
+			{ label: '秋深', name: 'autumnDeep', index: 'AutumnDeep', width: 80 }, 			
+			{ label: '单靴', name: 'singleBoot', index: 'SingleBoot', width: 80 }, 			
+			{ label: '二棉', name: 'twoCotton', index: 'TwoCotton', width: 80 }, 			
+			{ label: '大棉', name: 'bigCotton', index: 'BigCotton', width: 80 }, 			
+			{ label: '增长率', name: 'raiseRate', index: 'RaiseRate', width: 80 }, 			
+			{ label: '销售对比最少销售天数', name: 'minSalesDays', index: 'MinSalesDays', width: 80 }, 			
+			{ label: '创建时间', name: 'inputTime', index: 'InputTime', width: 80 }	
+        ],
+		viewrecords: true,
+        height: 385,
+        rowNum: 10,
+		rowList : [10,30,50],
+        rownumbers: true, 
+        rownumWidth: 25, 
+        autowidth:true,
+        multiselect: true,
+        pager: "#jqGridPager",
+        jsonReader : {
+            root: "page.list",
+            page: "page.currPage",
+            total: "page.totalPage",
+            records: "page.totalCount"
+        },
+        prmNames : {
+            page:"page", 
+            rows:"limit", 
+            order: "order"
+        },
+        gridComplete:function(){
+        	//隐藏grid底部滚动条
+        	$("#jqGrid").closest(".ui-jqgrid-bdiv").css({ "overflow-x" : "hidden" }); 
+        }
+    });
+});
+
+var vm = new Vue({
+	el:'#rrapp',
+	data:{
+		showList: true,
+		title: null,
+		deadlineRaiseRate: {}
+	},
+	methods: {
+		query: function () {
+			vm.reload();
+		},
+		add: function(){
+			vm.showList = false;
+			vm.title = "新增";
+			vm.deadlineRaiseRate = {};
+		},
+		update: function (event) {
+			var seq = getSelectedRow();
+			if(seq == null){
+				return ;
+			}
+			vm.showList = false;
+            vm.title = "修改";
+            
+            vm.getInfo(seq)
+		},
+		saveOrUpdate: function (event) {
+			var url = vm.deadlineRaiseRate.seq == null ? "sys/deadlineRaiseRate/save" : "sys/deadlineRaiseRate/update";
+			$.ajax({
+				type: "POST",
+			    url: baseURL + url,
+                contentType: "application/json",
+			    data: JSON.stringify(vm.deadlineRaiseRate),
+			    success: function(r){
+			    	if(r.code === 1){
+						alert('操作成功', function(index){
+							vm.reload();
+						});
+					}else{
+						alert(r.msg);
+					}
+				}
+			});
+		},
+		del: function (event) {
+			var seqs = getSelectedRows();
+			if(seqs == null){
+				return ;
+			}
+			
+			confirm('确定要删除选中的记录？', function(){
+				$.ajax({
+					type: "POST",
+				    url: baseURL + "sys/deadlineRaiseRate/delete",
+                    contentType: "application/json",
+				    data: JSON.stringify(seqs),
+				    success: function(r){
+						if(r.code == 1){
+							alert('操作成功', function(index){
+								$("#jqGrid").trigger("reloadGrid");
+							});
+						}else{
+							alert(r.msg);
+						}
+					}
+				});
+			});
+		},
+		getInfo: function(seq){
+			$.get(baseURL + "sys/deadlineRaiseRate/info/"+seq, function(r){
+                vm.deadlineRaiseRate = r.deadlineRaiseRate;
+            });
+		},
+		reload: function (event) {
+			vm.showList = true;
+			var page = $("#jqGrid").jqGrid('getGridParam','page');
+			$("#jqGrid").jqGrid('setGridParam',{ 
+                page:page
+            }).trigger("reloadGrid");
+		}
+	}
+});

@@ -1,0 +1,575 @@
+package com.nuite.task;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import com.nuite.common.utils.RedisUtils;
+import com.nuite.dao.BrandDao;
+import com.nuite.entity.AreaEntity;
+import com.nuite.entity.BrandEntity;
+import com.nuite.entity.ShopEntity;
+import com.nuite.service.AreaService;
+import com.nuite.service.ShopService;
+import com.nuite.service.TryMapService;
+import com.nuite.service.TryShoesDetailService;
+import com.nuite.utils.RedisKeys;
+
+
+@Component("tryShoesTask")
+public class TryShoesTask{
+	private Logger logger = LoggerFactory.getLogger(getClass());
+	
+    @Autowired
+    private BrandDao brandDao;
+    
+    @Autowired
+    private RedisUtils redisUtils;
+    
+    @Autowired
+    private TryMapService tryMapService;
+    
+    @Autowired
+    private ShopService shopService;
+    
+    @Autowired
+    private BaseTask baseTask;
+
+    @Autowired
+    private AreaService areaService;
+    
+    @Autowired
+    private TryShoesDetailService tryShoesDetailService;
+    
+    
+    
+	/**
+     * 今日门店统计（黄色饼图）：无论哪一级都查看今日所有门店数据
+     */
+	//@Scheduled(cron = "0 15 * * * ?" )
+	public void today() {
+		Date startTaskTime = new Date();
+		logger.info("###tryShoesTask today方法，开始执行: " + startTaskTime);
+		try {
+			List<BrandEntity> brandList = brandDao.selectList(null); // 所有品牌
+
+			// 循环品牌
+			for (BrandEntity brandEntity : brandList) {
+
+				// 获取品牌所有门店
+				List<ShopEntity> shopList = shopService.getShopsByBrandSeq(brandEntity.getSeq());
+				for (ShopEntity shopEntity : shopList) {
+					int total = tryMapService.getTodayTotalTryTimesByShopSeq(shopEntity.getSeq());
+
+					/** 存入Redis **/
+					String redisKey = RedisKeys.getTryShoesTodayRedisKey(brandEntity.getSeq(), shopEntity.getSeq());
+					redisUtils.set(redisKey, total, 60 * 60 * 3);
+					/** 存入Redis **/
+				}
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+		}
+		Date endTaskTime = new Date();
+		logger.info("###tryShoesTask today方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+	}
+    
+	
+	
+	
+	/**
+     * 今日门店统计（黄色饼图）：获取门店最后一次上传数据的时间
+     */
+	//@Scheduled(cron = "0 10 8,13,18,23 * * ?" )
+	public void lastTryTime() {
+		Date startTaskTime = new Date();
+		logger.info("###tryShoesTask lastTryTime方法，开始执行: " + startTaskTime);
+		try {
+			List<BrandEntity> brandList = brandDao.selectList(null); // 所有品牌
+
+			// 循环品牌
+			for (BrandEntity brandEntity : brandList) {
+
+				// 获取品牌所有门店
+				List<ShopEntity> shopList = shopService.getShopsByBrandSeq(brandEntity.getSeq());
+				for (ShopEntity shopEntity : shopList) {
+					
+		    		//从redis获取缓存的今日门店统计（黄色饼图）数据
+			    	String redisKey = RedisKeys.getTryShoesTodayRedisKey(brandEntity.getSeq(), shopEntity.getSeq());
+					Integer redisTotal = redisUtils.get(redisKey, Integer.class);
+		        	//如果今日试穿数量为0，则查询最后一次上传时间，存入缓存
+			        if(redisTotal == null || redisTotal == 0) {
+						//获取最后上传时间
+						Date lastTryTime = tryShoesDetailService.getShopLastTryTime(shopEntity.getSeq());
+			        
+						/** 存入Redis **/
+						String lastTryTimeRedisKey = RedisKeys.getTryShoesLastTryTimeRedisKey(brandEntity.getSeq(), shopEntity.getSeq());
+						redisUtils.set(lastTryTimeRedisKey, lastTryTime, 60 * 60 * 15);
+						/** 存入Redis **/
+			        }
+				}
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+		}
+		Date endTaskTime = new Date();
+		logger.info("###tryShoesTask lastTryTime方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
+	/**
+     * 总试穿统计（蓝色饼图） :按区域、波次、起止时间统计
+     */
+	//@Scheduled(cron = "0 30 1/6 * * ?" )
+	public void statistics() {
+		Date startTaskTime = new Date();
+		logger.info("###tryShoesTask statistics方法，开始执行: " + startTaskTime);
+		try {
+
+    		List<BrandEntity> brandList = brandDao.selectList(null);	//所有品牌
+    		int[] typeList = {1,2,3}; //所有类型  （目前门店不缓存）
+    		List<Date> startDateList = baseTask.getStartDateList(); //所有开始时间
+    		Date endDate = baseTask.getTodayDate(); //结束时间（今日）
+    		
+    		
+    		//循环品牌
+    		for(BrandEntity brandEntity : brandList) {
+    			
+				List<Integer> periodSeqList = baseTask.getAllPeriodSeqsByBrandSeq(brandEntity.getSeq()); //所有波次 （目前只缓存不选波次（即所有波次）的情况）
+				
+    			//循环type
+    			for(int type : typeList) {
+    			
+    				List<Integer> areaSeqList = baseTask.getAreaSeqsByTypeAndBrandSeq(brandEntity.getSeq(), type);  //类型所有区域序号
+    				//循环areaSeqs
+    				for(Integer oneAreaSeq : areaSeqList) {
+    					List<Integer> areaSeqs = new ArrayList<Integer>();
+    					areaSeqs.add(oneAreaSeq);
+    					
+	    				//循环起止时间段
+				   		for(Date startDate : startDateList) {
+				    		
+							/** 总试穿统计（蓝色饼图） controller方法 **/
+				    		
+				    		//pie饼图统计数据
+				    		int pieValidNum = 0;
+				    		int pieInvalidNum = 0;
+				    		//详细试穿数据
+				    		List<Map<String, Object>> detailList = new ArrayList<Map<String, Object>>();
+				    		
+				    		//全国
+				    		if(type == 1) {  //TODO 这里不用按type循环查询，只用查一次全国，全国下级就都已经查过了，需要在查全国过程中缓存所有下级
+				    			Map<String, Object> countryMap = new HashMap<String, Object>();
+				    			countryMap.put("seq", 0);
+				    			countryMap.put("areaName", "全国");
+				        		int countryValid = 0;
+				        		int countryInvalid = 0;
+				    			List<Map<String, Object>> countryChildList = new ArrayList<Map<String, Object>>();
+				    			
+				        		//根据品牌查询大区
+				        		List<AreaEntity> firstAreaList = areaService.getFirstAreasByBrandSeq(brandEntity.getSeq());
+				    			for(AreaEntity firstArea : firstAreaList) {
+				    				//获取大区试穿统计
+				    				Map<String, Object> firstAreaMap = getFirstAreaStatistics(firstArea, periodSeqList, startDate, endDate);
+				    				countryValid += (int)firstAreaMap.get("valid");
+				    				countryInvalid += (int)firstAreaMap.get("invalid");
+				    				countryChildList.add(firstAreaMap);
+				    			}
+				    			countryMap.put("valid", countryValid);
+				    			countryMap.put("invalid", countryInvalid);
+				    			Collections.sort(countryChildList, new CompareValid(false)); //按有效试穿量降序
+				    			countryMap.put("child", countryChildList);
+				    			detailList.add(countryMap);
+				    			
+				    			pieValidNum = countryValid;
+				    			pieInvalidNum = countryInvalid;
+				    		} else if (type == 2){ //大区
+				    			
+				    			for(Integer areaSeq : areaSeqs) {
+				    				AreaEntity firstArea = areaService.selectById(areaSeq);
+				    				//获取大区试穿统计
+				    				Map<String, Object> firstAreaMap = getFirstAreaStatistics(firstArea, periodSeqList, startDate, endDate);
+				    				
+				    				detailList.add(firstAreaMap);
+				        			pieValidNum += (int)firstAreaMap.get("valid");
+				        			pieInvalidNum += (int)firstAreaMap.get("invalid");
+				    			}
+				    			
+				    		} else if (type == 3){ //分公司
+				    			
+				    			for(Integer areaSeq : areaSeqs) {
+				    				AreaEntity secondArea = areaService.selectById(areaSeq);
+				    				//获取分公司试穿统计
+				    				Map<String, Object> secondAreaMap = getSecondAreaStatistics(secondArea, periodSeqList, startDate, endDate);
+				    				
+				    				detailList.add(secondAreaMap);
+				        			pieValidNum += (int)secondAreaMap.get("valid");
+				        			pieInvalidNum += (int)secondAreaMap.get("invalid");
+				    			}
+				    			
+				    		} else if (type == 4){ //门店
+				    			
+				    			for(Integer shopSeq : areaSeqs) {
+				    				ShopEntity shop = shopService.selectById(shopSeq);
+				    				
+				    				//没有安装设备的门店不统计
+				    				if(shop.getInstallDate() != null && shop.getLat() != null && shop.getLat().compareTo(BigDecimal.valueOf(0)) > 0 
+				    						&& shop.getLng() != null && shop.getLng().compareTo(BigDecimal.valueOf(0)) > 0) {
+				    					
+					    				//获取门店试穿统计
+					    				Map<String, Object> shopMap = getShopStatistics(shop, periodSeqList, startDate, endDate);
+					    				
+					    				detailList.add(shopMap);
+					        			pieValidNum += (int)shopMap.get("valid");
+					        			pieInvalidNum += (int)shopMap.get("invalid");
+				    				}
+				    			}
+				    		}
+				    		
+				    		
+				    		
+				    		/** 返回结果组装 **/
+				    		Map<String, Object> resultMap = new HashMap<String, Object>();
+				    		//pie图数据
+				    		List<Map<String, Object>> pieList = new ArrayList<Map<String, Object>>();
+				    		Map<String, Object> pieMap = new HashMap<String, Object>();
+				    		pieMap.put("name", "有效数据");
+				    		pieMap.put("value", pieValidNum);
+				    		pieList.add(pieMap);
+				    		pieMap = new HashMap<String, Object>();
+				    		pieMap.put("name", "无效数据");
+				    		pieMap.put("value", pieInvalidNum);
+				    		pieList.add(pieMap);
+				    		
+				    		resultMap.put("pie", pieList);
+				    		//详细试穿数据
+				    		resultMap.put("detail", detailList);
+				    		
+							/** 总试穿统计（蓝色饼图） controller方法 **/
+							
+							
+							/** 存入Redis **/
+							String redisKey = RedisKeys.getTryShoesStatisticsRedisKey(brandEntity.getSeq(), type, oneAreaSeq, startDate, endDate);
+					    	redisUtils.set(redisKey, resultMap, 60 * 60 * 18);
+					    	/** 存入Redis **/
+				    		
+				   		}
+	    			}
+	    		}   
+    			
+    		}
+    		
+    		
+    		
+    		
+    		
+    		
+    		
+    		/**2019.01.24 新增 全国的 至今 数据缓存，大屏展示需要使用**/
+    		//循环品牌
+    		for(BrandEntity brandEntity : brandList) {
+    			
+				List<Integer> periodSeqList = baseTask.getAllPeriodSeqsByBrandSeq(brandEntity.getSeq()); //所有波次 （目前只缓存不选波次（即所有波次）的情况）
+				
+    			//循环type
+    			for(int type : typeList) {
+    			
+    				List<Integer> areaSeqList = baseTask.getAreaSeqsByTypeAndBrandSeq(brandEntity.getSeq(), type);  //类型所有区域序号
+    				//循环areaSeqs
+    				for(Integer oneAreaSeq : areaSeqList) {
+    					List<Integer> areaSeqs = new ArrayList<Integer>();
+    					areaSeqs.add(oneAreaSeq);
+    					
+	    				//起止时间段
+				   		@SuppressWarnings("deprecation")
+						Date startDate = new Date("2010/01/01");
+				    		
+							/** 总试穿统计（蓝色饼图） controller方法 **/
+				    		
+				    		//pie饼图统计数据
+				    		int pieValidNum = 0;
+				    		int pieInvalidNum = 0;
+				    		//详细试穿数据
+				    		List<Map<String, Object>> detailList = new ArrayList<Map<String, Object>>();
+				    		
+				    		//全国
+				    		if(type == 1) {  //TODO 这里不用按type循环查询，只用查一次全国，全国下级就都已经查过了，需要在查全国过程中缓存所有下级
+				    			Map<String, Object> countryMap = new HashMap<String, Object>();
+				    			countryMap.put("seq", 0);
+				    			countryMap.put("areaName", "全国");
+				        		int countryValid = 0;
+				        		int countryInvalid = 0;
+				    			List<Map<String, Object>> countryChildList = new ArrayList<Map<String, Object>>();
+				    			
+				        		//根据品牌查询大区
+				        		List<AreaEntity> firstAreaList = areaService.getFirstAreasByBrandSeq(brandEntity.getSeq());
+				    			for(AreaEntity firstArea : firstAreaList) {
+				    				//获取大区试穿统计
+				    				Map<String, Object> firstAreaMap = getFirstAreaStatistics(firstArea, periodSeqList, startDate, endDate);
+				    				countryValid += (int)firstAreaMap.get("valid");
+				    				countryInvalid += (int)firstAreaMap.get("invalid");
+				    				countryChildList.add(firstAreaMap);
+				    			}
+				    			countryMap.put("valid", countryValid);
+				    			countryMap.put("invalid", countryInvalid);
+				    			Collections.sort(countryChildList, new CompareValid(false)); //按有效试穿量降序
+				    			countryMap.put("child", countryChildList);
+				    			detailList.add(countryMap);
+				    			
+				    			pieValidNum = countryValid;
+				    			pieInvalidNum = countryInvalid;
+				    		}
+				    		
+				    		
+				    		
+				    		/** 返回结果组装 **/
+				    		Map<String, Object> resultMap = new HashMap<String, Object>();
+				    		//pie图数据
+				    		List<Map<String, Object>> pieList = new ArrayList<Map<String, Object>>();
+				    		Map<String, Object> pieMap = new HashMap<String, Object>();
+				    		pieMap.put("name", "有效数据");
+				    		pieMap.put("value", pieValidNum);
+				    		pieList.add(pieMap);
+				    		pieMap = new HashMap<String, Object>();
+				    		pieMap.put("name", "无效数据");
+				    		pieMap.put("value", pieInvalidNum);
+				    		pieList.add(pieMap);
+				    		
+				    		resultMap.put("pie", pieList);
+				    		//详细试穿数据
+				    		resultMap.put("detail", detailList);
+				    		
+							/** 总试穿统计（蓝色饼图） controller方法 **/
+							
+							
+							/** 存入Redis **/
+							String redisKey = RedisKeys.getTryShoesTotalStatisticsRedisKey(brandEntity.getSeq(), type, oneAreaSeq);
+					    	redisUtils.set(redisKey, resultMap, 60 * 60 * 24 * 7);
+					    	/** 存入Redis **/
+				    		
+				   		
+	    			}
+	    		}   
+    			
+    		}
+    		
+    		
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+		}
+		Date endTaskTime = new Date();
+		logger.info("###tryShoesTask statistics方法，执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+	}
+	
+	
+	
+	
+	
+	
+	
+		
+	//  {
+	//  "seq": 45,
+	//  "areaName": "大区1",
+	//  "totalCount": 200,
+	//  "validCount": 160,
+	//  "child": []
+	//},
+	
+	
+	/**
+	* 获取某个大区试穿统计
+	* @param firstArea 要获取试穿统计的大区实体
+	* @param periodSeqs 波次
+	* @param dateDiff	时间段
+	* @return
+	*/
+	private Map<String, Object> getFirstAreaStatistics(AreaEntity firstArea, List<Integer> periodSeqs, Date startDate, Date endDate) {
+		
+		Map<String, Object> firstAreaMap = new HashMap<String, Object>();
+		firstAreaMap.put("seq", firstArea.getSeq());
+		firstAreaMap.put("areaName", firstArea.getAreaName());
+		int firstAreaValid = 0;
+		int firstAreaInvalid = 0;
+		List<Map<String, Object>> firstAreaChildList = new ArrayList<Map<String, Object>>();
+		
+		
+		//根据大区序号查询分公司
+		List<AreaEntity> secondAreaList = areaService.getSecondAreasByParentSeq(firstArea.getSeq());
+		for(AreaEntity secondArea : secondAreaList) {
+			//获取分公司试穿统计
+			Map<String, Object> secondAreaMap = getSecondAreaStatistics(secondArea, periodSeqs, startDate, endDate);
+			firstAreaValid += (int)secondAreaMap.get("valid");
+			firstAreaInvalid += (int)secondAreaMap.get("invalid");
+			firstAreaChildList.add(secondAreaMap);
+		}
+		
+		firstAreaMap.put("valid", firstAreaValid);
+		firstAreaMap.put("invalid", firstAreaInvalid);
+		Collections.sort(firstAreaChildList, new CompareValid(false)); //按有效试穿量降序
+		firstAreaMap.put("child", firstAreaChildList);
+		return firstAreaMap;
+	}
+	
+	
+	
+	//{
+	//  "seq": 123,
+	//  "areaName": "分公司1",
+	//  "totalCount": 120,
+	//  "validCount": 160,
+	//  "child": [
+	//      {
+	//          "seq": 1234,
+	//          "areaName": "门店1",
+	//          "totalCount": 60,
+	//          "validCount": 160
+	//      },
+	//      {
+	//          "seq": 5678,
+	//          "areaName": "门店2",
+	//          "totalCount": 60,
+	//          "validCount": 160
+	//      }
+	//  ]
+	//},
+	
+	/**
+	* 获取某个分公司试穿统计
+	* @param secondArea 要获取试穿统计的分公司实体
+	* @param periodSeqs 波次
+	* @param dateDiff 时间段
+	* @return
+	*/
+	private Map<String, Object> getSecondAreaStatistics(AreaEntity secondArea, List<Integer> periodSeqs, Date startDate, Date endDate) {
+		Map<String, Object> secondAreaMap = new HashMap<String, Object>();
+		secondAreaMap.put("seq", secondArea.getSeq());
+		secondAreaMap.put("areaName", secondArea.getAreaName());
+		int secondAreaValid = 0;
+		int secondAreainvalid = 0;
+		List<Map<String, Object>> secondAreaChildList = new ArrayList<Map<String, Object>>();
+		
+		
+		//根据分公司序号查询门店
+		List<ShopEntity> shopList = shopService.getShopsByAreaSeq(secondArea.getSeq());
+		for(ShopEntity shop : shopList) {
+			
+			//没有安装设备的门店不统计
+			if(shop.getInstallDate() != null && shop.getLat() != null && shop.getLat().compareTo(BigDecimal.valueOf(0)) > 0 
+					&& shop.getLng() != null && shop.getLng().compareTo(BigDecimal.valueOf(0)) > 0) {
+				//获取门店试穿统计
+				Map<String, Object> shopMap = getShopStatistics(shop, periodSeqs, startDate, endDate);
+				secondAreaValid += (int)shopMap.get("valid");
+				secondAreainvalid += (int)shopMap.get("invalid");
+				secondAreaChildList.add(shopMap);
+			}
+		}
+		
+		secondAreaMap.put("valid", secondAreaValid);
+		secondAreaMap.put("invalid", secondAreainvalid);
+		Collections.sort(secondAreaChildList, new CompareValid(false)); //按有效试穿量降序
+		secondAreaMap.put("child", secondAreaChildList);
+		return secondAreaMap;
+	}
+	
+	
+	
+	//{
+	//  "seq": 1234,
+	//  "areaName": "门店1",
+	//  "totalCount": 60,
+	//  "validCount": 160
+	//},
+	
+	/**
+	* 获取某个门店试穿统计
+	* @param secondArea 要获取试穿统计的门店实体
+	* @param periodSeqs 波次
+	* @param dateDiff 时间段
+	* @return
+	*/
+	private Map<String, Object> getShopStatistics(ShopEntity shop, List<Integer> periodSeqs, Date startDate, Date endDate) {
+		Map<String, Object> shopMap = new HashMap<String, Object>();
+		shopMap.put("seq", shop.getSeq());
+		shopMap.put("areaName", shop.getName());
+		int shopValid = tryShoesDetailService.getShopTryValidNum(shop.getSeq(), periodSeqs, startDate, endDate);
+		int shopInvalid = tryShoesDetailService.getShopTryInvalidNum(shop.getSeq(), periodSeqs, startDate, endDate);;
+		shopMap.put("valid", shopValid);
+		shopMap.put("invalid", shopInvalid);
+		return shopMap;
+	}
+	
+	
+	
+	
+	
+	
+	//比较有效试穿数据
+	private static final class CompareValid implements Comparator<Map<String, Object>> {
+	   boolean isAsc;
+	
+	   public CompareValid(boolean isAsc) {
+	  	 this.isAsc = isAsc;
+	   }
+	
+	   /*
+	    * int compare(Person p1, Person p2) 返回一个基本类型的整型，
+	    * 返回负数表示：p1 小于p2，
+	    * 返回0 表示：p1和p2相等，
+	    * 返回正数表示：p1大于p2
+	    */
+	   @Override
+	   public int compare(Map<String, Object> map1, Map<String, Object> map2) {
+	       //按照有效试穿量进行排列
+	       if((int)map1.get("valid") > (int)map2.get("valid")){
+	      	 if(isAsc) {
+		             return 1;
+	      	 } else {
+	      		 return -1;  //Comparator默认按照升序排列，通过返回相反的值，实现降序
+	      	 }
+	       } else if((int)map1.get("valid") == (int)map2.get("valid")){
+	           return 0;
+	       } else {
+	      	 if(isAsc) {
+		             return -1;
+	      	 } else {
+	      		 return 1;
+	      	 }
+	       }
+	   }
+	}
+
+
+
+}

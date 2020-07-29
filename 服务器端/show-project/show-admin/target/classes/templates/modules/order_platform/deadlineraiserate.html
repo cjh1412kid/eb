@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>补单配置</title>
+<#include "/header.html">
+</head>
+<body>
+	<div id="rrapp" v-cloak>
+		<div v-show="showList">
+			<div class="grid-btn">
+				<a class="btn btn-primary" @click="add"><i class="fa fa-plus"></i>&nbsp;新增</a> 
+				<a class="btn btn-primary" @click="update"><i class="fa fa-pencil-square-o"></i>&nbsp;修改</a> 
+				<a class="btn btn-primary" @click="del"><i class="fa fa-trash-o"></i>&nbsp;删除</a>
+			</div>
+			<table id="jqGrid"></table>
+			<div id="jqGridPager"></div>
+		</div>
+
+		<div v-show="!showList" class="panel panel-default">
+			<div class="panel-heading">{{title}}</div>
+			<form class="form-horizontal">
+				<div class="form-group">
+					<div class="col-sm-4 control-label">年份</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.year" placeholder="年份" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">春深 考核截止日期</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.springDeep" placeholder="春深 考核截止日期" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">春浅 考核截止日期</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.springShallow" placeholder="春浅 考核截止日期" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">半凉 考核截止日期</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.halfCold" placeholder="半凉 考核截止日期" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">全凉 考核截止日期</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.fullCold" placeholder="全凉 考核截止日期" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">秋浅 考核截止日期</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.autumnShallow" placeholder="秋浅 考核截止日期" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">秋深 考核截止日期</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.autumnDeep" placeholder="秋深 考核截止日期" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">单靴 考核截止日期</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.singleBoot" placeholder="单靴 考核截止日期" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">二棉 考核截止日期</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.twoCotton" placeholder="二棉 考核截止日期" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">大棉 考核截止日期</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.bigCotton" placeholder="大棉 考核截止日期" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">春深 售罄率考核值</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.springDeepSaleOutRate" placeholder="春深 售罄率考核值" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">春浅 售罄率考核值</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.springShallowSaleOutRate" placeholder="春浅 售罄率考核值" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">半凉 售罄率考核值</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.halfColdSaleOutRate" placeholder="半凉 售罄率考核值" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">全凉 售罄率考核值</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.fullColdSaleOutRate" placeholder="全凉 售罄率考核值" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">秋浅 售罄率考核值</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.autumnShallowSaleOutRate" placeholder="秋浅 售罄率考核值" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">秋深 售罄率考核值</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.autumnDeepSaleOutRate" placeholder="秋深 售罄率考核值" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">单靴 售罄率考核值</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.singleBootSaleOutRate" placeholder="单靴 售罄率考核值" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">二棉 售罄率考核值</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.twoCottonSaleOutRate" placeholder="二棉 售罄率考核值" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">大棉 售罄率考核值</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.bigCottonSaleOutRate" placeholder="大棉 售罄率考核值" />
+					</div>
+				</div>
+				
+				<div class="form-group">
+					<div class="col-sm-4 control-label">春深 默认同比增长率</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.springDeepYearRaise" placeholder="春深 默认同比增长率" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">春浅 默认同比增长率</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.springShallowYearRaise" placeholder="春浅 默认同比增长率" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">半凉 默认同比增长率</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.halfColdYearRaise" placeholder="半凉 默认同比增长率" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">全凉 默认同比增长率</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.fullColdYearRaise" placeholder="全凉 默认同比增长率" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">秋浅 默认同比增长率</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.autumnShallowYearRaise" placeholder="秋浅 默认同比增长率" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">秋深 默认同比增长率</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.autumnDeepYearRaise" placeholder="秋深 默认同比增长率" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">单靴 默认同比增长率</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.singleBootYearRaise" placeholder="单靴 默认同比增长率" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">二棉 默认同比增长率</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.twoCottonYearRaise" placeholder="二棉 默认同比增长率" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">大棉 默认同比增长率</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.bigCottonYearRaise" placeholder="大棉 默认同比增长率" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">补单提前天数（补单截止日期距离考核截止日期提前的天数）</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.patchAdvanceDays" placeholder="补单提前天数（补单截止日期距离考核截止日期提前的天数）" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">销售对比最少上柜天数（上柜满一定天数才与 去年销量 算 同比增长率，否则使用 默认同比增长率）</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.minSalesDays" placeholder="销售对比最少上柜天数" />
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-sm-4 control-label">黑马 允许最大上柜天数 （上柜天数 小于 允许最大上柜天数 且 上周销售Top20的货品 为黑马）</div>
+					<div class="col-sm-8">
+						<input type="text" class="form-control" v-model="deadlineRaiseRate.darkHorseCabinetDays" placeholder="黑马 要求最大上柜天数" />
+					</div>
+				</div>
+				
+				<div class="form-group">
+					<div class="col-sm-4 control-label"></div>
+					<input type="button" class="btn btn-primary" @click="saveOrUpdate" value="确定" /> &nbsp;&nbsp;
+					<input type="button" class="btn btn-warning" @click="reload" value="返回" />
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<script src="${request.contextPath}/statics/js/modules/order_platform/deadlineraiserate.js"></script>
+</body>
+</html>

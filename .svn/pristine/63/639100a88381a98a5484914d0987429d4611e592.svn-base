@@ -1,0 +1,14 @@
+package com.nuite.modules.sys.dao;
+
+import org.apache.ibatis.annotations.Mapper;
+
+import com.baomidou.mybatisplus.mapper.BaseMapper;
+import com.nuite.modules.sys.entity.GoodsInitialDataEntity;
+
+/**
+ * 首单、补单、预留数据管理
+ */
+@Mapper
+public interface GoodsInitialDataDao extends BaseMapper<GoodsInitialDataEntity> {
+	
+}

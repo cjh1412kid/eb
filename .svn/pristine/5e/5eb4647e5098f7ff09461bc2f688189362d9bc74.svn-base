@@ -1,0 +1,84 @@
+package com.nuite.modules.sys.controller;
+
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.nuite.common.utils.R;
+import com.nuite.modules.sys.dao.SizeDao;
+import com.nuite.modules.sys.entity.ShoesDataEntity;
+import com.nuite.modules.sys.entity.SizeEntity;
+import com.nuite.modules.sys.service.ShoesDataService;
+
+import io.swagger.annotations.ApiParam;
+
+
+/**
+ * 分公司补单建议接口
+ * @author yy
+ */
+@RestController
+@RequestMapping("sys/shoesData")
+public class ShoesDataController extends AbstractController{
+	private Logger logger = LoggerFactory.getLogger(getClass());
+	
+    @Autowired
+    private ShoesDataService shoesDataService;
+    
+    @Autowired
+    private SizeDao sizeDao;
+    
+    
+    
+	/**
+     * 获取区域某鞋子每个尺码的库存
+     */
+    @GetMapping("getShoeSizeStocks")
+    public R getShoeSizeStocks(@ApiParam("区域类型") @RequestParam("areaType") Integer areaType,
+    		@ApiParam("区域序号") @RequestParam("areaSeq") Integer areaSeq,
+    		@ApiParam("鞋子序号") @RequestParam("shoeSeq") Integer shoeSeq,
+			HttpServletRequest request) {
+    	try {
+    		List<ShoesDataEntity> list = shoesDataService.getShoesDataListByShoeSeq(areaType, areaSeq, shoeSeq);
+		
+			//按顺序展示库存的尺码数组
+			String[] allSizeArr = {"33","34","35","35.5","36","36.5","37","37.5","38","39","40"};
+			Integer[] stockArr = {null, null, null, null, null, null, null, null, null, null, null};
+			
+			for(ShoesDataEntity shoesDataEntity : list) {
+				Integer sizeSeq = shoesDataEntity.getSizeSeq();
+				SizeEntity sizeEntity = sizeDao.selectById(sizeSeq);
+				String size = sizeEntity.getName();
+				
+				Integer stock = shoesDataEntity.getStock();
+				
+				for(int i = 0; i < allSizeArr.length; i++) {
+					if(allSizeArr[i].equals(size)) {
+						if(stockArr[i] != null) {
+							stockArr[i] += stock;
+						} else {
+							stockArr[i] = stock;
+						}
+						break;
+					}
+				}
+			}
+			
+			return R.ok(stockArr);
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+    }
+
+}

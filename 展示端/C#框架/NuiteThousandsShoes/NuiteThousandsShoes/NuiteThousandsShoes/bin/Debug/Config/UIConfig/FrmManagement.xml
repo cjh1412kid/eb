@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Controls>
+<btnclose>close.png</btnclose>
+<lablog>logo.png</lablog>
+<pnltop>top.png</pnltop>
+<btnminsize>minsize.png</btnminsize>
+<pnltitle>topPic.png</pnltitle>
+<pnlMenu>pnlmenu.png</pnlMenu>
+<btnShop>shopinfo.png</btnShop>
+<btnshoeslab>shoeslabw.png</btnshoeslab>
+<btnhardset>hardsetw.png</btnhardset>
+<btnmaterial>materialw.png</btnmaterial>
+<btnAdd>add.png</btnAdd>
+<btnDelete>delete.png</btnDelete>
+<btnset>set.png</btnset>
+</Controls>

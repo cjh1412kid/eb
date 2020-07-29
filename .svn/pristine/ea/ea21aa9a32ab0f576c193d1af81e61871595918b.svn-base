@@ -1,0 +1,45 @@
+package com.nuite.modules.sys.service.impl;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.plugins.Page;
+import com.baomidou.mybatisplus.service.impl.ServiceImpl;
+import com.nuite.common.utils.PageUtils;
+import com.nuite.common.utils.Query;
+import com.nuite.modules.sys.dao.ShopDao;
+import com.nuite.modules.sys.entity.ShopEntity;
+import com.nuite.modules.sys.service.ShopService;
+import org.springframework.stereotype.Service;
+
+import java.util.Map;
+
+@Service
+public class ShopServiceImpl extends ServiceImpl<ShopDao, ShopEntity> implements ShopService {
+
+    @Override
+    public PageUtils queryPage(Map<String, Object> params) {
+        Page<ShopEntity> page = this.selectPage(
+                new Query<ShopEntity>(params).getPage(),
+                new EntityWrapper<ShopEntity>()
+        );
+
+        return new PageUtils(page);
+    }
+
+    @Override
+    public Integer getShopSeqByName(String shopName) {
+        Integer localShopSeq;
+        if (shopName != null) {
+            shopName = shopName.replaceAll("-伊伴", "");
+            ShopEntity localShop = selectOne(new EntityWrapper<ShopEntity>().like("Name", shopName).eq("Del", 0));
+            if (localShop != null) {
+                localShopSeq = localShop.getSeq();
+            } else {
+                localShopSeq = -1;
+            }
+        } else {
+            localShopSeq = -2;
+        }
+        return localShopSeq;
+    }
+
+}

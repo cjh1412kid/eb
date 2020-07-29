@@ -1,0 +1,368 @@
+package com.nuite.modules.sys.service.impl;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.mapper.Wrapper;
+import com.nuite.modules.sys.dao.SaleShoesDetailDao;
+import com.nuite.modules.sys.dao.ShoeViewDao;
+import com.nuite.modules.sys.dao.ShoesDataDailyDetailDao;
+import com.nuite.modules.sys.dao.ShoesDataDao;
+import com.nuite.modules.sys.dao.ShopDao;
+import com.nuite.modules.sys.dao.TryShoesDetailDao;
+import com.nuite.modules.sys.entity.SaleShoesDetailEntity;
+import com.nuite.modules.sys.entity.ShoeViewEntity;
+import com.nuite.modules.sys.entity.ShoesDataDailyDetailEntity;
+import com.nuite.modules.sys.entity.ShoesDataEntity;
+import com.nuite.modules.sys.entity.ShopEntity;
+import com.nuite.modules.sys.entity.TryShoesDetailEntity;
+import com.nuite.modules.sys.service.ReplenishmentService;
+
+
+@Service
+public class ReplenishmentServiceImpl implements ReplenishmentService {
+	
+	 
+    @Autowired
+    private ShoeViewDao shoeViewDao;
+    
+    @Autowired
+    private TryShoesDetailDao tryShoesDetailDao;
+    
+    @Autowired
+    private SaleShoesDetailDao saleShoesDetailDao;
+    
+    @Autowired
+    private ShoesDataDao shoesDataDao;
+    
+	@Autowired
+    private ShoesDataDailyDetailDao shoesDataDailyDetailDao;
+	
+    @Autowired
+    private ShopDao shopDao;
+    
+    
+    
+	
+    //获取指定波次、品类所有鞋子序号
+	private List<Object> getPeriodSxShoesSeqList(Integer periodSeq, String sxValue){
+		Wrapper<ShoeViewEntity> wrapper = new EntityWrapper<ShoeViewEntity>();
+		wrapper.setSqlSelect("Seq AS shoeSeq");
+		wrapper.where("PeriodSeq = {0}", periodSeq);
+		
+		//属性条件判断
+//		春季(春深\春浅)售罄率考核截止到6月30日
+//      夏季(半凉\全凉)售罄率考核截止到9月30日
+//      秋季(秋浅\秋深)售罄率考核截止到12月31日  
+//      冬季(单靴\二棉\大棉)售罄率考核截止到次年3月31日
+		if(sxValue.equals("春深")) {
+			wrapper.where("SX2Value = '深口' AND SX3Value = '春单'");
+		} else if (sxValue.equals("春浅")) {
+			wrapper.where("SX2Value = '浅口' AND SX3Value = '春单'");
+		} else if (sxValue.equals("秋浅")) {
+			wrapper.where("SX2Value = '浅口' AND SX3Value = '秋单'");
+		} else if (sxValue.equals("秋深")) {
+			wrapper.where("SX2Value = '深口' AND SX3Value = '秋单'");
+		} else {
+			wrapper.where("SX3Value = {0}", sxValue);
+		}
+		List<Object> shoesSeqList = shoeViewDao.selectObjs(wrapper);
+		return shoesSeqList;
+	}
+	
+	
+	
+	
+	/**
+	 * 试穿排行
+	 */
+	@Override
+	public List<Map<String, Object>> getTryTop(Integer areaType, Integer areaSeq, Integer periodSeq, String sxValue, Integer dateType, Date startDate,
+			Date endDate, int topNum) {
+		//满足指定波次、品类条件的所有鞋子序号
+		List<Object> shoesSeqList = getPeriodSxShoesSeqList(periodSeq, sxValue);
+		
+		Wrapper<TryShoesDetailEntity> wrapper = new EntityWrapper<TryShoesDetailEntity>();
+		wrapper.setSqlSelect("TOP " + topNum + " RANK() OVER(ORDER BY COUNT (1) DESC) AS tryRank,  ShoeSeq AS shoeSeq, COUNT (1) AS tryCount");
+		wrapper.in("ShoeSeq", shoesSeqList);
+		
+		
+		//区域条件判断
+		if(areaType == 1) { //全国
+			
+		} else if (areaType == 3) {  //分公司
+			wrapper.where("BranchOfficeSeq = {0}", areaSeq);
+		} else {
+			return new ArrayList<Map<String, Object>>();
+		}
+		
+		//时间段条件判断
+		if(dateType == 1) { // 某段时间
+			wrapper.where("DataTime >= {0} AND DataTime < {1}", startDate, endDate);
+		} else if (dateType == 2) { // 累计
+			wrapper.where("DataTime < {0}", endDate);
+		} else {
+			return new ArrayList<Map<String, Object>>();
+		}
+		
+		//波次条件判断
+		wrapper.where("PeriodSeq = {0}", periodSeq);
+		
+		wrapper.groupBy("ShoeSeq")
+		.orderBy("tryCount DESC");
+		return tryShoesDetailDao.selectMaps(wrapper);
+		
+	}
+
+
+
+
+	/**
+	 * 销售排行
+	 */
+	@Override
+	public List<Map<String, Object>> getSaleTop(Integer areaType, Integer areaSeq, Integer periodSeq, String sxValue, Integer dateType,
+			Date startDate, Date endDate, int topNum) {
+		//满足指定波次、品类条件的所有鞋子序号
+		List<Object> shoesSeqList = getPeriodSxShoesSeqList(periodSeq, sxValue);
+		
+		Wrapper<SaleShoesDetailEntity> wrapper = new EntityWrapper<SaleShoesDetailEntity>();
+		wrapper.setSqlSelect("TOP " + topNum + " RANK() OVER(ORDER BY SUM (SaleCount) DESC) AS saleRank, ShoeSeq AS shoeSeq, SUM (SaleCount) AS saleCount");
+		wrapper.in("ShoeSeq", shoesSeqList);
+		
+		//区域条件判断
+		if(areaType == 1) { //全国
+			
+		} else if (areaType == 3) {  //分公司
+			wrapper.where("BranchOfficeSeq = {0}", areaSeq);
+		} else {
+			return new ArrayList<Map<String, Object>>();
+		}
+		
+		//时间段条件判断
+		if (dateType == 1) { // 某一段时间
+			wrapper.where("SaleDate >= {0} AND SaleDate < {1}", startDate, endDate);
+		} else if (dateType == 2) { // 累计
+			wrapper.where("SaleDate < {0}", endDate);
+		} else {
+			return new ArrayList<Map<String, Object>>();
+		}
+		
+		//波次条件判断
+		wrapper.where("PeriodSeq = {0}", periodSeq);
+		
+		wrapper.groupBy("ShoeSeq");
+		wrapper.orderBy("saleCount DESC");
+		
+		return saleShoesDetailDao.selectMaps(wrapper);
+		
+	}
+
+
+
+
+	/**
+	 * 售罄率排行
+	 */
+	@Override
+	public List<Map<String, Object>> getSaleOutRateTop(Integer areaType, Integer areaSeq, Integer periodSeq, String sxValue,
+			int topNum) {
+		//满足指定波次、品类条件的所有鞋子序号
+		List<Object> shoesSeqList = getPeriodSxShoesSeqList(periodSeq, sxValue);
+		
+		//售罄率计算方式： 总销量/总进货量 = 总进货量-总库存/总进货量 
+		Wrapper<ShoesDataEntity> wrapper = new EntityWrapper<ShoesDataEntity>();
+		wrapper.setSqlSelect("TOP " + topNum + "RANK() OVER(ORDER BY CAST((SUM (Num) - SUM (Stock)) AS Float)/NULLIF(SUM (Num), 0) DESC) AS saleoutRank,"
+				+ " ShoeSeq AS shoeSeq, ROUND(CAST((SUM (Num) - SUM (Stock)) AS Float)/NULLIF(SUM (Num), 0), 2) AS selloutRate");
+		wrapper.in("ShoeSeq", shoesSeqList);
+		
+		//区域条件判断
+		if(areaType == 1) { //全国
+			
+		} else if (areaType == 3) {  //分公司
+			wrapper.where("BranchOfficeSeq = {0}", areaSeq);
+		} else {
+			return new ArrayList<Map<String, Object>>();
+		}
+		
+		//波次条件判断
+		wrapper.where("PeriodSeq = {0}", periodSeq);
+		
+		wrapper.groupBy("ShoeSeq");
+		wrapper.orderBy("selloutRate DESC");
+		
+		return shoesDataDao.selectMaps(wrapper);
+	}
+
+
+
+	
+	/**
+	 * 销售强度排行
+	 */
+	@Override
+	public List<Map<String, Object>> getSaleStrengthTop(Integer areaType, Integer areaSeq, Integer periodSeq, String sxValue,
+			Date startDate, Date endDate, int topNum) {
+		
+		//1.取出波次品类的所有货品
+		List<Object> shoesSeqList = getPeriodSxShoesSeqList(periodSeq, sxValue);
+		
+		//2.取出其中区域内一周内有销量的鞋子seq、销量
+		List<Map<String, Object>> hasSaleShoesList = getHasSaleShoesList(areaType, areaSeq, periodSeq, shoesSeqList, startDate, endDate);
+		
+		//3.计算所有有销量鞋子的销售强度
+		for(Map<String, Object> map : hasSaleShoesList) {
+			Integer shoeSeq = (Integer) map.get("shoeSeq");
+			//这一周的销售双数
+			Integer saleCount = (Integer) map.get("saleCount");
+			
+			//计算区域内鞋子上柜门店数量
+	    	Integer cabinetShopNum = getCabinetShopNumBetweenDate(areaType, areaSeq, shoeSeq, startDate, endDate);
+
+	    	// 计算销售强度: 自然周销售双数/7天/上货门店数 
+	    	BigDecimal saleStrength = BigDecimal.ZERO;
+	    	if(saleCount != null && cabinetShopNum != null && cabinetShopNum != 0) {
+	    		saleStrength = BigDecimal.valueOf(saleCount).divide(BigDecimal.valueOf(cabinetShopNum * 7), 2, RoundingMode.HALF_UP);
+	    	}
+	    	map.put("saleStrength", saleStrength);
+		}
+		
+		
+		//4. 手工排序, 取销售强度最大的top20
+		if(hasSaleShoesList != null && hasSaleShoesList.size() > 0) {
+		    List<Map<String, Object>> shoesSaleStrengthDescList = hasSaleShoesList.stream().sorted(
+		    		 Comparator.comparing(this::comparingBySaleStrength).reversed())
+		             .collect(Collectors.toList());
+		    
+    		if(shoesSaleStrengthDescList.size() > topNum) {
+    			shoesSaleStrengthDescList = shoesSaleStrengthDescList.subList(0, topNum);
+    		}
+    		int i = 1;
+    		for(Map<String, Object> map : shoesSaleStrengthDescList) {
+    			map.put("saleStrengthRank", i++);
+    		}
+		    return shoesSaleStrengthDescList;
+		    
+		} else {
+			return new ArrayList<Map<String, Object>>();
+		}
+
+	}
+	
+	
+	 private BigDecimal comparingBySaleStrength(Map<String, Object> map){
+		 return (BigDecimal) map.get("saleStrength");
+	 }
+	 
+	
+	
+	//销售强度：获取区域内所有有销量的鞋子的seq，销量List
+	public List<Map<String, Object>> getHasSaleShoesList(Integer areaType, Integer areaSeq, Integer periodSeq, List<Object> shoesSeqList, Date startDate, Date endDate) {
+		Wrapper<SaleShoesDetailEntity> wrapper = new EntityWrapper<SaleShoesDetailEntity>();
+		wrapper.setSqlSelect("ShoeSeq AS shoeSeq, SUM (SaleCount) AS saleCount");
+		wrapper.in("ShoeSeq", shoesSeqList);
+		
+		//区域条件判断
+		if(areaType == 1) { //全国
+			
+		} else if (areaType == 3) {  //分公司
+			wrapper.where("BranchOfficeSeq = {0}", areaSeq);
+		} else {
+			return new ArrayList<Map<String, Object>>();
+		}
+		wrapper.where("SaleDate >= {0} AND SaleDate < {1}", startDate, endDate);
+		
+		//波次条件判断
+		wrapper.where("PeriodSeq = {0}", periodSeq);
+		
+		wrapper.groupBy("ShoeSeq");
+		wrapper.orderBy("saleCount DESC");
+		
+		List<Map<String, Object>> hasSaleShoesList = saleShoesDetailDao.selectMaps(wrapper);
+		return hasSaleShoesList;
+	}
+	
+	
+	
+	//销售强度：获取区域内某鞋子指定起止时间段的上柜的门店数量
+	public Integer getCabinetShopNumBetweenDate(Integer areaType, Integer areaSeq, Integer shoeSeq, Date startDate, Date endDate) {
+		Wrapper<ShoesDataDailyDetailEntity> wrapper = new EntityWrapper<ShoesDataDailyDetailEntity>();
+		wrapper.setSqlSelect("COUNT (DISTINCT (Shop_Seq))");
+		wrapper.where("Shoes_Seq = {0} AND UpdateTime < {1}", shoeSeq, endDate);
+		
+		//区域条件判断
+		if(areaType == 1) { //全国
+			wrapper.where("Shop_Seq != -1");  //全国范围筛选时，不存在的门店-1剔除
+		} else if (areaType == 3) {  //分公司
+			wrapper.where("BranchOfficeSeq = {0}", areaSeq);
+		} else {
+			return 0;
+		}
+		
+		List<Object> list = shoesDataDailyDetailDao.selectObjs(wrapper);
+		if(list != null && list.size() > 0 && list.get(0) != null) {
+			return (Integer) list.get(0);
+		} else {
+			return 0;
+		}
+	}
+	
+	
+	
+	
+	
+	
+	/**
+	 * 区域内鞋子的库存
+	 */
+	@Override
+	public Integer getShoeStock(Integer areaType, Integer areaSeq, Integer shoeSeq) {
+		Wrapper<ShoesDataEntity> wrapper = new EntityWrapper<ShoesDataEntity>();
+		wrapper.setSqlSelect("SUM (Stock) AS stock").where("shoeSeq = {0}", shoeSeq);
+		//区域条件判断
+		if(areaType == 1) { //全国
+			
+		} else if (areaType == 3) {  //分公司
+			wrapper.where("BranchOfficeSeq = {0}", areaSeq);
+		} else {
+			return 0;
+		}
+		
+		List<Object> list = shoesDataDao.selectObjs(wrapper);
+		if(list != null && list.size() > 0 && list.get(0) != null) {
+			return (Integer) list.get(0);
+		} else {
+			return 0;
+		}
+	}
+
+
+
+
+	/**
+	 * 获取分公司内的门店总数量
+	 */
+	@Override
+	public Integer getBranchofficeShopNum(Integer areaSeq) {
+		Wrapper<ShopEntity> wrapper = new EntityWrapper<ShopEntity>();
+		wrapper.setSqlSelect("COUNT (1)").where("AreaSeq = {0}", areaSeq);
+		List<Object> list = shopDao.selectObjs(wrapper);
+		if(list != null && list.size() > 0 && list.get(0) != null) {
+			return (Integer) list.get(0);
+		} else {
+			return 0;
+		}
+	}
+	
+
+}

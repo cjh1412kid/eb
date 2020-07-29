@@ -1,0 +1,544 @@
+package com.nuite.modules.sys.controller;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFFont;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.alibaba.fastjson.JSONArray;
+import com.nuite.common.utils.PageUtils;
+import com.nuite.common.utils.R;
+import com.nuite.common.validator.ValidatorUtils;
+import com.nuite.modules.sys.dao.AreaDao;
+import com.nuite.modules.sys.dao.PeriodDao;
+import com.nuite.modules.sys.entity.AreaEntity;
+import com.nuite.modules.sys.entity.GoodsInitialDataEntity;
+import com.nuite.modules.sys.entity.PatchEntity;
+import com.nuite.modules.sys.entity.PeriodEntity;
+import com.nuite.modules.sys.entity.ShoeEntity;
+import com.nuite.modules.sys.entity.UserEntity;
+import com.nuite.modules.sys.service.AreaService;
+import com.nuite.modules.sys.service.GoodsInitialDataService;
+import com.nuite.modules.sys.service.PatchDetailService;
+import com.nuite.modules.sys.service.PatchService;
+import com.nuite.modules.sys.service.PeriodService;
+import com.nuite.modules.sys.service.ShoeService;
+
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiParam;
+
+
+/**
+ * 分公司补单表
+ * @author yy
+ * @date 2019-10-21 10:20:05
+ */
+@RestController
+@RequestMapping("sys/patch")
+@Api(tags="分公司补单表接口")
+public class PatchController extends AbstractController{
+	private Logger logger = LoggerFactory.getLogger(getClass());
+	
+    @Autowired
+    private PatchService patchService;
+
+    @Autowired
+    private AreaDao areaDao;
+    
+    @Autowired
+    private PeriodDao periodDao;
+    
+    @Autowired
+    private PeriodService periodService;
+    
+    @Autowired
+    private AreaService areaService;
+    
+    @Autowired
+    private ShoeService shoeService;
+    
+    @Autowired
+    private GoodsInitialDataService goodsInitialDataService;
+    
+    @Autowired
+    private PatchDetailService patchDetailService;
+    
+    /**
+     * 列表
+     */
+    @RequestMapping("/list")
+    public R list(@RequestParam Map<String, Object> params){
+        PageUtils page = patchService.queryPage(params);
+        
+        List<PatchEntity> list = (List<PatchEntity>) page.getList();
+        for(PatchEntity patchEntity : list) {
+        	Integer branchOfficeSeq = patchEntity.getBranchOfficeSeq();
+        	AreaEntity branchOffice = areaDao.selectById(branchOfficeSeq);
+        	patchEntity.setBranchOfficeName(branchOffice.getAreaName());
+        	
+        	Integer areaSeq = patchEntity.getAreaSeq();
+        	AreaEntity area = areaDao.selectById(areaSeq);
+        	patchEntity.setAreaName(area.getAreaName());
+        	
+        	Integer periodSeq = patchEntity.getPeriodSeq();
+        	PeriodEntity periodEntity = periodDao.selectById(periodSeq);
+        	patchEntity.setPeriodName(periodEntity.getName());
+        	
+        	Integer state = patchEntity.getState();
+        	if(state == 0) {
+        		patchEntity.setStateName("待处理");
+        	}
+        }
+        
+        return R.ok().put("page", page);
+    }
+    
+    
+    @RequestMapping("/weeks")
+    public R weeks(){
+    	UserEntity userEntity=getUser();
+        //判断当前用户是否为管理员
+    	List<Object> weeks=new ArrayList<Object>();
+     	if(userEntity.getRoleSeq()==3) {
+     		//区域用户
+     		Integer areaSeq=userEntity.getUserAreaSeq();
+     		weeks=patchService.getWeeks(areaSeq);
+     	}else {
+     		//全国用户
+     		weeks=patchService.getWeeks(null);
+     	}
+         return R.ok(weeks);
+     }
+    
+    @RequestMapping("/period")
+    public R periods(@ApiParam("周次") @RequestParam("week") Integer week){
+    	UserEntity userEntity=getUser();
+        //判断当前用户是否为管理员
+    	List<Object> periods=new ArrayList<Object>();
+     	if(userEntity.getRoleSeq()==3) {
+     		//区域用户
+     		periods=patchService.getPeriods(userEntity.getSeq(),week);
+     	}else {
+     		//全国用户
+     		periods=patchService.getPeriods(null,week);
+     	}
+     	
+     	List<Map<String, Object>> maps=new ArrayList<Map<String,Object>>();
+     	for (Object seq : periods) {
+     		Map<String, Object> map=new HashMap<String, Object>();
+     		PeriodEntity periodEntity=periodService.selectById((Integer)seq);
+     		map.put("seq", seq);
+     		map.put("name", periodEntity.getName());
+     		maps.add(map);
+		}
+         return R.ok(maps);
+     }
+    
+    @RequestMapping("/patchList")
+    public R patchList(@ApiParam("波次") @RequestParam("periodSeq") Integer periodSeq,
+			@ApiParam("品类（中文）") @RequestParam("sxValue") String sxValue,
+			@ApiParam("周次") @RequestParam("week") Integer week
+    		){
+    		//获取区域列表
+    		UserEntity userEntity=getUser();
+    		Integer isAdmin=0;
+    		if(userEntity.getRoleSeq()==3) {
+    			isAdmin=1;
+    		}else {
+    			isAdmin=0;
+    		}
+    		List<Map<String, Object>> areas=new ArrayList<Map<String,Object>>();
+    		if(userEntity.getRoleSeq()==3) {
+    			Integer areaSeq=userEntity.getUserAreaSeq();
+    			AreaEntity areaEntity=areaService.selectById(areaSeq);
+    			Map<String, Object> map=new HashMap<String, Object>();
+    			map.put("BranchOfficeSeq", areaSeq);
+    			map.put("areaName", areaEntity.getAreaName());
+    			areas.add(map);
+    		}else {
+    			areas=patchService.getAreas(periodSeq, sxValue, week);
+    			for (Map<String, Object> map : areas) {
+					Integer areaSeq=(Integer) map.get("BranchOfficeSeq");
+					AreaEntity areaEntity=areaService.selectById(areaSeq);
+					map.put("BranchOfficeSeq", areaSeq);
+	    			map.put("areaName", areaEntity.getAreaName());
+				}
+    		}
+    		
+    		List<Object> ShoeSeqs=new ArrayList<Object>();
+    		//根据条件查询货号
+    		if(userEntity.getRoleSeq()==3) {
+    			ShoeSeqs=patchService.getShoeSeqs(periodSeq, sxValue, week, (Integer)areas.get(0).get("BranchOfficeSeq"));
+    		}else {
+    			ShoeSeqs=patchService.getShoeSeqs(periodSeq, sxValue, week,null);
+    		}
+    		List<Map<String, Object>> goods=new ArrayList<Map<String,Object>>();
+    		if(userEntity.getRoleSeq()==3) {
+    			for (Object shoeSeq : ShoeSeqs) {
+        			Map<String, Object> map=new HashMap<String, Object>();
+        			ShoeEntity shoeEntity=shoeService.selectById((Integer)shoeSeq);
+        			map.put("shoeSeq", shoeSeq);
+        			map.put("shoeID", shoeEntity.getShoeID());
+        			List<PatchEntity> PatchEntitys=new ArrayList<PatchEntity>();
+        			List<PatchEntity> patchEntities=patchService.getPatchs(periodSeq, sxValue, week, (Integer)shoeSeq, (Integer)areas.get(0).get("BranchOfficeSeq"));
+        			if(patchEntities!=null&&patchEntities.size()>0) {
+    					PatchEntitys.add(patchEntities.get(0));
+    					if( patchEntities.get(0).getState()==0) {
+    						map.put("state", "待处理");
+    					}else if( patchEntities.get(0).getState()==1) {
+    						map.put("state", "已确认");
+    					}else {
+    						map.put("state", "已取消");
+    					}
+    				}else {
+    					PatchEntitys.add(new PatchEntity());
+    					map.put("state",  "待处理");
+    				}
+        			map.put("patchNum", PatchEntitys);
+        			goods.add(map);
+    			}
+    		}else {
+    			for (Object shoeSeq : ShoeSeqs) {
+    			Map<String, Object> map=new HashMap<String, Object>();
+    			ShoeEntity shoeEntity=shoeService.selectById((Integer)shoeSeq);
+    			map.put("shoeSeq", shoeSeq);
+    			map.put("shoeID", shoeEntity.getShoeID());
+    			List<PatchEntity> PatchEntitys=new ArrayList<PatchEntity>();
+    			for (Map<String, Object> area : areas) {
+    				List<PatchEntity> patchEntities=patchService.getPatchs(periodSeq, sxValue, week, (Integer)shoeSeq, (Integer)area.get("BranchOfficeSeq"));
+    				if(patchEntities!=null&&patchEntities.size()>0) {
+    					PatchEntitys.add(patchEntities.get(0));
+    				}else {
+    					PatchEntitys.add(new PatchEntity());
+    				}
+    			}
+    			Integer count=0;
+    			for (PatchEntity PatchEntity : PatchEntitys) {
+					Integer patchNum=PatchEntity.getPatchNum();
+					count+=patchNum;
+				}
+    			map.put("total", count);
+    			//根据货号查询预留数据
+    			GoodsInitialDataEntity goodsInitialDataEntity=goodsInitialDataService.getShoeInitialData(1, 0, (int)shoeSeq);
+    			if(goodsInitialDataEntity!=null&&goodsInitialDataEntity.getReserveNum()!=null) {
+    				map.put("reserved", goodsInitialDataEntity.getReserveNum());
+    			}else {
+    				map.put("reserved",0);
+    			}
+    			map.put("patchNum", PatchEntitys);
+    			goods.add(map);
+			}
+    		}
+        return R.ok().put("area", areas).put("goods", goods).put("admin", isAdmin);
+    }
+    
+    /**
+     * 
+     * @param periodSeq
+     * @param sxValue
+     * @param week
+     * @return
+     */
+    @RequestMapping("/exportRecord")
+    public void exportRecord(@ApiParam("波次") @RequestParam("periodSeq") Integer periodSeq,
+			@ApiParam("品类（中文）") @RequestParam("sxValue") String sxValue,
+			@ApiParam("周次") @RequestParam("week") Integer week, HttpServletResponse response
+    		){
+    	
+		ServletOutputStream out = null;
+		List<Object> ShoeSeqs=patchService.getShoeSeqs(periodSeq, sxValue, week,null);
+    	//导出excel
+		try {
+		// 2.创建Excel
+					response.setCharacterEncoding("UTF-8");
+					response.setHeader("content-Type", "application/vnd.ms-excel");
+					response.setHeader("Content-Disposition",
+							"attachment;filename=" + URLEncoder.encode("补单汇总.xlsx", "UTF-8"));
+
+					// 创建excel2007工作簿
+					HSSFWorkbook	wb = new HSSFWorkbook();
+					//列标题单元格样式
+					HSSFCellStyle headCellStyle = wb.createCellStyle();
+					//设置居中:
+					headCellStyle.setAlignment(HSSFCellStyle.ALIGN_CENTER); // 居中
+					headCellStyle.setVerticalAlignment(HSSFCellStyle.VERTICAL_CENTER);//垂直居中
+					//设置字体:
+					HSSFFont font = wb.createFont();
+					font.setFontName("仿宋_GB2312");
+					font.setBoldweight(HSSFFont.BOLDWEIGHT_BOLD);//粗体显示
+					font.setFontHeightInPoints((short) 12);
+					headCellStyle.setFont(font);//选择需要用到的字体格式
+
+					//内容单元格样式
+					HSSFCellStyle contentCellStyle = wb.createCellStyle();
+					//设置居中:
+					contentCellStyle.setAlignment(HSSFCellStyle.ALIGN_CENTER); // 居中
+					contentCellStyle.setVerticalAlignment(HSSFCellStyle.VERTICAL_CENTER);//垂直居中	
+					
+					//汇总数据
+					HSSFSheet sheet = wb.createSheet("汇总");
+					// 默认单元格宽度和高度
+					sheet.setDefaultColumnWidth(8);
+					sheet.setDefaultRowHeightInPoints(16);
+
+					// 不同列的宽度
+					sheet.setColumnWidth(0, 18 * 256);
+					//根据波次，品类，周次获取所有的SizeAllotTemplate_Seq
+					List<Map<String, Object>> sizeAllotTemplates=patchDetailService.getAllSizeAllotTemplate(periodSeq, sxValue, week,null);
+					HSSFRow row = sheet.createRow(0);
+					row.setHeightInPoints(24);
+
+					List<String> title = new ArrayList<>(30);
+					title.add("货号");
+					title.add("预留");
+					title.add("汇总");
+					for(Map<String, Object> sizeAllotTemplate : sizeAllotTemplates) {
+						title.add(sizeAllotTemplate.get("name").toString());
+					}
+					for (int i = 0; i < title.size(); i++) {
+						HSSFCell cell = row.createCell(i);
+						cell.setCellStyle(headCellStyle);
+						cell.setCellValue(title.get(i));
+					}
+					
+					for (int i = 0; i < ShoeSeqs.size(); i++) {
+						Object shoeSeq=ShoeSeqs.get(i);
+						 row = sheet.createRow(i+1);
+						row.setHeightInPoints(24);
+						//根据鞋子序号获取货号，预留，汇总，模板信息
+						//货号
+						ShoeEntity shoeEntity=shoeService.selectById((Integer)shoeSeq);
+						List<String> body = new ArrayList<>(30);
+						body.add(shoeEntity.getName());
+						//预留
+						GoodsInitialDataEntity goodsInitialDataEntity=goodsInitialDataService.getShoeInitialData(1, 0, (int)shoeSeq);
+						if(goodsInitialDataEntity!=null&&goodsInitialDataEntity.getReserveNum()!=null) {
+							body.add(goodsInitialDataEntity.getReserveNum().toString());
+						}else {
+							body.add("");
+						}
+						//汇总数据
+						Integer allBoxCount=patchService.allPatchNum((int)shoeSeq,null);
+						if(allBoxCount!=null) {
+							body.add(allBoxCount.toString());
+						}else{
+							body.add("");
+						}
+						//模板信息
+						for (int j = 0; j < sizeAllotTemplates.size(); j++) {
+							Integer sizeAllotTemplateSeq=(Integer) sizeAllotTemplates.get(j).get("seq");
+							Integer sizeNum=patchDetailService.getAllData((int)shoeSeq, sizeAllotTemplateSeq,null);
+							if(sizeNum!=null) {
+								body.add(sizeNum.toString());
+							}else {
+								body.add("");
+							}
+						}
+						for (int j = 0; j < body.size(); j++) {
+							HSSFCell cell = row.createCell(j);
+							cell.setCellStyle(contentCellStyle);
+							cell.setCellValue(body.get(j));
+						}
+						
+					}
+					List<Map<String, Object>>	areas=patchService.getAreas(periodSeq, sxValue, week);
+					for (Map<String, Object> map : areas) {
+						Integer areaSeq=(Integer) map.get("BranchOfficeSeq");
+						AreaEntity areaEntity=areaService.selectById(areaSeq);
+						ShoeSeqs=patchService.getShoeSeqs(periodSeq, sxValue, week,areaSeq);
+						sheet = wb.createSheet(areaEntity.getAreaName());
+						// 默认单元格宽度和高度
+						sheet.setDefaultColumnWidth(8);
+						sheet.setDefaultRowHeightInPoints(16);
+
+						// 不同列的宽度
+						sheet.setColumnWidth(0, 18 * 256);
+						
+						sizeAllotTemplates=patchDetailService.getAllSizeAllotTemplate(periodSeq, sxValue, week,areaEntity.getSeq());
+						row = sheet.createRow(0);
+						row.setHeightInPoints(24);
+
+						 title = new ArrayList<>(30);
+						title.add("货号");
+						title.add("汇总");
+						for(Map<String, Object> sizeAllotTemplate : sizeAllotTemplates) {
+							title.add(sizeAllotTemplate.get("name").toString());
+						}
+						for (int i = 0; i < title.size(); i++) {
+							HSSFCell cell = row.createCell(i);
+							cell.setCellStyle(headCellStyle);
+							cell.setCellValue(title.get(i));
+						}
+						for (int i = 0; i < ShoeSeqs.size(); i++) {
+							Object shoeSeq=ShoeSeqs.get(i);
+							 row = sheet.createRow(i+1);
+							row.setHeightInPoints(24);
+							//根据鞋子序号获取货号，预留，汇总，模板信息
+							//货号
+							ShoeEntity shoeEntity=shoeService.selectById((Integer)shoeSeq);
+							List<String> body = new ArrayList<>(30);
+							body.add(shoeEntity.getName());
+							//汇总数据
+							Integer allBoxCount=patchService.allPatchNum((int)shoeSeq,areaSeq);
+							if(allBoxCount!=null) {
+								body.add(allBoxCount.toString());
+							}else{
+								body.add("");
+							}
+							//模板信息
+							for (int j = 0; j < sizeAllotTemplates.size(); j++) {
+								Integer sizeAllotTemplateSeq=(Integer) sizeAllotTemplates.get(j).get("seq");
+								Integer sizeNum=patchDetailService.getAllData((int)shoeSeq, sizeAllotTemplateSeq,areaSeq);
+								if(sizeNum!=null) {
+									body.add(sizeNum.toString());
+								}else {
+									body.add("");
+								}
+							}
+							for (int j = 0; j < body.size(); j++) {
+								HSSFCell cell = row.createCell(j);
+								cell.setCellStyle(contentCellStyle);
+								cell.setCellValue(body.get(j));
+							}
+							
+						}
+						
+					}
+					out = response.getOutputStream();
+					wb.write(out);
+					out.flush();
+					
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			logger.error("补单汇总: 文件名编码异常");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("补单汇总: " + e.getMessage(), e);
+		}
+		
+		
+    	
+    	
+    }
+
+    /**
+     * 信息
+     */
+    @RequestMapping("/info/{seq}")
+    public R info(@PathVariable("seq") Integer seq){
+        PatchEntity patch = patchService.selectById(seq);
+
+        return R.ok().put("patch", patch);
+    }
+
+    /**
+     * 保存
+     */
+    @RequestMapping("/save")
+    public R save(@RequestBody PatchEntity patch){
+        patchService.insert(patch);
+
+        return R.ok();
+    }
+
+    /**
+     * 修改
+     */
+    @RequestMapping("/update")
+    public R update(@RequestBody PatchEntity patch){
+        ValidatorUtils.validateEntity(patch);
+        patchService.updateAllColumnById(patch);//全部更新
+        
+        return R.ok();
+    }
+
+    /**
+     * 删除
+     */
+    @RequestMapping("/delete")
+    public R delete(@RequestBody Integer[] seqs){
+        patchService.deleteBatchIds(Arrays.asList(seqs));
+
+        return R.ok();
+    }
+    @PostMapping("updateAll")
+    public R updateAll(@RequestBody PatchEntity[] PatchEntitys ) {
+    	for (PatchEntity patchEntity : PatchEntitys) {
+    		patchEntity.setState(1);
+    		patchService.insertOrUpdate(patchEntity);
+		}
+    	return R.ok();
+    }
+    
+    
+	/**
+     * 确认提交补单
+     */
+    @PostMapping("submit")
+    public R submit(@ApiParam("年份") @RequestParam("selectPeriodName") String selectPeriodName,
+    		@ApiParam("波次") @RequestParam("periodSeq") Integer periodSeq,
+			@ApiParam("品类（中文）") @RequestParam("sxValue") String sxValue,
+			@ApiParam("开始时间") @RequestParam("startDate") Date startDate,
+			@ApiParam("结束时间") @RequestParam("endDate") Date endDate,
+			@ApiParam("鞋子seq:货号:补单量") @RequestParam("shoeAndNum") String shoeAndNum,
+			HttpServletRequest request) {
+    	try {
+    		UserEntity loginUser = getUser();
+	    	if(loginUser.getRoleSeq() != 3) {
+	    		return R.error("只有分公司账号可以提交补单");
+	    	}
+	    	
+	    	Integer branchOfficeSeq = loginUser.getUserAreaSeq();
+	    	Integer areaSeq = patchService.getAreaSeqByBranchOfficeSeq(branchOfficeSeq);
+    		
+    		Integer year = Integer.parseInt(selectPeriodName.substring(0, 4));
+    		
+    		//获取日期是一年的第几周
+    		Calendar calendar = Calendar.getInstance();
+    		calendar.setFirstDayOfWeek(Calendar.MONDAY);
+    		calendar.setTime(startDate);
+    		Integer week = calendar.get(Calendar.WEEK_OF_YEAR);
+    		
+    		JSONArray shoeAndNumList = JSONArray.parseArray(shoeAndNum);
+    		
+    		patchService.submit(year, week, startDate, endDate, areaSeq, branchOfficeSeq, loginUser.getSeq(), periodSeq, sxValue, shoeAndNumList);
+    		
+            return R.ok("提交成功");
+    	} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+    }
+    
+    
+
+}

@@ -1,0 +1,174 @@
+package com.nuite.modules.sys.controller;
+
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.alibaba.fastjson.JSONArray;
+import com.nuite.common.utils.PageUtils;
+import com.nuite.common.utils.R;
+import com.nuite.common.validator.ValidatorUtils;
+import com.nuite.modules.sys.dao.AreaDao;
+import com.nuite.modules.sys.dao.PeriodDao;
+import com.nuite.modules.sys.entity.AreaEntity;
+import com.nuite.modules.sys.entity.PatchEntity;
+import com.nuite.modules.sys.entity.PeriodEntity;
+import com.nuite.modules.sys.entity.UserEntity;
+import com.nuite.modules.sys.service.PatchService;
+
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiParam;
+
+
+/**
+ * 分公司补单表
+ * @author yy
+ * @date 2019-10-21 10:20:05
+ */
+@RestController
+@RequestMapping("sys/patch")
+@Api(tags="分公司补单表接口")
+public class PatchController extends AbstractController{
+	private Logger logger = LoggerFactory.getLogger(getClass());
+	
+    @Autowired
+    private PatchService patchService;
+
+    @Autowired
+    private AreaDao areaDao;
+    
+    @Autowired
+    private PeriodDao periodDao;
+    
+    
+    /**
+     * 列表
+     */
+    @RequestMapping("/list")
+    public R list(@RequestParam Map<String, Object> params){
+        PageUtils page = patchService.queryPage(params);
+        
+        List<PatchEntity> list = (List<PatchEntity>) page.getList();
+        for(PatchEntity patchEntity : list) {
+        	Integer branchOfficeSeq = patchEntity.getBranchOfficeSeq();
+        	AreaEntity branchOffice = areaDao.selectById(branchOfficeSeq);
+        	patchEntity.setBranchOfficeName(branchOffice.getAreaName());
+        	
+        	Integer areaSeq = patchEntity.getAreaSeq();
+        	AreaEntity area = areaDao.selectById(areaSeq);
+        	patchEntity.setAreaName(area.getAreaName());
+        	
+        	Integer periodSeq = patchEntity.getPeriodSeq();
+        	PeriodEntity periodEntity = periodDao.selectById(periodSeq);
+        	patchEntity.setPeriodName(periodEntity.getName());
+        	
+        	Integer state = patchEntity.getState();
+        	if(state == 0) {
+        		patchEntity.setStateName("待处理");
+        	}
+        }
+        
+        return R.ok().put("page", page);
+    }
+
+
+    /**
+     * 信息
+     */
+    @RequestMapping("/info/{seq}")
+    public R info(@PathVariable("seq") Integer seq){
+        PatchEntity patch = patchService.selectById(seq);
+
+        return R.ok().put("patch", patch);
+    }
+
+    /**
+     * 保存
+     */
+    @RequestMapping("/save")
+    public R save(@RequestBody PatchEntity patch){
+        patchService.insert(patch);
+
+        return R.ok();
+    }
+
+    /**
+     * 修改
+     */
+    @RequestMapping("/update")
+    public R update(@RequestBody PatchEntity patch){
+        ValidatorUtils.validateEntity(patch);
+        patchService.updateAllColumnById(patch);//全部更新
+        
+        return R.ok();
+    }
+
+    /**
+     * 删除
+     */
+    @RequestMapping("/delete")
+    public R delete(@RequestBody Integer[] seqs){
+        patchService.deleteBatchIds(Arrays.asList(seqs));
+
+        return R.ok();
+    }
+    
+    
+    
+	/**
+     * 确认提交补单
+     */
+    @PostMapping("submit")
+    public R submit(@ApiParam("年份") @RequestParam("selectPeriodName") String selectPeriodName,
+    		@ApiParam("波次") @RequestParam("periodSeq") Integer periodSeq,
+			@ApiParam("品类（中文）") @RequestParam("sxValue") String sxValue,
+			@ApiParam("开始时间") @RequestParam("startDate") Date startDate,
+			@ApiParam("结束时间") @RequestParam("endDate") Date endDate,
+			@ApiParam("鞋子seq:货号:补单量") @RequestParam("shoeAndNum") String shoeAndNum,
+			HttpServletRequest request) {
+    	try {
+    		UserEntity loginUser = getUser();
+	    	if(loginUser.getRoleSeq() != 3) {
+	    		return R.error("只有分公司账号可以提交补单");
+	    	}
+	    	
+	    	Integer branchOfficeSeq = loginUser.getUserAreaSeq();
+	    	Integer areaSeq = patchService.getAreaSeqByBranchOfficeSeq(branchOfficeSeq);
+    		
+    		Integer year = Integer.parseInt(selectPeriodName.substring(0, 4));
+    		
+    		//获取日期是一年的第几周
+    		Calendar calendar = Calendar.getInstance();
+    		calendar.setFirstDayOfWeek(Calendar.MONDAY);
+    		calendar.setTime(startDate);
+    		Integer week = calendar.get(Calendar.WEEK_OF_YEAR);
+    		
+    		JSONArray shoeAndNumList = JSONArray.parseArray(shoeAndNum);
+    		
+    		patchService.submit(year, week, startDate, endDate, areaSeq, branchOfficeSeq, loginUser.getSeq(), periodSeq, sxValue, shoeAndNumList);
+    		
+            return R.ok("提交成功");
+    	} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+    }
+    
+    
+
+}

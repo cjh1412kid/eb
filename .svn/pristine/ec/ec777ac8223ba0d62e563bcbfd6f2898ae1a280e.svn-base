@@ -1,0 +1,277 @@
+package com.nuite.modules.sys.entity;
+
+import com.baomidou.mybatisplus.annotations.TableId;
+import com.baomidou.mybatisplus.annotations.TableName;
+import com.baomidou.mybatisplus.annotations.TableField;
+import com.baomidou.mybatisplus.annotations.TableLogic;
+
+import java.io.Serializable;
+import java.util.Date;
+
+/**
+ * 补单配置表
+ * @author yy
+ * @date 2019-10-12 14:33:01
+ */
+@TableName("NWReplenishment_DeadlineRaiseRate")
+public class DeadlineRaiseRateEntity implements Serializable {
+	private static final long serialVersionUID = 1L;
+
+	/**
+	 * 序号(主键)
+	 */
+	@TableId(value = "Seq")
+	private Integer seq;
+	/**
+	 * 年份
+	 */
+	@TableField(value = "Year")
+	private Integer year;
+	/**
+	 * 春深
+	 */
+	@TableField(value = "SpringDeep")
+	private Date springDeep;
+	/**
+	 * 春浅
+	 */
+	@TableField(value = "SpringShallow")
+	private Date springShallow;
+	/**
+	 * 半凉
+	 */
+	@TableField(value = "HalfCold")
+	private Date halfCold;
+	/**
+	 * 全凉
+	 */
+	@TableField(value = "FullCold")
+	private Date fullCold;
+	/**
+	 * 秋浅
+	 */
+	@TableField(value = "AutumnShallow")
+	private Date autumnShallow;
+	/**
+	 * 秋深
+	 */
+	@TableField(value = "AutumnDeep")
+	private Date autumnDeep;
+	/**
+	 * 单靴
+	 */
+	@TableField(value = "SingleBoot")
+	private Date singleBoot;
+	/**
+	 * 二棉
+	 */
+	@TableField(value = "TwoCotton")
+	private Date twoCotton;
+	/**
+	 * 大棉
+	 */
+	@TableField(value = "BigCotton")
+	private Date bigCotton;
+	/**
+	 * 增长率
+	 */
+	@TableField(value = "RaiseRate")
+	private Integer raiseRate;
+	/**
+	 * 销售对比最少销售天数
+	 */
+	@TableField(value = "MinSalesDays")
+	private Integer minSalesDays;
+	/**
+	 * 入库时间
+	 */
+	@TableField(value = "InputTime")
+	private Date inputTime;
+	/**
+	 * 删除标识( 0 : 未删除、  1 : 删除 )
+	 */
+	@TableLogic
+	@TableField(value = "Del")
+	private Integer del;
+
+	/**
+	 * 设置：序号(主键)
+	 */
+	public void setSeq(Integer seq) {
+		this.seq = seq;
+	}
+	/**
+	 * 获取：序号(主键)
+	 */
+	public Integer getSeq() {
+		return seq;
+	}
+	/**
+	 * 设置：年份
+	 */
+	public void setYear(Integer year) {
+		this.year = year;
+	}
+	/**
+	 * 获取：年份
+	 */
+	public Integer getYear() {
+		return year;
+	}
+	/**
+	 * 设置：春深
+	 */
+	public void setSpringDeep(Date springDeep) {
+		this.springDeep = springDeep;
+	}
+	/**
+	 * 获取：春深
+	 */
+	public Date getSpringDeep() {
+		return springDeep;
+	}
+	/**
+	 * 设置：春浅
+	 */
+	public void setSpringShallow(Date springShallow) {
+		this.springShallow = springShallow;
+	}
+	/**
+	 * 获取：春浅
+	 */
+	public Date getSpringShallow() {
+		return springShallow;
+	}
+	/**
+	 * 设置：半凉
+	 */
+	public void setHalfCold(Date halfCold) {
+		this.halfCold = halfCold;
+	}
+	/**
+	 * 获取：半凉
+	 */
+	public Date getHalfCold() {
+		return halfCold;
+	}
+	/**
+	 * 设置：全凉
+	 */
+	public void setFullCold(Date fullCold) {
+		this.fullCold = fullCold;
+	}
+	/**
+	 * 获取：全凉
+	 */
+	public Date getFullCold() {
+		return fullCold;
+	}
+	/**
+	 * 设置：秋浅
+	 */
+	public void setAutumnShallow(Date autumnShallow) {
+		this.autumnShallow = autumnShallow;
+	}
+	/**
+	 * 获取：秋浅
+	 */
+	public Date getAutumnShallow() {
+		return autumnShallow;
+	}
+	/**
+	 * 设置：秋深
+	 */
+	public void setAutumnDeep(Date autumnDeep) {
+		this.autumnDeep = autumnDeep;
+	}
+	/**
+	 * 获取：秋深
+	 */
+	public Date getAutumnDeep() {
+		return autumnDeep;
+	}
+	/**
+	 * 设置：单靴
+	 */
+	public void setSingleBoot(Date singleBoot) {
+		this.singleBoot = singleBoot;
+	}
+	/**
+	 * 获取：单靴
+	 */
+	public Date getSingleBoot() {
+		return singleBoot;
+	}
+	/**
+	 * 设置：二棉
+	 */
+	public void setTwoCotton(Date twoCotton) {
+		this.twoCotton = twoCotton;
+	}
+	/**
+	 * 获取：二棉
+	 */
+	public Date getTwoCotton() {
+		return twoCotton;
+	}
+	/**
+	 * 设置：大棉
+	 */
+	public void setBigCotton(Date bigCotton) {
+		this.bigCotton = bigCotton;
+	}
+	/**
+	 * 获取：大棉
+	 */
+	public Date getBigCotton() {
+		return bigCotton;
+	}
+	/**
+	 * 设置：增长率
+	 */
+	public void setRaiseRate(Integer raiseRate) {
+		this.raiseRate = raiseRate;
+	}
+	/**
+	 * 获取：增长率
+	 */
+	public Integer getRaiseRate() {
+		return raiseRate;
+	}
+	/**
+	 * 设置：销售对比最少销售天数
+	 */
+	public void setMinSalesDays(Integer minSalesDays) {
+		this.minSalesDays = minSalesDays;
+	}
+	/**
+	 * 获取：销售对比最少销售天数
+	 */
+	public Integer getMinSalesDays() {
+		return minSalesDays;
+	}
+	/**
+	 * 设置：入库时间
+	 */
+	public void setInputTime(Date inputTime) {
+		this.inputTime = inputTime;
+	}
+	/**
+	 * 获取：入库时间
+	 */
+	public Date getInputTime() {
+		return inputTime;
+	}
+	/**
+	 * 设置：删除标识( 0 : 未删除、  1 : 删除 )
+	 */
+	public void setDel(Integer del) {
+		this.del = del;
+	}
+	/**
+	 * 获取：删除标识( 0 : 未删除、  1 : 删除 )
+	 */
+	public Integer getDel() {
+		return del;
+	}
+}

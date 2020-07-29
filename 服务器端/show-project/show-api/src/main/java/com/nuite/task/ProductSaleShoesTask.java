@@ -1,0 +1,194 @@
+package com.nuite.task;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import com.nuite.common.utils.RedisUtils;
+import com.nuite.entity.AreaEntity;
+import com.nuite.entity.PeriodEntity;
+import com.nuite.entity.ShopEntity;
+import com.nuite.service.AreaService;
+import com.nuite.service.PeriodService;
+import com.nuite.service.ProductSaleShoesService;
+import com.nuite.service.ShopService;
+import com.nuite.service.UserModuleSubscribedService;
+import com.nuite.utils.ProductModuleEnum;
+import com.nuite.utils.RedisKeys;
+
+import net.sf.json.JSONArray;
+
+
+@Component("productSaleShoesTask")
+public class ProductSaleShoesTask{
+	private Logger logger = LoggerFactory.getLogger(getClass());
+	
+    @Autowired
+    private ProductSaleShoesService productSaleShoesService;
+    
+    @Autowired
+    private RedisUtils redisUtils;
+    
+    @Autowired
+    private UserModuleSubscribedService userModuleSubscribedService;
+    
+    @Autowired
+    private PeriodService periodService;
+    
+    @Autowired
+    private ShopService shopService;
+
+    @Autowired
+    private AreaService areaService;
+    
+    
+    
+//  result：[{
+//  "total": 300万,
+//  "lastyearTotal": 300万,
+//  "nextAreaSale": [{
+//			     "seq": 1,
+//			     "areaName": "全国",
+//			     "sales": 50万,
+//			     "lastyearSales": 50万,
+//			     "type": 1
+//			     },{
+//					
+//			     }]
+//}]
+    
+	/**
+     * 2019产品版：销售额统计
+     */
+	@Scheduled(cron = "0 30 11 * * ?" )
+    public void statistics() {
+		Date startTaskTime = new Date();
+		logger.info("###ProductSaleShoesTask statistics 销售额统计方法，开始执行: " + startTaskTime);
+    	try {
+    		//所有开始时间 : 1:最近一日 7:上一周 30:当月 365:当年
+    		Integer[] datediffArr = {1,7,30,365};
+    		//所有2018年之后的波次 + 一个序号为0的波次用来表示不传波次
+    		List<PeriodEntity> periodList = periodService.getPeriodsByBrandSeqAfterYear(1, 2018);
+    		PeriodEntity period0 = new PeriodEntity();
+    		period0.setSeq(0);
+    		periodList.add(period0);
+    		
+    		
+    		//获取所有订阅了销售额统计模块的所有区域（这里与用户无关，不同用户选择同一区域订阅同一模块，看到的数据是一样的）
+    		List<Map<String, Object>> areaList = userModuleSubscribedService.getModuleSubscribedAreaByModuleSeq(ProductModuleEnum.SALE_SALESHOESDETAIL.getModuleSeq());
+	    	for(Map<String, Object> areaMap : areaList) {
+	    		Integer areaType = (Integer) areaMap.get("AreaType");
+	    		Integer areaSeq = (Integer) areaMap.get("AreaSeq");
+	    		
+		    	
+		    	//循环波次
+		    	for(PeriodEntity periodEntity : periodList) {
+			    	Integer periodSeq = periodEntity.getSeq();
+			    	
+			    	//循环时间段
+					for(Integer datediff : datediffArr) {
+						List<Map<String, Object>> resultList = new ArrayList<Map<String, Object>>();
+						Map<String, Object> resultMap = new HashMap<String, Object>();
+						
+						// 区域内时间段内的销售额   TODO 可存入redis，直接从redis获取 （这个速度很快，可以不用）
+						BigDecimal totalSale = productSaleShoesService.getAreaSale(areaType, areaSeq, periodSeq, datediff);
+						resultMap.put("totalSale", totalSale);
+						
+						// 区域内去年同期时间段内的销售额   TODO 可存入redis，直接从redis获取（这个速度很快，可以不用）
+						BigDecimal lastyearTotalSale = productSaleShoesService.getAreaSaleLastYear(areaType, areaSeq, periodSeq, datediff);
+						resultMap.put("lastyearTotalSale", lastyearTotalSale);
+						
+						// 计算同比变化
+						BigDecimal yearChange = BigDecimal.ZERO;
+						if(totalSale != null && lastyearTotalSale != null && lastyearTotalSale.compareTo(BigDecimal.ZERO) > 0) {
+							yearChange = totalSale.subtract(lastyearTotalSale).multiply(BigDecimal.valueOf(100)).divide(lastyearTotalSale, 1, RoundingMode.HALF_UP);
+						}
+						resultMap.put("yearChange", yearChange);
+						
+						
+						// 区域内所有下一级区域的销售额 （门店就是自己一条记录）
+			    		List<Map<String, Object>> nextAreaSaleList = new ArrayList<Map<String, Object>>();
+			    		//全国
+			    		if(areaType == 1) {
+			    			//查询品牌所有大区
+			    			List<AreaEntity> firstAreaList = areaService.getFirstAreasByBrandSeq(1);
+			    			for(AreaEntity areaEntity : firstAreaList) {
+			    				Map<String, Object> map = new HashMap<String, Object>();
+			    				map.put("areaName", areaEntity.getAreaName());
+			    				BigDecimal sales = productSaleShoesService.getAreaSale(2, areaEntity.getSeq(), periodSeq, datediff);
+			    				map.put("sale", sales);
+			    				BigDecimal lastyearSales = productSaleShoesService.getAreaSaleLastYear(2, areaEntity.getSeq(), periodSeq, datediff);
+			    				map.put("lastyearSale", lastyearSales);
+			    				nextAreaSaleList.add(map);
+			    			}
+			    			
+			    		} else if(areaType == 2) { //大区
+			    			//获取大区内所有分公司
+			    			List<AreaEntity> branchOfficeList = areaService.getSecondAreasByParentSeq(areaSeq);
+			    			for(AreaEntity areaEntity : branchOfficeList) {
+			    				Map<String, Object> map = new HashMap<String, Object>();
+			    				map.put("areaName", areaEntity.getAreaName());
+			    				BigDecimal sales = productSaleShoesService.getAreaSale(3, areaEntity.getSeq(), periodSeq, datediff);
+			    				map.put("sale", sales);
+			    				BigDecimal lastyearSales = productSaleShoesService.getAreaSaleLastYear(3, areaEntity.getSeq(), periodSeq, datediff);
+			    				map.put("lastyearSale", lastyearSales);
+			    				nextAreaSaleList.add(map);
+			    			}
+
+			    		} else if(areaType == 3) { //分公司
+			    			//根据分公司序号查询门店
+			    			List<ShopEntity> shopList = shopService.getShopsByAreaSeq(areaSeq);
+			    			for(ShopEntity shopEntity : shopList) {
+			    				Map<String, Object> map = new HashMap<String, Object>();
+			    				map.put("areaName", shopEntity.getName());
+			    				BigDecimal sales = productSaleShoesService.getAreaSale(4, shopEntity.getSeq(), periodSeq, datediff);
+			    				map.put("sale", sales);
+			    				BigDecimal lastyearSales = productSaleShoesService.getAreaSaleLastYear(4, shopEntity.getSeq(), periodSeq, datediff);
+			    				map.put("lastyearSale", lastyearSales);
+			    				nextAreaSaleList.add(map);
+			    			}
+			    			
+			    		} else if(areaType == 4) { //门店
+				    		ShopEntity shopEntity = shopService.selectById(areaSeq);
+				    		
+		    				Map<String, Object> map = new HashMap<String, Object>();
+		    				map.put("areaName", shopEntity.getName());
+		    				BigDecimal sales = productSaleShoesService.getAreaSale(4, shopEntity.getSeq(), periodSeq, datediff);
+		    				map.put("sale", sales);
+		    				BigDecimal lastyearSales = productSaleShoesService.getAreaSaleLastYear(4, shopEntity.getSeq(), periodSeq, datediff);
+		    				map.put("lastyearSale", lastyearSales);
+		    				nextAreaSaleList.add(map);
+			    		}
+			    		resultMap.put("nextAreaSale", nextAreaSaleList);
+			    		
+						resultList.add(resultMap);
+						
+						/** 存入Redis **/
+						String redisKey = RedisKeys.getProductModuleRedisKey(ProductModuleEnum.SALE_SALESHOESDETAIL.getModuleSeq(), areaType, areaSeq, datediff, periodSeq);
+						redisUtils.setNotExpire(redisKey, JSONArray.fromObject(resultList));
+						/** 存入Redis **/
+					}
+				}
+	    		
+	    	}
+    		
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+		}
+		Date endTaskTime = new Date();
+		logger.info("######ProductSaleShoesTask statistics 销售额统计方法， 执行完毕: " + endTaskTime + "本次总计耗时:" + (endTaskTime.getTime() - startTaskTime.getTime()));
+    }
+    
+    
+}

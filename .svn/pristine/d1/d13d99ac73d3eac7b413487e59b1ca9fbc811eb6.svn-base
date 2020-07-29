@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.sys.dao.PurchasePlanDao">
+
+	<select id="getAllSXValueByYear" resultType="java.util.Map">
+		SELECT PeriodSeq as periodSeq,SXValue as sXValue FROM [dbo].[NWReplenishment_PurchasePlan] WHERE Year=#{year} AND Del=0 GROUP BY PeriodSeq,SXValue
+	</select>
+	<select id="getALLPurchasePlansByYearAndSXValue" resultType="com.nuite.modules.sys.entity.PurchasePlanEntity">
+		SELECT * FROM [dbo].[NWReplenishment_PurchasePlan] WHERE Year=#{year} AND SXValue=#{SXValue} AND PeriodSeq=#{periodSeq} AND Del=0 ORDER BY PeriodSeq
+	</select>
+</mapper>
